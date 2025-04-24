@@ -6,16 +6,15 @@ import pages from '#web/index.js'
 import react_plugin from '@vitejs/plugin-react-swc'
 
 const module_template = `
-import { StrictMode } from 'react'
 import { renderToString } from 'react-dom/server'
 import { createRoot } from 'react-dom/client'
 import App from '#web/<!--app-component-path-->'
 
 if(typeof document != 'undefined'){
-  createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>)
+  createRoot(document.getElementById('root')).render(<App />)
 }
 export function render(url) {
-  return renderToString(<StrictMode><App /></StrictMode>)
+  return renderToString(<App />)
 }
 `
 
