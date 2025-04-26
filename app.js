@@ -5,10 +5,12 @@ import koa_compress from 'koa-compress'
 import koa_json from 'koa-json'
 import koa_body from 'koa-body'
 import koa_session from 'koa-session'
+import { createServer as createViteServer } from 'vite'
+import koaConnect from 'koa-connect'
+import react_plugin from '@vitejs/plugin-react-swc'
 
 import routers from './src/api/index.js'
 import middlewares from './src/middlewares/index.js'
-import vite from './src/vite.js'
 
 const app = new Koa()
 app.use(koa_etag())
@@ -33,10 +35,12 @@ app.use(koa_body.koaBody({
   }
 }))
 app.use(koa_static('./web/public'), { maxAge : 7 * 24 * 60 * 60 * 1000 })
-app.use(koa_session({key: 'SESSIONID', overwrite: true, rolling: true, renew: true, maxAge: 60 * 60 * 1000}, app))
+app.use(koa_session({key: 'KSESSIONID', overwrite: true, rolling: true, renew: true, signed:false, maxAge: 60 * 60 * 1000}, app))
+
+app.vite = await createViteServer({ server: { middlewareMode: true }, appType: 'custom', plugins: [react_plugin()] })
+app.use(koaConnect(app.vite.middlewares))
 
 middlewares.forEach(middleware => middleware && app.use(middleware))
-vite(app)
 
 routers.forEach(config => {
   const module = config.module

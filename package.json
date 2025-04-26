@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "imports": {
-    "#web/*": "./web/*",
-    "#src/*": "./src/*"
+    "#/*": "./*",
+    "#config/*": "./config/*"
   },
   "scripts": {
     "dev": "set NODE_ENV=DEV && nodemon --watch",
