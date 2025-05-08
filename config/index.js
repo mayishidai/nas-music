@@ -1,4 +1,4 @@
-const ENV = process.env.NODE_ENV.trim().toLowerCase()
+const ENV = process.env.NODE_ENV?.trim().toLowerCase()
 
 const loadConfig = async (env) => {
   if(env){

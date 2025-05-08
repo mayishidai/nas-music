@@ -9,8 +9,7 @@
   },
   "scripts": {
     "dev": "set NODE_ENV=DEV && nodemon --watch",
-    "start": "node app.js",
-    "build": "vite build"
+    "start": "node app.js"
   },
   "dependencies": {
     "@alifd/next": "^1.27.32",
@@ -23,9 +22,8 @@
     "koa-session": "^7.0.2",
     "koa-static": "^5.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
+    "react-dom": "^19.0.0",
+    "vite-plugin-css-injected-by-js": "^3.5.2",
     "@vitejs/plugin-react-swc": "^3.9.0",
     "koa-connect": "^2.1.0",
     "nodemon": "^3.1.9",

@@ -1,3 +1,4 @@
+import fs from 'fs'
 import Koa from 'koa'
 import koa_etag from 'koa-etag'
 import koa_static from 'koa-static'
@@ -11,6 +12,8 @@ import react_plugin from '@vitejs/plugin-react-swc'
 
 import routers from './src/api/index.js'
 import middlewares from './src/middlewares/index.js'
+
+const ENV = process.env.NODE_ENV?.trim().toLowerCase()
 
 const app = new Koa()
 app.use(koa_etag())
@@ -35,10 +38,15 @@ app.use(koa_body.koaBody({
   }
 }))
 app.use(koa_static('./web/public'), { maxAge : 7 * 24 * 60 * 60 * 1000 })
+app.use(koa_static('./.runtime/client'), { maxAge : 7 * 24 * 60 * 60 * 1000 })
 app.use(koa_session({key: 'KSESSIONID', overwrite: true, rolling: true, renew: true, signed:false, maxAge: 60 * 60 * 1000}, app))
 
-app.vite = await createViteServer({ server: { middlewareMode: true }, appType: 'custom', plugins: [react_plugin()] })
-app.use(koaConnect(app.vite.middlewares))
+if(ENV == 'dev'){
+  app.vite = await createViteServer({ server: { allowedHosts:true, middlewareMode: true }, appType: 'custom', plugins: [react_plugin()] })
+  app.use(koaConnect(app.vite.middlewares))
+}else{
+  fs.existsSync('./.runtime') && fs.rmdirSync('./.runtime', { recursive: true })
+}
 
 middlewares.forEach(middleware => middleware && app.use(middleware))
 
