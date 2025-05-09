@@ -9,7 +9,8 @@
   },
   "scripts": {
     "dev": "set NODE_ENV=DEV && nodemon --watch",
-    "start": "node app.js"
+    "start": "node app.js",
+    "build": "node build.js"
   },
   "dependencies": {
     "@alifd/next": "^1.27.32",
