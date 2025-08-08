@@ -1,0 +1,119 @@
+/* 艺术家视图样式 */
+.artists-view {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.artists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 10px;
+}
+
+.artist-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.artist-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.artist-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-placeholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.artist-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.artist-name {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artist-albums {
+  font-size: 0.9em;
+  color: #ccc;
+  margin: 0 0 3px 0;
+}
+
+.artist-tracks {
+  font-size: 0.8em;
+  color: #999;
+  margin: 0;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #888;
+  text-align: center;
+}
+
+.empty-state h3 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  font-size: 1em;
+  opacity: 0.7;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .artists-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .artist-card {
+    padding: 15px;
+  }
+  
+  .avatar-placeholder {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2em;
+  }
+  
+  .artist-name {
+    font-size: 1.1em;
+  }
+}
