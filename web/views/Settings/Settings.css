@@ -1,0 +1,306 @@
+/* 设置页面样式 */
+.settings-page {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  color: #fff;
+}
+
+.settings-page h2 {
+  font-size: 2em;
+  margin-bottom: 30px;
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+}
+
+.settings-section {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-section h3 {
+  font-size: 1.3em;
+  margin-bottom: 20px;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 10px;
+}
+
+/* 媒体库管理样式 */
+.add-library {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.add-library input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 14px;
+}
+
+.add-library input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.add-library button {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.add-library button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.libraries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.library-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.library-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(5px);
+}
+
+.library-info {
+  flex: 1;
+}
+
+.library-path {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.library-stats {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.library-stats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.library-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.scan-btn, .delete-btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.scan-btn {
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  color: white;
+}
+
+.scan-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.scan-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  color: white;
+}
+
+.delete-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* API配置样式 */
+.api-config {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.api-config h4 {
+  font-size: 1.1em;
+  margin-bottom: 15px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 15px;
+  align-items: end;
+}
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.config-field label {
+  font-size: 12px;
+  color: #ccc;
+  font-weight: 500;
+}
+
+.config-field input[type="text"],
+.config-field input[type="password"] {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 13px;
+}
+
+.config-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4ecdc4;
+}
+
+.config-field input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.config-field input:focus {
+  outline: none;
+  border-color: #4ecdc4;
+  box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
+}
+
+.test-btn {
+  padding: 8px 15px;
+  background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.test-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.save-config {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.save-btn {
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.empty-state {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 15px;
+  }
+  
+  .settings-section {
+    padding: 15px;
+  }
+  
+  .add-library {
+    flex-direction: column;
+  }
+  
+  .library-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .library-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .config-fields {
+    grid-template-columns: 1fr;
+  }
+  
+  .settings-page h2 {
+    font-size: 1.5em;
+  }
+}
