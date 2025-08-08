@@ -93,16 +93,9 @@ router.get('/tracks', async (ctx) => {
       if (fav === 'true' || fav === '1') selector.favorite = true;
       if (fav === 'false' || fav === '0') selector.favorite = { $ne: true };
     }
-    
-    // 当存在 $or/regex 搜索时，PouchDB 可能无法使用索引进行排序，导致报错。
-    // 这里做兼容：
-    const hasFreeTextSearch = Boolean(search);
-    const sortDir = order === 'desc' ? -1 : 1;
 
     // 如果未传 sort 字段或为空，默认使用 _id（稳定且无需索引）
     const sortField = sort || '_id';
-
-    console.log(sortField)
 
     // NeDB 查询
     const sortObj = {};
@@ -179,7 +172,7 @@ router.put('/tracks/:id/favorite', async (ctx) => {
       });
     });
     
-    ctx.body = { success: true, data: { id: track._id, favorite: Boolean(favorite) } };
+    ctx.body = { success: true, result: updateResult, data: { id: track._id, favorite: Boolean(favorite) } };
   } catch (error) {
     ctx.status = 500;
     ctx.body = { error: '更新收藏失败: ' + error.message };
