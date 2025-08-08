@@ -1,5 +1,5 @@
 import React from 'react';
-import './Pages.css';
+import '../Pages.css';
 
 /**
  * 最近播放页面组件

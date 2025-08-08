@@ -1,20 +1,20 @@
 import React from 'react';
-import './Pages.css';
+import '../Pages.css';
 
 /**
- * 收藏页面组件
+ * 设置页面组件
  */
-const FavoritesPage = () => {
+const SettingsPage = () => {
   return (
     <div className="page-container">
       <div className="page-content">
         <div className="page-placeholder">
-          <h2>⭐ 我的收藏</h2>
-          <p>收藏功能正在开发中...</p>
+          <h2>⚙️ 设置</h2>
+          <p>设置功能正在开发中...</p>
         </div>
       </div>
     </div>
   );
 };
 
-export default FavoritesPage;
+export default SettingsPage;

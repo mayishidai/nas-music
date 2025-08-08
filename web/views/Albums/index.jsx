@@ -1,6 +1,6 @@
 import React from 'react';
-import { AlbumsView } from '../components/index';
-import './Pages.css';
+import AlbumsView from './AlbumsView';
+import '../Pages.css';
 
 /**
  * 专辑页面组件

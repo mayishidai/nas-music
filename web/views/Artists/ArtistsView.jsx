@@ -1,5 +1,5 @@
 import React from 'react';
-import './index.css';
+import './ArtistsView.css';
 
 /**
  * 艺术家视图组件

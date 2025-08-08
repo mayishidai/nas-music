@@ -1,6 +1,6 @@
 import React from 'react';
-import { GenresView } from '../components/index';
-import './Pages.css';
+import GenresView from './GenresView';
+import '../Pages.css';
 
 /**
  * 流派页面组件

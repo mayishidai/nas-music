@@ -1,5 +1,5 @@
 import React from 'react';
-import './index.css';
+import './AlbumsView.css';
 
 /**
  * 专辑视图组件

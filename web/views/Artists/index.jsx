@@ -1,6 +1,6 @@
 import React from 'react';
-import { ArtistsView } from '../components/index';
-import './Pages.css';
+import ArtistsView from './ArtistsView';
+import '../Pages.css';
 
 /**
  * 艺术家页面组件

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MusicList, Player } from './components';
+import { Player } from './components';
 import {
   MusicPage,
   AlbumsPage,
