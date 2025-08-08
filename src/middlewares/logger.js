@@ -12,9 +12,8 @@ export default async(ctx, next) => {
   } catch(e){
     ctx.error = e
     ctx.status = 500
-    console.trace(e)
+    console.error(e)
   } finally {
-    const lazy = Date.now() - ctx.start_time
-    console.log(`[${getDate()}] ==> ${ctx.method} ${ctx.url} - ${ctx.status} - ${lazy}ms`)
+    console.log(`[${getDate()}] ==> ${ctx.method} ${ctx.url} - ${ctx.status} - ${Date.now() - ctx.start_time}ms`)
   }
 }

@@ -28,7 +28,6 @@ function isPathMatched(path, patterns) {
 export default async(ctx, next) => {
   const requiresAuth = isPathMatched(ctx.path, matchs)
   if(!requiresAuth){ return await next() }
-  console.log(ctx.path, '需要权限')
   //TODO 判断登录和权限
   await next()
 }

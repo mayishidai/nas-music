@@ -60,12 +60,5 @@ const buildResources = async(path) => {
   }
 }
 
-
-const pages = await import(`./pages.json`, { assert: { type: 'json' } }).then(m => m.default)
-
 fs.existsSync('.runtime') && fs.rmdirSync('.runtime', { recursive: true })
-const pageKeys = Object.keys(pages)
-for (const key of pageKeys) {
-  console.log('build page:', key)
-  await buildResources(pages[key])
-}
+await buildResources('web/index.jsx')

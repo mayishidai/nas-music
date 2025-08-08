@@ -1,7 +1,0 @@
-{
-  "error_401": "web/pages/401/index.jsx",
-  "error_404": "web/pages/404/index.jsx",
-  "page1": "web/pages/page1/index.jsx",
-  "page2": "web/pages/page2/index.jsx",
-  "post_page": "web/pages/post_page/index.jsx"
-}
