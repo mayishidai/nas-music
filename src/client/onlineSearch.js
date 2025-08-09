@@ -1,13 +1,9 @@
 import axios from 'axios';
 import https from 'https';
 import { MusicBrainzApi } from 'musicbrainz-api';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
 import { getConfig } from './database.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
-const execFileAsync = promisify(execFile);
 
 function normalizeText(input) {
   return String(input || '')
@@ -54,20 +50,6 @@ function buildResult({
   };
 }
 
-async function computeFingerprintIfPossible(trackPath) {
-  if (!trackPath) return null;
-  try {
-    // 需要系统安装 fpcalc (Chromaprint)
-    const { stdout } = await execFileAsync('fpcalc', ['-json', trackPath]);
-    const json = JSON.parse(stdout);
-    const { fingerprint, duration } = json || {};
-    if (fingerprint && duration) return { fingerprint, duration: Math.round(Number(duration)) };
-  } catch (e) {
-    // 静默忽略
-  }
-  return null;
-}
-
 async function searchMusicBrainz(params, cfg) {
   try {
     const ua = cfg.musicbrainzUserAgent || 'NAS-Music-Server/1.0.0';
@@ -80,11 +62,10 @@ async function searchMusicBrainz(params, cfg) {
     const qParts = [];
     if (params.title) qParts.push(`recording:"${params.title}"`);
     if (params.artist) qParts.push(`artist:"${params.artist}"`);
-    if (params.album) qParts.push(`release:"${params.album}"`);
     if (!qParts.length && params.query) qParts.push(params.query);
     const query = qParts.join(' AND ');
 
-    const res = await mb.searchRecordings({ query, limit: 10, offset: 0 });
+    const res = await mb.search('recording', { query }, 0, 10);
     const recs = res?.recordings || [];
     const results = [];
     for (const r of recs) {
@@ -151,110 +132,6 @@ async function searchLastfm(params, cfg) {
   }
 }
 
-async function searchAcoustId(params, cfg) {
-  const client = cfg.acoustIdApiKey || cfg.acoustIdClient || '';
-  if (!client) return [];
-  let fpData = null;
-  if (params.fingerprint && params.duration) {
-    fpData = { fingerprint: params.fingerprint, duration: params.duration };
-  } else if (params.trackPath) {
-    fpData = await computeFingerprintIfPossible(params.trackPath);
-  }
-  if (!fpData) return [];
-  try {
-    const res = await axios.get('https://api.acoustid.org/v2/lookup', {
-      params: {
-        client,
-        fingerprint: fpData.fingerprint,
-        duration: fpData.duration,
-        meta: 'recordings+releasegroups'
-      },
-      timeout: 10000
-    });
-    const results = [];
-    const apiResults = res.data?.results || [];
-    for (const r of apiResults) {
-      const recordings = r.recordings || [];
-      for (const rec of recordings) {
-        const title = rec.title || '';
-        const artist = rec.artists?.[0]?.name || '';
-        const album = rec.releasegroups?.[0]?.title || '';
-        const score =
-          similarity(params.title || params.query, title) * 0.6 +
-          similarity(params.artist || '', artist) * 0.4 + 0.5; // 指纹命中加权
-        results.push(buildResult({ title, artist, album, source: 'acoustid', sourceId: rec.id, score }));
-      }
-    }
-    return results;
-  } catch {
-    return [];
-  }
-}
-
-async function searchQQMusic(params, cfg) {
-  if (!cfg.enableQQMusic || !cfg.qqMusicApiBase) return [];
-  try {
-    const base = cfg.qqMusicApiBase.replace(/\/$/, '');
-    const res = await axios.get(`${base}/search`, {
-      params: { keyword: params.title || params.query || '', artist: params.artist || '' },
-      timeout: 10000
-    });
-    const list = res.data?.data?.list || res.data?.data?.songs || res.data?.songs || [];
-    const results = [];
-    for (const s of list) {
-      const title = s.songname || s.title || '';
-      const artist = s.singer?.[0]?.name || s.artist || '';
-      const album = s.albumname || s.album || '';
-      const coverImage = s.albumpic || s.album?.picUrl || null;
-      const songId = s.songmid || s.songid || s.id;
-      let lyrics = '';
-      try {
-        const lyr = await axios.get(`${base}/lyric`, { params: { id: songId }, timeout: 8000 });
-        lyrics = lyr.data?.lyric || lyr.data?.lrc || '';
-      } catch {}
-      const score =
-        similarity(params.title || params.query, title) * 0.6 +
-        similarity(params.artist || '', artist) * 0.4;
-      results.push(buildResult({ title, artist, album, coverImage, lyrics, source: 'qqmusic', sourceId: songId, score }));
-    }
-    return results;
-  } catch {
-    return [];
-  }
-}
-
-async function searchNetease(params, cfg) {
-  if (!cfg.enableNeteaseMusic || !cfg.neteaseMusicApiBase) return [];
-  try {
-    const base = cfg.neteaseMusicApiBase.replace(/\/$/, '');
-    const res = await axios.get(`${base}/search`, {
-      params: { keywords: params.title || params.query || '', limit: 10 },
-      timeout: 10000
-    });
-    const list = res.data?.result?.songs || [];
-    const results = [];
-    for (const s of list) {
-      const title = s.name || '';
-      const artist = s.ar?.[0]?.name || '';
-      const album = s.al?.name || '';
-      const coverImage = s.al?.picUrl || null;
-      const songId = s.id;
-      let lyrics = '';
-      try {
-        const lyr = await axios.get(`${base}/lyric`, { params: { id: songId }, timeout: 8000 });
-        lyrics = lyr.data?.lrc?.lyric || '';
-      } catch {}
-      const score =
-        similarity(params.title || params.query, title) * 0.6 +
-        similarity(params.artist || '', artist) * 0.4;
-      results.push(buildResult({ title, artist, album, coverImage, lyrics, source: 'netease', sourceId: songId, score }));
-    }
-    return results;
-  } catch {
-    return [];
-  }
-}
-
 function mergeAndDedupe(results) {
   const map = new Map();
   for (const r of results) {
@@ -280,22 +157,13 @@ function mergeAndDedupe(results) {
 
 export async function searchOnlineTags(params) {
   const cfg = await getConfig();
-  // 根据配置放宽TLS校验（仅对需要的axios请求生效）
-  const httpsAgent = cfg.allowInsecureTLS ? new https.Agent({ rejectUnauthorized: false }) : undefined;
-  if (httpsAgent) {
-    // 为当前模块的 axios 设置默认 agent（不影响全局）
-    axios.defaults.httpsAgent = httpsAgent;
-  }
   const { query, title, artist, album, filename, fingerprint, duration, trackPath } = params || {};
   const baseParams = { query, title, artist, album, filename, fingerprint, duration, trackPath };
-  const [mb, lf, ac, qq, ne] = await Promise.all([
+  const [mb, lf] = await Promise.all([
     searchMusicBrainz(baseParams, cfg),
-    searchLastfm(baseParams, cfg),
-    searchAcoustId(baseParams, cfg),
-    searchQQMusic(baseParams, cfg),
-    searchNetease(baseParams, cfg)
+    searchLastfm(baseParams, cfg)
   ]);
-  return mergeAndDedupe([ ...mb, ...lf, ...ac, ...qq, ...ne ]).slice(0, 20);
+  return mergeAndDedupe([ ...mb, ...lf ]).slice(0, 20);
 }
 
 export default {

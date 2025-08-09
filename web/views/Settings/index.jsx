@@ -17,10 +17,6 @@ const SettingsPage = () => {
   const [apiConfigs, setApiConfigs] = useState({
     musicbrainz: { baseUrl: 'https://musicbrainz.org/ws/2/', userAgent: 'NAS-Music-Server/1.0.0' },
     lastfm: { apiKey: '', baseUrl: 'https://ws.audioscrobbler.com/2.0/', enabled: false },
-    acoustid: { apiKey: '', baseUrl: 'https://api.acoustid.org/v2/', enabled: false },
-    tencent: { baseUrl: '', enabled: false },
-    netease: { baseUrl: '', enabled: false },
-    security: { allowInsecureTLS: false }
   });
 
   // 加载媒体库列表
@@ -345,124 +341,13 @@ const SettingsPage = () => {
               </div>
             </div>
             
-            {/* AcoustID API */}
-            <div className="api-config">
-              <h4>🎼 AcoustID API</h4>
-              <div className="config-fields">
-                <div className="config-field">
-                  <label>API Key:</label>
-                  <input
-                    type="password"
-                    value={apiConfigs.acoustid.apiKey}
-                    onChange={(e) => updateApiConfig('acoustid', 'apiKey', e.target.value)}
-                    placeholder="输入 AcoustID API Key"
-                  />
-                </div>
-                <div className="config-field">
-                  <label>启用:</label>
-                  <input
-                    type="checkbox"
-                    checked={apiConfigs.acoustid.enabled}
-                    onChange={(e) => updateApiConfig('acoustid', 'enabled', e.target.checked)}
-                  />
-                </div>
-                <div className="config-field">
-                  <button 
-                    onClick={() => testApiConfig('acoustid')}
-                    className="test-btn"
-                  >
-                    测试连接
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* 腾讯云音乐 API */}
-            <div className="api-config">
-              <h4>🎶 腾讯云音乐 API</h4>
-              <div className="config-fields">
-                <div className="config-field">
-                  <label>API Base:</label>
-                  <input
-                    type="text"
-                    value={apiConfigs.tencent.baseUrl}
-                    onChange={(e) => updateApiConfig('tencent', 'baseUrl', e.target.value)}
-                    placeholder="输入腾讯云音乐 API 代理地址"
-                  />
-                </div>
-                <div className="config-field">
-                  <label>启用:</label>
-                  <input
-                    type="checkbox"
-                    checked={apiConfigs.tencent.enabled}
-                    onChange={(e) => updateApiConfig('tencent', 'enabled', e.target.checked)}
-                  />
-                </div>
-                <div className="config-field">
-                  <button 
-                    onClick={() => testApiConfig('tencent')}
-                    className="test-btn"
-                  >
-                    测试连接
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* 网易云音乐 API */}
-            <div className="api-config">
-              <h4>🎵 网易云音乐 API</h4>
-              <div className="config-fields">
-                <div className="config-field">
-                  <label>API Base:</label>
-                  <input
-                    type="text"
-                    value={apiConfigs.netease.baseUrl}
-                    onChange={(e) => updateApiConfig('netease', 'baseUrl', e.target.value)}
-                    placeholder="输入网易云音乐 API 代理地址"
-                  />
-                </div>
-                <div className="config-field">
-                  <label>启用:</label>
-                  <input
-                    type="checkbox"
-                    checked={apiConfigs.netease.enabled}
-                    onChange={(e) => updateApiConfig('netease', 'enabled', e.target.checked)}
-                  />
-                </div>
-                <div className="config-field">
-                  <button 
-                    onClick={() => testApiConfig('netease')}
-                    className="test-btn"
-                  >
-                    测试连接
-                  </button>
-                </div>
-              </div>
-            </div>
+            {/* 已移除：AcoustID、腾讯云音乐、网易云音乐 配置 */}
             
             {/* 保存按钮 */}
             <div className="save-config">
               <button onClick={saveApiConfigs} className="save-btn">
                 保存API配置
               </button>
-            </div>
-          </div>
-
-          {/* 安全设置 */}
-          <div className="settings-section">
-            <h3>🔐 安全设置</h3>
-            <div className="api-config">
-              <div className="config-fields">
-                <div className="config-field">
-                  <label>忽略TLS证书校验（仅限内网调试）</label>
-                  <input
-                    type="checkbox"
-                    checked={apiConfigs.security?.allowInsecureTLS || false}
-                    onChange={(e) => updateApiConfig('security', 'allowInsecureTLS', e.target.checked)}
-                  />
-                </div>
-              </div>
             </div>
           </div>
         </div>

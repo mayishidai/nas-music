@@ -29,22 +29,6 @@ router.get('/api-configs', async (ctx) => {
         apiKey: config.lastfmApiKey || '', 
         baseUrl: 'https://ws.audioscrobbler.com/2.0/',
         enabled: config.enableLastfm || false
-      },
-      acoustid: { 
-        apiKey: config.acoustIdApiKey || config.acoustidApiKey || '', 
-        baseUrl: 'https://api.acoustid.org/v2/',
-        enabled: config.enableAcoustid || false
-      },
-      tencent: { 
-        baseUrl: config.qqMusicApiBase || '',
-        enabled: config.enableQQMusic || false
-      },
-      netease: {
-        baseUrl: config.neteaseMusicApiBase || '',
-        enabled: config.enableNeteaseMusic || false
-      },
-      security: {
-        allowInsecureTLS: !!config.allowInsecureTLS
       }
     };
     
@@ -68,7 +52,7 @@ router.get('/api-configs', async (ctx) => {
  */
 router.put('/api-configs', async (ctx) => {
   try {
-    const { musicbrainz, lastfm, acoustid, tencent, netease, security } = ctx.request.body;
+    const { musicbrainz, lastfm, security } = ctx.request.body;
     const config = await getConfig();
     
     // 更新配置
@@ -79,24 +63,7 @@ router.put('/api-configs', async (ctx) => {
       config.lastfmApiKey = lastfm.apiKey;
       config.enableLastfm = lastfm.enabled;
     }
-    if (acoustid) {
-      config.acoustIdApiKey = acoustid.apiKey;
-      config.enableAcoustid = acoustid.enabled;
-    }
-    if (tencent) {
-      config.qqMusicApiBase = tencent.baseUrl;
-      config.enableQQMusic = tencent.enabled;
-    }
-    if (netease) {
-      config.neteaseMusicApiBase = netease.baseUrl;
-      config.enableNeteaseMusic = netease.enabled;
-    }
-    if (security) {
-      config.allowInsecureTLS = !!security.allowInsecureTLS;
-    }
-    
     await saveConfig(config);
-    
     ctx.body = {
       success: true,
       message: 'API配置保存成功'
@@ -258,7 +225,6 @@ router.post('/test-api/:service', async (ctx) => {
     const { service } = ctx.params;
     const config = await getConfig();
     
-    let apiKey = '';
     let baseUrl = '';
     let testUrl = '';
     let testParams = {};
@@ -272,40 +238,17 @@ router.post('/test-api/:service', async (ctx) => {
         break;
         
       case 'lastfm':
-        apiKey = config.lastfmApiKey;
         baseUrl = 'https://ws.audioscrobbler.com/2.0/';
         testUrl = baseUrl;
         testParams = {
           method: 'artist.getinfo',
           artist: 'Cher',
-          api_key: apiKey,
+          api_key: config.lastfmApiKey,
           format: 'json'
         };
         break;
         
-      case 'acoustid':
-        apiKey = config.acoustidApiKey;
-        baseUrl = 'https://api.acoustid.org/v2/';
-        testUrl = `${baseUrl}lookup`;
-        testParams = {
-          client: apiKey,
-          meta: 'recordings+releases'
-        };
-        break;
-        
-      case 'tencent':
-        baseUrl = (config.qqMusicApiBase || '').replace(/\/$/, '');
-        if (!baseUrl) throw new Error('未配置腾讯云音乐 API 代理地址');
-        testUrl = `${baseUrl}/search`;
-        testParams = { keyword: 'test' };
-        break;
-        
-      case 'netease':
-        baseUrl = (config.neteaseMusicApiBase || '').replace(/\/$/, '');
-        if (!baseUrl) throw new Error('未配置网易云音乐 API 代理地址');
-        testUrl = `${baseUrl}/search`;
-        testParams = { keywords: 'test' };
-        break;
+      // 已移除 acoustid/tencent/netease 测试
         
       default:
         ctx.status = 400;

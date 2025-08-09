@@ -9,6 +9,7 @@ const TrackDetailPage = ({ trackId, onBack }) => {
   const [lyrics, setLyrics] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -85,6 +86,7 @@ const TrackDetailPage = ({ trackId, onBack }) => {
     try {
       setSearchLoading(true);
       setSearchResults([]);
+      setShowSearchPanel(true);
       const params = new URLSearchParams();
       const q = `${form.title || track?.title || ''} ${form.artist || track?.artist || ''}`.trim();
       if (q) params.set('query', q);
@@ -166,28 +168,42 @@ const TrackDetailPage = ({ trackId, onBack }) => {
           </div>
         </div>
       </div>
-      {searchResults.length > 0 && (
-        <div className="td-online">
-          <div className="td-results">
-            {searchResults.map((r, idx) => (
-              <div key={idx} className="td-result" onClick={() => {
-                setForm({
-                  ...form,
-                  title: r.title || form.title,
-                  artist: r.artist || form.artist,
-                  album: r.album || form.album,
-                  year: r.year || form.year
-                });
-                if (r.coverImage) setCoverPreview(r.coverImage);
-                if (r.lyrics) setLyrics(r.lyrics);
-              }}>
-                <div className="td-r-title">{r.title || '未知歌曲'}</div>
-                <div className="td-r-sub">{r.artist || '未知艺术家'}{r.album ? ` - ${r.album}` : ''}{r.year ? ` (${r.year})` : ''}</div>
-              </div>
-            ))}
-          </div>
+      {/* 右侧抽屉：在线搜索结果 */}
+      <div className={`td-drawer ${showSearchPanel ? 'open' : ''}`} aria-hidden={!showSearchPanel}>
+        <div className="td-drawer-header">
+          <div className="td-drawer-title">在线搜索结果</div>
+          <button className="td-btn" onClick={() => setShowSearchPanel(false)}>关闭</button>
         </div>
-      )}
+        <div className="td-drawer-body">
+          {searchLoading && <div className="td-loading">搜索中…</div>}
+          {!searchLoading && searchResults.length === 0 && <div className="td-empty">暂无结果</div>}
+          {!searchLoading && searchResults.length > 0 && (
+            <div className="td-results">
+              {searchResults.map((r, idx) => (
+                <div
+                  key={idx}
+                  className="td-result"
+                  onClick={() => {
+                    setForm({
+                      ...form,
+                      title: r.title || form.title,
+                      artist: r.artist || form.artist,
+                      album: r.album || form.album,
+                      year: r.year || form.year
+                    });
+                    if (r.coverImage) setCoverPreview(r.coverImage);
+                    if (r.lyrics) setLyrics(r.lyrics);
+                  }}
+                >
+                  <div className="td-r-title">{r.title || '未知歌曲'}</div>
+                  <div className="td-r-sub">{r.artist || '未知艺术家'}{r.album ? ` - ${r.album}` : ''}{r.year ? ` (${r.year})` : ''}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      {showSearchPanel && <div className="td-drawer-mask" onClick={() => setShowSearchPanel(false)} />}
       <div className="td-actions td-bottom">
         <button className="td-btn primary" disabled={loading} onClick={handleSaveTags}>保存</button>
       </div>
