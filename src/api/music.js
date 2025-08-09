@@ -2,6 +2,7 @@ import Router from 'koa-router';
 import axios from 'axios';
 import fs from 'fs/promises';
 import { musicDB, getConfig, saveConfig, getMusicStats } from '../client/database.js';
+import { searchOnlineTags } from '../client/onlineSearch.js';
 import { fullScan, getRecommendations, initMusicModule } from '../client/music.js';
 
 const router = new Router();
@@ -790,50 +791,45 @@ router.put('/tracks/:id/cover', async (ctx) => {
   }
 });
 
-// 在线搜索Tag信息
+// 在线搜索Tag信息（聚合 MusicBrainz / Last.fm / AcoustID / QQ音乐 / 网易云音乐）
 router.get('/search-tags', async (ctx) => {
-  const { query } = ctx.query;
-  if (!query) {
+  const { query, title, artist, album, filename, trackId } = ctx.query;
+  if (!query && !title && !filename && !artist) {
     ctx.status = 400;
-    ctx.body = { error: '请提供搜索关键词' };
+    ctx.body = { error: '请至少提供 query/title/filename/artist 之一' };
     return;
   }
-
   try {
-    const config = await getConfig();
-    
-    // 使用MusicBrainz API搜索
-    const response = await axios.get('https://musicbrainz.org/ws/2/recording', {
-      params: {
-        query: query,
-        fmt: 'json',
-        limit: 10
-      },
-      headers: {
-        'User-Agent': config.musicbrainzUserAgent || 'NAS-Music-Server/1.0.0'
-      },
-      timeout: 5000
+    let trackPath = undefined;
+    let fallbackTitle = title;
+    let fallbackArtist = artist;
+    let fallbackAlbum = album;
+    if (trackId) {
+      try {
+        const t = await new Promise((resolve, reject) => {
+          musicDB.findOne({ _id: trackId }, (err, doc) => (err ? reject(err) : resolve(doc)));
+        });
+        if (t) {
+          trackPath = t.path;
+          fallbackTitle = fallbackTitle || t.title;
+          fallbackArtist = fallbackArtist || t.artist;
+          fallbackAlbum = fallbackAlbum || t.album;
+        }
+      } catch {}
+    }
+
+    const results = await searchOnlineTags({
+      query,
+      title: fallbackTitle,
+      artist: fallbackArtist,
+      album: fallbackAlbum,
+      filename,
+      trackPath
     });
-
-    const results = response.data.recordings?.map(recording => ({
-      title: recording.title,
-      artist: recording['artist-credit']?.[0]?.name || '未知艺术家',
-      album: recording.releases?.[0]?.title || '未知专辑',
-      year: recording.releases?.[0]?.date?.substring(0, 4) || null,
-      duration: recording.length ? Math.round(recording.length / 1000) : null
-    })) || [];
-
-    ctx.body = {
-      success: true,
-      data: results
-    };
+    ctx.body = { success: true, data: results };
   } catch (error) {
-    console.error('搜索Tag失败:', error.message);
-    ctx.body = {
-      success: false,
-      error: '搜索失败',
-      data: []
-    };
+    console.error('搜索Tag失败:', error);
+    ctx.body = { success: false, error: '搜索失败', data: [] };
   }
 });
 

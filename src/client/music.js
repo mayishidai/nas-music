@@ -95,6 +95,80 @@ export function getScanProgress(libraryId) {
 
 // ==================== 扫描功能 ====================
 
+// 将歌词值统一转换为字符串，避免 [object Object]
+function coerceLyricsToString(value) {
+  try {
+    if (value == null) return '';
+    if (Buffer.isBuffer(value)) return value.toString('utf8').trim();
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => coerceLyricsToString(v))
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+    }
+    if (typeof value === 'object') {
+      if (typeof value.text !== 'undefined') return coerceLyricsToString(value.text);
+      if (typeof value.data !== 'undefined') return coerceLyricsToString(value.data);
+      return '';
+    }
+    const str = String(value);
+    return str === '[object Object]' ? '' : str.trim();
+  } catch {
+    return '';
+  }
+}
+
+// 从 metadata/native 标签与同名 .lrc 提取歌词（优先内置）
+async function extractLyrics(normalizedPath, metadata) {
+  try {
+    const { common, native } = metadata || {};
+
+    // 1) music-metadata 统一映射：common.lyrics（字符串或数组）
+    if (common && typeof common.lyrics !== 'undefined') {
+      const text = coerceLyricsToString(common.lyrics);
+      if (text) return text;
+    }
+
+    // 2) 原生标签兜底：处理常见的内置歌词字段
+    if (native && typeof native === 'object') {
+      for (const key of Object.keys(native)) {
+        const tags = native[key] || [];
+        for (const tag of tags) {
+          const id = String(tag?.id || '').toUpperCase();
+          // ID3v2: USLT（Unsynchronised lyric/text transcription）
+          if (id === 'USLT') {
+            const text = coerceLyricsToString(tag.value);
+            if (text) return text;
+          }
+          // ID3v2: SYLT（Synchronized lyric）— 简化为取文本
+          if (id === 'SYLT') {
+            const text = coerceLyricsToString(tag.value);
+            if (text) return text;
+          }
+          // Vorbis/APE/自定义：常见键名
+          if (['LYRICS', 'UNSYNCEDLYRICS', 'LYRIC', 'UNSYNCEDLYRIC', '\u00A9LYR', '©LYR'].includes(id)) {
+            const text = coerceLyricsToString(tag.value);
+            if (text) return text;
+          }
+        }
+      }
+    }
+
+    // 3) 同名 .lrc 文件
+    try {
+      const lrcPath = normalizedPath.replace(/\.[^/.]+$/, '.lrc');
+      await fs.access(lrcPath);
+      const lrc = await fs.readFile(lrcPath, 'utf8');
+      if (lrc && lrc.trim()) return lrc.trim();
+    } catch {}
+
+    return '';
+  } catch {
+    return '';
+  }
+}
+
 // 解析 metadata 并返回标准化曲目文档（不含 _id）
 async function buildTrackDocFromFile(normalizedPath) {
   const stats = await fs.stat(normalizedPath);
@@ -113,6 +187,9 @@ async function buildTrackDocFromFile(normalizedPath) {
     }
   }
 
+  // 提取歌词（优先内置，其次同名 .lrc）
+  const lyricsText = await extractLyrics(normalizedPath, metadata);
+
   return {
     type: 'track',
     path: normalizedPath,
@@ -130,6 +207,7 @@ async function buildTrackDocFromFile(normalizedPath) {
     sampleRate: format.sampleRate || 0,
     size: stats.size,
     coverImage: coverImageBase64 || null,
+    lyrics: lyricsText || null,
     favorite: false,
     addedAt: new Date().toISOString(),
     modifiedAt: stats.mtime.toISOString()

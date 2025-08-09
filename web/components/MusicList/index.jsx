@@ -343,7 +343,11 @@ const MusicList = ({
                       <button 
                         className="ml-more-item"
                         onClick={() => {
-                          onDetails ? onDetails(t) : alert(JSON.stringify(t, null, 2));
+                          if (onDetails) {
+                            onDetails(t);
+                          } else if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('openTrackDetail', { detail: { track: t } }));
+                          }
                           setShowMoreMenu(null);
                         }}
                       >

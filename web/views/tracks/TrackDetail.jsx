@@ -6,6 +6,8 @@ const TrackDetailPage = ({ trackId, onBack }) => {
   const [form, setForm] = useState({ title: '', artist: '', album: '', albumArtist: '', year: '', genre: '', track: '' });
   const [coverPreview, setCoverPreview] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lyrics, setLyrics] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
 
   useEffect(() => {
@@ -34,6 +36,7 @@ const TrackDetailPage = ({ trackId, onBack }) => {
         track: track.track || ''
       });
       setCoverPreview(track.coverImage || '');
+      setLyrics(track.lyrics || '');
     }
   }, [track]);
 
@@ -77,13 +80,43 @@ const TrackDetailPage = ({ trackId, onBack }) => {
     }
   };
 
-  const handleOnlineSearch = async (q) => {
+  const handleOnlineSearch = async () => {
+    if (!track && !form.title && !form.artist) return;
     try {
-      const res = await fetch(`/api/music/search-tags?query=${encodeURIComponent(q)}`);
+      setSearchLoading(true);
+      setSearchResults([]);
+      const params = new URLSearchParams();
+      const q = `${form.title || track?.title || ''} ${form.artist || track?.artist || ''}`.trim();
+      if (q) params.set('query', q);
+      if (form.title || track?.title) params.set('title', form.title || track?.title || '');
+      if (form.artist || track?.artist) params.set('artist', form.artist || track?.artist || '');
+      if (form.album || track?.album) params.set('album', form.album || track?.album || '');
+      if (fileName) params.set('filename', fileName);
+      if (trackId) params.set('trackId', trackId);
+      const res = await fetch(`/api/music/search-tags?${params.toString()}`);
       const json = await res.json();
-      if (json?.success) setSearchResults(json.data);
-    } catch {}
+      if (json?.success && Array.isArray(json.data)) {
+        setSearchResults(json.data);
+      } else {
+        setSearchResults([]);
+      }
+    } catch (e) {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
   };
+
+  // 字段中文映射
+  const labelMap = useMemo(() => ({
+    title: '歌曲名',
+    artist: '歌手',
+    album: '专辑',
+    albumArtist: '专辑艺人',
+    year: '年份',
+    genre: '流派',
+    track: '曲目号'
+  }), []);
 
   const fileInputRef = useRef(null);
 
@@ -107,40 +140,56 @@ const TrackDetailPage = ({ trackId, onBack }) => {
           <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleChooseCover} />
         </div>
         <div className="td-meta">
-          <div className="td-file">{fileName}</div>
-          {folderPath ? (<div className="td-folder" title={folderPath}>{folderPath}</div>) : null}
           <div className="td-title-row">
             <h2 className="td-title">{form.title || track?.title || ''}</h2>
             <div className="td-title-actions">
-              <button className="td-btn" onClick={() => handleOnlineSearch(`${form.title || track?.title || ''} ${form.artist || track?.artist || ''}`.trim())}>在线搜索</button>
+              <button className="td-btn" disabled={searchLoading} onClick={handleOnlineSearch}>{searchLoading ? '搜索中…' : '在线搜索'}</button>
             </div>
           </div>
           <div className="td-sub">{form.artist || track?.artist || ''} · {form.album || track?.album || ''}</div>
-          
+          <div className="td-file">{folderPath + '/' || ''}{fileName}</div>
         </div>
       </div>
       <div className="td-body">
         <div className="td-form">
           {['title','artist','album','albumArtist','year','genre','track'].map((key) => (
             <div className="td-form-row" key={key}>
-              <label>{key}</label>
+              <label>{labelMap[key] || key}</label>
               <input value={form[key] ?? ''} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
             </div>
           ))}
-          <div className="td-actions">
-            <button className="td-btn primary" disabled={loading} onClick={handleSaveTags}>保存</button>
+        </div>
+        <div className="td-lyrics-wrap">
+          <div className="td-form-row">
+            <label>歌词</label>
+            <textarea className="td-lyrics" value={lyrics} readOnly placeholder="暂无歌词" />
           </div>
         </div>
       </div>
-      <div className="td-online">
-        <div className="td-results">
-          {searchResults.map((r, idx) => (
-            <div key={idx} className="td-result" onClick={() => setForm({ ...form, title: r.title, artist: r.artist, album: r.album, year: r.year })}>
-              <div className="td-r-title">{r.title}</div>
-              <div className="td-r-sub">{r.artist} - {r.album} {r.year?`(${r.year})`:''}</div>
-            </div>
-          ))}
+      {searchResults.length > 0 && (
+        <div className="td-online">
+          <div className="td-results">
+            {searchResults.map((r, idx) => (
+              <div key={idx} className="td-result" onClick={() => {
+                setForm({
+                  ...form,
+                  title: r.title || form.title,
+                  artist: r.artist || form.artist,
+                  album: r.album || form.album,
+                  year: r.year || form.year
+                });
+                if (r.coverImage) setCoverPreview(r.coverImage);
+                if (r.lyrics) setLyrics(r.lyrics);
+              }}>
+                <div className="td-r-title">{r.title || '未知歌曲'}</div>
+                <div className="td-r-sub">{r.artist || '未知艺术家'}{r.album ? ` - ${r.album}` : ''}{r.year ? ` (${r.year})` : ''}</div>
+              </div>
+            ))}
+          </div>
         </div>
+      )}
+      <div className="td-actions td-bottom">
+        <button className="td-btn primary" disabled={loading} onClick={handleSaveTags}>保存</button>
       </div>
     </div>
   );

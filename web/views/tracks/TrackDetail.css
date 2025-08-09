@@ -22,6 +22,11 @@
 .track-detail .td-form-row label { color: #ccc; font-size: 12px; }
 .track-detail .td-form-row input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 10px; color: #fff; }
 .track-detail .td-actions { margin-top: 8px; }
+.track-detail .td-bottom { display: flex; justify-content: flex-end; }
+
+/* 歌词区域 */
+.td-lyrics-wrap { margin-top: 12px; }
+.td-lyrics { width: 100%; min-height: 160px; white-space: pre-wrap; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 10px; color: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 
 /* 在线搜索结果 */
 .track-detail .td-online { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; }

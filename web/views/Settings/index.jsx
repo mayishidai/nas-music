@@ -15,11 +15,12 @@ const SettingsPage = () => {
 
   // API配置状态
   const [apiConfigs, setApiConfigs] = useState({
-    musicbrainz: { apiKey: '', baseUrl: 'https://musicbrainz.org/ws/2/', userAgent: 'NAS-Music-Server/1.0.0' },
+    musicbrainz: { baseUrl: 'https://musicbrainz.org/ws/2/', userAgent: 'NAS-Music-Server/1.0.0' },
     lastfm: { apiKey: '', baseUrl: 'https://ws.audioscrobbler.com/2.0/', enabled: false },
     acoustid: { apiKey: '', baseUrl: 'https://api.acoustid.org/v2/', enabled: false },
-    tencent: { apiKey: '', baseUrl: 'https://c.y.qq.com/', enabled: false },
-    netease: { apiKey: '', baseUrl: 'https://music.163.com/', enabled: false }
+    tencent: { baseUrl: '', enabled: false },
+    netease: { baseUrl: '', enabled: false },
+    security: { allowInsecureTLS: false }
   });
 
   // 加载媒体库列表
@@ -291,15 +292,6 @@ const SettingsPage = () => {
               <h4>🎵 MusicBrainz API</h4>
               <div className="config-fields">
                 <div className="config-field">
-                  <label>API Key:</label>
-                  <input
-                    type="password"
-                    value={apiConfigs.musicbrainz.apiKey}
-                    onChange={(e) => updateApiConfig('musicbrainz', 'apiKey', e.target.value)}
-                    placeholder="输入 MusicBrainz API Key"
-                  />
-                </div>
-                <div className="config-field">
                   <label>User Agent:</label>
                   <input
                     type="text"
@@ -307,6 +299,8 @@ const SettingsPage = () => {
                     onChange={(e) => updateApiConfig('musicbrainz', 'userAgent', e.target.value)}
                     placeholder="NAS-Music-Server/1.0.0"
                   />
+                </div>
+                <div className="config-field">
                 </div>
                 <div className="config-field">
                   <button 
@@ -388,12 +382,12 @@ const SettingsPage = () => {
               <h4>🎶 腾讯云音乐 API</h4>
               <div className="config-fields">
                 <div className="config-field">
-                  <label>API Key:</label>
+                  <label>API Base:</label>
                   <input
-                    type="password"
-                    value={apiConfigs.tencent.apiKey}
-                    onChange={(e) => updateApiConfig('tencent', 'apiKey', e.target.value)}
-                    placeholder="输入腾讯云音乐 API Key"
+                    type="text"
+                    value={apiConfigs.tencent.baseUrl}
+                    onChange={(e) => updateApiConfig('tencent', 'baseUrl', e.target.value)}
+                    placeholder="输入腾讯云音乐 API 代理地址"
                   />
                 </div>
                 <div className="config-field">
@@ -420,12 +414,12 @@ const SettingsPage = () => {
               <h4>🎵 网易云音乐 API</h4>
               <div className="config-fields">
                 <div className="config-field">
-                  <label>API Key:</label>
+                  <label>API Base:</label>
                   <input
-                    type="password"
-                    value={apiConfigs.netease.apiKey}
-                    onChange={(e) => updateApiConfig('netease', 'apiKey', e.target.value)}
-                    placeholder="输入网易云音乐 API Key"
+                    type="text"
+                    value={apiConfigs.netease.baseUrl}
+                    onChange={(e) => updateApiConfig('netease', 'baseUrl', e.target.value)}
+                    placeholder="输入网易云音乐 API 代理地址"
                   />
                 </div>
                 <div className="config-field">
@@ -452,6 +446,23 @@ const SettingsPage = () => {
               <button onClick={saveApiConfigs} className="save-btn">
                 保存API配置
               </button>
+            </div>
+          </div>
+
+          {/* 安全设置 */}
+          <div className="settings-section">
+            <h3>🔐 安全设置</h3>
+            <div className="api-config">
+              <div className="config-fields">
+                <div className="config-field">
+                  <label>忽略TLS证书校验（仅限内网调试）</label>
+                  <input
+                    type="checkbox"
+                    checked={apiConfigs.security?.allowInsecureTLS || false}
+                    onChange={(e) => updateApiConfig('security', 'allowInsecureTLS', e.target.checked)}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

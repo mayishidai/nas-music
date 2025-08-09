@@ -22,7 +22,6 @@ router.get('/api-configs', async (ctx) => {
     const config = await getConfig();
     const apiConfigs = {
       musicbrainz: { 
-        apiKey: config.musicbrainzApiKey || '', 
         baseUrl: 'https://musicbrainz.org/ws/2/',
         userAgent: config.musicbrainzUserAgent || 'NAS-Music-Server/1.0.0'
       },
@@ -32,19 +31,20 @@ router.get('/api-configs', async (ctx) => {
         enabled: config.enableLastfm || false
       },
       acoustid: { 
-        apiKey: config.acoustidApiKey || '', 
+        apiKey: config.acoustIdApiKey || config.acoustidApiKey || '', 
         baseUrl: 'https://api.acoustid.org/v2/',
         enabled: config.enableAcoustid || false
       },
       tencent: { 
-        apiKey: config.qqMusicApiKey || '', 
-        baseUrl: 'https://c.y.qq.com/',
+        baseUrl: config.qqMusicApiBase || '',
         enabled: config.enableQQMusic || false
       },
       netease: {
-        apiKey: config.neteaseMusicApiKey || '',
-        baseUrl: 'https://music.163.com/',
+        baseUrl: config.neteaseMusicApiBase || '',
         enabled: config.enableNeteaseMusic || false
+      },
+      security: {
+        allowInsecureTLS: !!config.allowInsecureTLS
       }
     };
     
@@ -68,12 +68,11 @@ router.get('/api-configs', async (ctx) => {
  */
 router.put('/api-configs', async (ctx) => {
   try {
-    const { musicbrainz, lastfm, acoustid, tencent, netease } = ctx.request.body;
+    const { musicbrainz, lastfm, acoustid, tencent, netease, security } = ctx.request.body;
     const config = await getConfig();
     
     // 更新配置
     if (musicbrainz) {
-      config.musicbrainzApiKey = musicbrainz.apiKey;
       config.musicbrainzUserAgent = musicbrainz.userAgent;
     }
     if (lastfm) {
@@ -81,16 +80,19 @@ router.put('/api-configs', async (ctx) => {
       config.enableLastfm = lastfm.enabled;
     }
     if (acoustid) {
-      config.acoustidApiKey = acoustid.apiKey;
+      config.acoustIdApiKey = acoustid.apiKey;
       config.enableAcoustid = acoustid.enabled;
     }
     if (tencent) {
-      config.qqMusicApiKey = tencent.apiKey;
+      config.qqMusicApiBase = tencent.baseUrl;
       config.enableQQMusic = tencent.enabled;
     }
     if (netease) {
-      config.neteaseMusicApiKey = netease.apiKey;
+      config.neteaseMusicApiBase = netease.baseUrl;
       config.enableNeteaseMusic = netease.enabled;
+    }
+    if (security) {
+      config.allowInsecureTLS = !!security.allowInsecureTLS;
     }
     
     await saveConfig(config);
@@ -264,12 +266,9 @@ router.post('/test-api/:service', async (ctx) => {
     // 根据不同的API服务进行测试
     switch (service) {
       case 'musicbrainz':
-        apiKey = config.musicbrainzApiKey;
         baseUrl = 'https://musicbrainz.org/ws/2/';
         testUrl = `${baseUrl}artist/5b11f4ce-a62d-471e-81fc-a69a8278c7da`;
-        testParams = {
-          fmt: 'json'
-        };
+        testParams = { fmt: 'json' };
         break;
         
       case 'lastfm':
@@ -295,23 +294,17 @@ router.post('/test-api/:service', async (ctx) => {
         break;
         
       case 'tencent':
-        apiKey = config.qqMusicApiKey;
-        baseUrl = 'https://c.y.qq.com/';
-        testUrl = `${baseUrl}search`;
-        testParams = {
-          key: apiKey,
-          w: 'test'
-        };
+        baseUrl = (config.qqMusicApiBase || '').replace(/\/$/, '');
+        if (!baseUrl) throw new Error('未配置腾讯云音乐 API 代理地址');
+        testUrl = `${baseUrl}/search`;
+        testParams = { keyword: 'test' };
         break;
         
       case 'netease':
-        apiKey = config.neteaseMusicApiKey;
-        baseUrl = 'https://music.163.com/';
-        testUrl = `${baseUrl}api/search`;
-        testParams = {
-          key: apiKey,
-          s: 'test'
-        };
+        baseUrl = (config.neteaseMusicApiBase || '').replace(/\/$/, '');
+        if (!baseUrl) throw new Error('未配置网易云音乐 API 代理地址');
+        testUrl = `${baseUrl}/search`;
+        testParams = { keywords: 'test' };
         break;
         
       default:
@@ -323,14 +316,7 @@ router.post('/test-api/:service', async (ctx) => {
         return;
     }
     
-    if (!apiKey) {
-      ctx.status = 400;
-      ctx.body = {
-        success: false,
-        error: 'API配置不存在或API Key为空'
-      };
-      return;
-    }
+    // 部分服务不需要 apiKey，跳过空校验
     
     // 发送测试请求
     const response = await axios.get(testUrl, { params: testParams });

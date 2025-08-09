@@ -39,7 +39,13 @@ const defaultConfig = {
   scanInterval: 3600000, // 1小时
   supportedFormats: ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'],
   coverSize: 300,
-  language: 'zh-CN'
+  language: 'zh-CN',
+  // 允许在企业代理/自签证书环境下跳过TLS验证（谨慎启用，仅用于内网或调试）
+  allowInsecureTLS: false,
+  // 代理基础地址（可选）
+  qqMusicApiBase: '',
+  neteaseMusicApiBase: '',
+  acoustIdApiKey: ''
 };
 
 // 获取配置
