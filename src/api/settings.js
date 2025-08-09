@@ -1,186 +1,15 @@
 import Router from 'koa-router';
 import axios from 'axios';
-import { getConfig, saveConfig, musicDB, configDB } from '../client/database.js';
-import fs from 'fs/promises';
-import path from 'path';
+import { getConfig, saveConfig } from '../client/database.js';
+import { 
+  getMediaLibraries, 
+  addMediaLibrary, 
+  deleteMediaLibrary, 
+  scanMediaLibrary, 
+  getScanProgress 
+} from '../client/music.js';
 
 const router = new Router();
-
-// 扫描进度存储
-const scanProgress = new Map();
-
-/**
- * 获取所有音乐文件
- */
-async function getAllMusicFiles(dirPath) {
-  const musicExtensions = ['.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg'];
-  const musicFiles = [];
-  
-  async function scanDirectory(currentPath) {
-    try {
-      const items = await fs.readdir(currentPath);
-      
-      for (const item of items) {
-        const fullPath = path.join(currentPath, item);
-        const stat = await fs.stat(fullPath);
-        
-        if (stat.isDirectory()) {
-          await scanDirectory(fullPath);
-        } else if (stat.isFile()) {
-          const ext = path.extname(item).toLowerCase();
-          if (musicExtensions.includes(ext)) {
-            musicFiles.push(fullPath);
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`扫描目录失败: ${currentPath}`, error);
-    }
-  }
-  
-  await scanDirectory(dirPath);
-  return musicFiles;
-}
-
-/**
- * 处理音乐文件
- */
-async function processMusicFile(filePath) {
-  try {
-    // 这里可以集成 music-metadata 库来提取音乐文件信息
-    // 示例返回基本文件信息
-    const fileName = path.basename(filePath, path.extname(filePath));
-    const stat = await fs.stat(filePath);
-    
-    return {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      title: fileName,
-      artist: 'Unknown Artist',
-      album: 'Unknown Album',
-      path: filePath,
-      duration: 0,
-      size: stat.size,
-      addedAt: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error(`处理音乐文件失败: ${filePath}`, error);
-    return null;
-  }
-}
-
-/**
- * 异步扫描媒体库
- */
-async function scanMediaLibraryAsync(library) {
-  const { id, path: libraryPath } = library;
-  
-  try {
-    console.log(`开始扫描媒体库: ${libraryPath}`);
-    
-    // 获取所有音乐文件
-    const musicFiles = await getAllMusicFiles(libraryPath);
-    const totalFiles = musicFiles.length;
-    
-    // 更新进度
-    scanProgress.set(id, {
-      status: 'scanning',
-      progress: 0,
-      currentFile: '',
-      totalFiles,
-      processedFiles: 0
-    });
-    
-    let processedFiles = 0;
-    const processedTracks = [];
-    
-    // 逐个处理文件
-    for (const filePath of musicFiles) {
-      try {
-        // 更新当前处理的文件
-        scanProgress.set(id, {
-          status: 'scanning',
-          progress: Math.round((processedFiles / totalFiles) * 100),
-          currentFile: path.basename(filePath),
-          totalFiles,
-          processedFiles
-        });
-        
-        // 处理音乐文件
-        const trackInfo = await processMusicFile(filePath);
-        if (trackInfo) {
-          processedTracks.push(trackInfo);
-        }
-        
-        processedFiles++;
-        
-        // 模拟处理时间
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-      } catch (error) {
-        console.error(`处理文件失败: ${filePath}`, error);
-      }
-    }
-    
-    // 更新媒体库统计信息
-    await updateMediaLibraryStats(id, processedTracks);
-    
-    // 完成扫描
-    scanProgress.set(id, {
-      status: 'completed',
-      progress: 100,
-      currentFile: '',
-      totalFiles,
-      processedFiles,
-      result: {
-        tracks: processedTracks.length,
-        albums: new Set(processedTracks.map(t => t.album)).size,
-        artists: new Set(processedTracks.map(t => t.artist)).size
-      }
-    });
-    
-    console.log(`媒体库扫描完成: ${libraryPath}, 处理了 ${processedTracks.length} 个文件`);
-    
-  } catch (error) {
-    console.error(`扫描媒体库失败: ${libraryPath}`, error);
-    
-    // 扫描失败
-    scanProgress.set(id, {
-      status: 'failed',
-      progress: 0,
-      currentFile: '',
-      totalFiles: 0,
-      processedFiles: 0,
-      error: error.message
-    });
-  }
-}
-
-/**
- * 更新媒体库统计信息
- */
-async function updateMediaLibraryStats(libraryId, processedTracks) {
-  return new Promise((resolve, reject) => {
-    const stats = {
-      trackCount: processedTracks.length,
-      albumCount: new Set(processedTracks.map(t => t.album)).size,
-      artistCount: new Set(processedTracks.map(t => t.artist)).size,
-      lastScanned: new Date().toISOString()
-    };
-    
-    configDB.update(
-      { _id: 'media_library_' + libraryId },
-      { $set: stats },
-      { upsert: true },
-      (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(stats);
-        }
-      }
-    );
-  });
-}
 
 // ==================== API配置接口 ====================
 
@@ -288,36 +117,7 @@ router.put('/api-configs', async (ctx) => {
  */
 router.get('/media-libraries', async (ctx) => {
   try {
-    const config = await getConfig();
-    const libraries = [];
-    
-    // 从配置中获取媒体库路径
-    for (const libraryPath of config.musicLibraryPaths || []) {
-      const libraryId = Buffer.from(libraryPath).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
-      
-      // 获取媒体库统计信息
-      const stats = await new Promise((resolve) => {
-        configDB.findOne({ _id: 'media_library_' + libraryId }, (err, doc) => {
-          resolve(doc || {
-            trackCount: 0,
-            albumCount: 0,
-            artistCount: 0,
-            lastScanned: null
-          });
-        });
-      });
-      
-      libraries.push({
-        id: libraryId,
-        path: libraryPath,
-        trackCount: stats.trackCount || 0,
-        albumCount: stats.albumCount || 0,
-        artistCount: stats.artistCount || 0,
-        createdAt: stats.createdAt || new Date().toISOString(),
-        lastScanned: stats.lastScanned
-      });
-    }
-    
+    const libraries = await getMediaLibraries();
     ctx.body = {
       success: true,
       data: libraries
@@ -349,50 +149,11 @@ router.post('/media-libraries', async (ctx) => {
       return;
     }
     
-    // 验证路径是否存在
-    try {
-      await fs.access(libraryPath);
-    } catch {
-      ctx.status = 400;
-      ctx.body = {
-        success: false,
-        error: '媒体库路径不存在或无法访问'
-      };
-      return;
-    }
-    
-    const config = await getConfig();
-    
-    // 检查是否已存在
-    if (config.musicLibraryPaths && config.musicLibraryPaths.includes(libraryPath)) {
-      ctx.status = 400;
-      ctx.body = {
-        success: false,
-        error: '媒体库路径已存在'
-      };
-      return;
-    }
-    
-    // 添加新媒体库
-    if (!config.musicLibraryPaths) {
-      config.musicLibraryPaths = [];
-    }
-    config.musicLibraryPaths.push(libraryPath);
-    
-    await saveConfig(config);
-    
-    const libraryId = Buffer.from(libraryPath).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
+    const newLibrary = await addMediaLibrary(libraryPath);
     
     ctx.body = {
       success: true,
-      data: {
-        id: libraryId,
-        path: libraryPath,
-        trackCount: 0,
-        albumCount: 0,
-        artistCount: 0,
-        createdAt: new Date().toISOString()
-      },
+      data: newLibrary,
       message: '媒体库添加成功'
     };
   } catch (error) {
@@ -400,7 +161,7 @@ router.post('/media-libraries', async (ctx) => {
     ctx.status = 500;
     ctx.body = {
       success: false,
-      error: '添加媒体库失败'
+      error: error.message || '添加媒体库失败'
     };
   }
 });
@@ -412,29 +173,7 @@ router.post('/media-libraries', async (ctx) => {
 router.delete('/media-libraries/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
-    const config = await getConfig();
-    
-    // 找到对应的路径
-    const libraryPath = config.musicLibraryPaths?.find(path => {
-      const pathId = Buffer.from(path).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
-      return pathId === id;
-    });
-    
-    if (!libraryPath) {
-      ctx.status = 404;
-      ctx.body = {
-        success: false,
-        error: '媒体库不存在'
-      };
-      return;
-    }
-    
-    // 从配置中移除
-    config.musicLibraryPaths = config.musicLibraryPaths.filter(path => path !== libraryPath);
-    await saveConfig(config);
-    
-    // 删除统计信息
-    configDB.remove({ _id: 'media_library_' + id }, {});
+    await deleteMediaLibrary(id);
     
     ctx.body = {
       success: true,
@@ -445,7 +184,7 @@ router.delete('/media-libraries/:id', async (ctx) => {
     ctx.status = 500;
     ctx.body = {
       success: false,
-      error: '删除媒体库失败'
+      error: error.message || '删除媒体库失败'
     };
   }
 });
@@ -457,36 +196,9 @@ router.delete('/media-libraries/:id', async (ctx) => {
 router.post('/media-libraries/:id/scan', async (ctx) => {
   try {
     const { id } = ctx.params;
-    const config = await getConfig();
-    
-    // 找到对应的路径
-    const libraryPath = config.musicLibraryPaths?.find(path => {
-      const pathId = Buffer.from(path).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
-      return pathId === id;
-    });
-    
-    if (!libraryPath) {
-      ctx.status = 404;
-      ctx.body = {
-        success: false,
-        error: '媒体库不存在'
-      };
-      return;
-    }
-    
-    const library = { id, path: libraryPath };
-    
-    // 初始化扫描进度
-    scanProgress.set(id, {
-      status: 'scanning',
-      progress: 0,
-      currentFile: '',
-      totalFiles: 0,
-      processedFiles: 0
-    });
     
     // 异步开始扫描
-    scanMediaLibraryAsync(library);
+    scanMediaLibrary(id);
     
     ctx.body = {
       success: true,
@@ -497,7 +209,7 @@ router.post('/media-libraries/:id/scan', async (ctx) => {
     ctx.status = 500;
     ctx.body = {
       success: false,
-      error: '开始扫描失败'
+      error: error.message || '开始扫描失败'
     };
   }
 });
@@ -509,8 +221,7 @@ router.post('/media-libraries/:id/scan', async (ctx) => {
 router.get('/media-libraries/:id/scan-progress', async (ctx) => {
   try {
     const { id } = ctx.params;
-    const progress = scanProgress.get(id);
-    
+    const progress = getScanProgress(id);
     if (!progress) {
       ctx.status = 404;
       ctx.body = {
@@ -693,6 +404,8 @@ router.get('/system-info', async (ctx) => {
  */
 router.get('/music-stats', async (ctx) => {
   try {
+    const { musicDB } = await import('../client/database.js');
+    
     const stats = await new Promise((resolve) => {
       Promise.all([
         new Promise((res) => musicDB.count({ type: 'track' }, (err, count) => res(err ? 0 : count))),

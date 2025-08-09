@@ -17,7 +17,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* 修复下拉菜单被裁剪：允许溢出可见 */
+  overflow: visible;
 }
 
 .ml-thead {
@@ -50,6 +51,7 @@
   overflow-y: auto;
   overflow-x: hidden; /* 禁止横向滚动条 */
   min-height: 0;
+  position: relative; /* 为绝对定位子元素提供层叠上下文 */
 }
 
 /* 美化滚动条 */
@@ -81,7 +83,7 @@
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* 保证行内弹层不被裁剪 */
 }
 
 .ml-row::before {
@@ -195,6 +197,7 @@
   gap: 6px;
   align-items: center;
   justify-content: flex-end;
+  overflow: visible; /* 操作列允许弹层 */
 }
 
 .ml-btn {
@@ -244,6 +247,7 @@
 /* 更多操作菜单 */
 .ml-more-container {
   position: relative;
+  overflow: visible; /* 容器允许弹层 */
 }
 
 .ml-btn.more {
@@ -260,8 +264,8 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  min-width: 120px;
+  z-index: 9999; /* 提升层级，避免被遮挡 */
+  min-width: 140px;
   animation: fadeInUp 0.2s ease-out;
 }
 

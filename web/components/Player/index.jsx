@@ -49,12 +49,9 @@ const Player = ({
           {currentMusic ? (
             <>
               <img 
-                src={`/api/music/cover/${currentMusic.id}`}
+                src={currentMusic.coverImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjBmMGYwIi8+CjxwYXRoIGQ9Ik0xNiA4TDIyIDE2TDE2IDI0TDEwIDE2TDE2IDhaIiBmaWxsPSIjY2NjIi8+Cjwvc3ZnPg=='}
                 alt="封面"
                 className="player-cover"
-                onError={(e) => {
-                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjBmMGYwIi8+CjxwYXRoIGQ9Ik0zMCAxNUw0NSAzMEwzMCA0NUwxNSAzMEwzMCAxNVoiIGZpbGw9IiNjY2MiLz4KPC9zdmc+';
-                }}
               />
               <div className="player-info">
                 <div className="player-title">{currentMusic.title}</div>

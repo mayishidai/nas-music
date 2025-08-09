@@ -2,7 +2,7 @@ import Router from 'koa-router';
 import axios from 'axios';
 import fs from 'fs/promises';
 import { musicDB, getConfig, saveConfig, getMusicStats } from '../client/database.js';
-import { fullScan, buildIndexes, scanMusicFile, getRecommendations, initMusicModule } from '../client/music.js';
+import { fullScan, getRecommendations, initMusicModule } from '../client/music.js';
 
 const router = new Router();
 
@@ -665,9 +665,6 @@ router.put('/tracks/:id/tags', async (ctx) => {
         resolve(numReplaced);
       });
     });
-    
-    // 重建索引
-    await buildIndexes();
     
     ctx.body = {
       success: true,
