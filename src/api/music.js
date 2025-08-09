@@ -1,5 +1,6 @@
 import Router from 'koa-router';
 import axios from 'axios';
+import { fetchCoverImageByReleaseId, fetchCoverImageByTrackInfo, fetchLyricsByTrackInfo } from '../client/onlineSearch.js';
 import fs from 'fs/promises';
 import { musicDB, getConfig, saveConfig, getMusicStats } from '../client/database.js';
 import { searchOnlineTags } from '../client/onlineSearch.js';
@@ -640,6 +641,36 @@ router.get('/lyrics/:id', async (ctx) => {
     ctx.status = 500;
     ctx.body = { error: '获取歌词失败: ' + error.message };
     console.error('获取歌词失败:', error);
+  }
+});
+
+// 根据标题/歌手获取本地或外部封面
+router.get('/cover-by-info', async (ctx) => {
+  try {
+    const { title = '', artist = '', releaseId = '' } = ctx.query;
+    let cover = null;
+    if (title || artist) {
+      cover = await fetchCoverImageByTrackInfo({ title, artist });
+    }
+    if (!cover && releaseId) {
+      cover = await fetchCoverImageByReleaseId(releaseId);
+    }
+    ctx.body = { success: true, data: cover || null };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { success: false, error: '获取封面失败' };
+  }
+});
+
+// 根据标题/歌手获取歌词（简体）
+router.get('/lyrics-by-info', async (ctx) => {
+  try {
+    const { title = '', artist = '' } = ctx.query;
+    const lyrics = await fetchLyricsByTrackInfo({ title, artist });
+    ctx.body = { success: true, data: lyrics || '' };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { success: false, error: '获取歌词失败' };
   }
 });
 

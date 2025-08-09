@@ -28,6 +28,7 @@
     "koa-static": "^5.0.0",
     "music-metadata": "^11.7.3",
     "musicbrainz-api": "^0.25.1",
+    "simptrad": "^1.0.3",
     "nodemon": "^3.1.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

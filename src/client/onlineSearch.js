@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { tradToSimple as toSimplified } from 'simptrad'
 import { MusicBrainzApi } from 'musicbrainz-api';
-import { getConfig } from './database.js';
+import { getConfig, musicDB } from './database.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -209,13 +209,8 @@ async function searchMusicBrainz(params, cfg) {
       const album = release?.title || '';
       const year = (release?.date || '').slice(0, 4) || null;
       const duration = r.length ? Math.round(r.length / 1000) : null;
-      const releaseId = release?.id;
-      let coverImage = null;
-      if (releaseId) {
-        coverImage = `https://coverartarchive.org/release/${releaseId}/front`;
-      }
       const score = similarity(params.title || params.query, title) * 0.6 + similarity(params.artist || '', artist) * 0.4;
-      results.push(buildResult({ title, artist, album, year, duration, coverImage, source: 'musicbrainz', sourceId: r.id, score }));
+      results.push(buildResult({ title, artist, album, year, duration, source: 'musicbrainz', sourceId: r.id, score }));
     }
     return results;
   } catch (e) {
@@ -245,20 +240,8 @@ async function searchLastfm(params, cfg) {
       const artist = t.artist;
       const album = '';
       const coverImage = Array.isArray(t.image) ? (t.image[3]?.['#text'] || t.image[2]?.['#text'] || null) : null;
-      let artistImage = null;
-      // 获取歌手图片（可选）
-      try {
-        const artistInfo = await axios.get('https://ws.audioscrobbler.com/2.0/', {
-          params: { method: 'artist.getinfo', artist, api_key: apikey, format: 'json' },
-          timeout: 8000
-        });
-        const imgs = artistInfo.data?.artist?.image || [];
-        artistImage = imgs[imgs.length - 1]?.['#text'] || null;
-      } catch {}
-      const score =
-        similarity(params.title || params.query, title) * 0.6 +
-        similarity(params.artist || '', artist) * 0.4;
-      results.push(buildResult({ title, artist, album, coverImage, artistImage, source: 'lastfm', sourceId: t.mbid || null, score }));
+      const score = similarity(params.title || params.query, title) * 0.6 + similarity(params.artist || '', artist) * 0.4;
+      results.push(buildResult({ title, artist, album, coverImage, source: 'lastfm', sourceId: t.mbid || null, score }));
     }
     return results;
   } catch {
@@ -332,6 +315,69 @@ export async function searchOnlineTags(params) {
     .map((r) => ({ ...r, score: computeMatchScore(r, origin) }))
     .sort((a, b) => (b.score || 0) - (a.score || 0));
   return rescored.slice(0, 20);
+}
+
+// ========== 额外信息获取：封面 ==========
+export async function fetchCoverImageByReleaseId(releaseId) {
+  if (!releaseId) return null;
+  // 优先从 Cover Art Archive JSON 获取直链
+  try {
+    const caa = await axios.get(`https://coverartarchive.org/release/${releaseId}`);
+    const images = Array.isArray(caa.data?.images) ? caa.data.images : [];
+    if (images.length > 0) {
+      const front = images.find((img) => img?.front) || images[0];
+      if (front?.image) return front.image;
+    }
+  } catch {}
+  // 回落：尝试通过 release -> release-group 再取封面
+  try {
+    const mb = await axios.get(`https://musicbrainz.org/ws/2/release/${releaseId}`, { params: { fmt: 'json' } });
+    const rgid = mb.data?.["release-group"]?.id;
+    if (rgid) {
+      const caaRg = await axios.get(`https://coverartarchive.org/release-group/${rgid}`);
+      const images = Array.isArray(caaRg.data?.images) ? caaRg.data.images : [];
+      if (images.length > 0) {
+        const front = images.find((img) => img?.front) || images[0];
+        if (front?.image) return front.image;
+      }
+    }
+  } catch {}
+  // 最后回退到标准 front 路径（可能部分可用）
+  return `https://coverartarchive.org/release/${releaseId}/front`;
+}
+
+export async function fetchCoverImageByTrackInfo({ title, artist }) {
+  try {
+    const titleRegex = title ? new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+    const artistRegex = artist ? new RegExp(artist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+    const doc = await new Promise((resolve) => {
+      const selector = { type: 'track' };
+      if (titleRegex) selector.title = titleRegex;
+      if (artistRegex) selector.artist = artistRegex;
+      musicDB.findOne(selector, (err, d) => resolve(err ? null : d));
+    });
+    return doc?.coverImage || null;
+  } catch {
+    return null;
+  }
+}
+
+// ========== 额外信息获取：歌词 ==========
+export async function fetchLyricsByTrackInfo({ title, artist }) {
+  try {
+    const titleRegex = title ? new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+    const artistRegex = artist ? new RegExp(artist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
+    const doc = await new Promise((resolve) => {
+      const selector = { type: 'track' };
+      if (titleRegex) selector.title = titleRegex;
+      if (artistRegex) selector.artist = artistRegex;
+      musicDB.findOne(selector, (err, d) => resolve(err ? null : d));
+    });
+    const text = doc?.lyrics || '';
+    return toSimplified(text || '');
+  } catch {
+    return '';
+  }
 }
 
 export default {

@@ -183,16 +183,30 @@ const TrackDetailPage = ({ trackId, onBack }) => {
                 <div
                   key={idx}
                   className="td-result"
-                  onClick={() => {
-                    setForm({
+                  onClick={async () => {
+                    const nextForm = {
                       ...form,
                       title: r.title || form.title,
                       artist: r.artist || form.artist,
                       album: r.album || form.album,
                       year: r.year || form.year
-                    });
-                    if (r.coverImage) setCoverPreview(r.coverImage);
-                    if (r.lyrics) setLyrics(r.lyrics);
+                    };
+                    setForm(nextForm);
+                    try {
+                      // 优先使用结果自带的封面/歌词，否则调用后端封面与歌词接口
+                      if (r.coverImage) setCoverPreview(r.coverImage);
+                      else {
+                        const coverRes = await fetch(`/api/music/cover-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}${r.source?.includes('musicbrainz') && r.sourceId ? `&releaseId=${encodeURIComponent(r.sourceId)}` : ''}`);
+                        const coverJson = await coverRes.json();
+                        if (coverJson?.success && coverJson.data) setCoverPreview(coverJson.data);
+                      }
+                      if (r.lyrics) setLyrics(r.lyrics);
+                      else {
+                        const lyrRes = await fetch(`/api/music/lyrics-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}`);
+                        const lyrJson = await lyrRes.json();
+                        if (lyrJson?.success) setLyrics(lyrJson.data || '');
+                      }
+                    } catch {}
                   }}
                 >
                   <div className="td-r-title">{r.title || '未知歌曲'}</div>

@@ -147,8 +147,8 @@ const SettingsPage = () => {
             clearInterval(interval);
             setScanningLibrary(null);
             setScanProgress(0);
-            alert('扫描完成！');
-            loadMediaLibraries(); // 重新加载媒体库列表以更新统计信息
+            // 扫描完成后刷新列表，但不弹窗
+            loadMediaLibraries();
           } else if (result.data.status === 'failed') {
             clearInterval(interval);
             setScanningLibrary(null);
@@ -247,11 +247,6 @@ const SettingsPage = () => {
                 <div key={library.id} className="library-item">
                   <div className="library-info">
                     <div className="library-path">{library.path}</div>
-                    <div className="library-stats">
-                      <span>{library.trackCount || 0} 首歌曲</span>
-                      <span>{library.albumCount || 0} 张专辑</span>
-                      <span>{library.artistCount || 0} 位艺术家</span>
-                    </div>
                   </div>
                   <div className="library-actions">
                     <button 
