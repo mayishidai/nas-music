@@ -1,5 +1,5 @@
 import axios from 'axios';
-import https from 'https';
+import { tradToSimple as toSimplified } from 'simptrad'
 import { MusicBrainzApi } from 'musicbrainz-api';
 import { getConfig } from './database.js';
 
@@ -7,9 +7,150 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 function normalizeText(input) {
   return String(input || '')
+    // 去除控制字符
+    .replace(/[\u0000-\u001F]/g, ' ')
+    // 全角转半角
+    .replace(/[\uFF01-\uFF5E]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
     .toLowerCase()
+    .normalize('NFKC')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function stripDecorations(name) {
+  if (!name) return '';
+  let n = name;
+  // 去扩展名
+  n = n.replace(/\.[a-z0-9]{2,5}$/i, '');
+  // 去括号与方括号、花括号内容
+  n = n.replace(/\[[^\]]*\]/g, ' ').replace(/\([^)]*\)/g, ' ').replace(/\{[^}]*\}/g, ' ');
+  // 去常见标注词
+  n = n.replace(/\b(320kbps|128kbps|flac|ape|mp3|wav|aac|ogg|m4a|wma|mv|live|hq|dj|remix|ost|original|official|lyrics?)\b/gi, ' ');
+  // 去前导音轨号
+  n = n.replace(/^\s*\d{1,2}\s*[-_.]\s*/, ' ');
+  // 中文附加词
+  n = n.replace(/(官方版|纯音乐|伴奏|现场版|无损|高品质|原声|原曲|铃声)/g, ' ');
+  // 分隔符
+  n = n.replace(/[\-_]+/g, ' ');
+  return normalizeText(n);
+}
+
+function getBaseNameFromPath(filePath) {
+  if (!filePath) return '';
+  const norm = String(filePath).replace(/\\/g, '/');
+  const last = norm.lastIndexOf('/');
+  return last >= 0 ? norm.slice(last + 1) : norm;
+}
+
+function splitArtistTitle(cleanName) {
+  const parts = cleanName.split(' - ').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 2) {
+    return { left: parts[0], right: parts[1] };
+  }
+  return { left: '', right: cleanName };
+}
+
+function isGarbled(text) {
+  if (!text) return false;
+  const s = String(text);
+  let weird = 0;
+  for (const ch of s) {
+    const code = ch.charCodeAt(0);
+    const isAsciiWord = (code >= 48 && code <= 57) || (code >= 97 && code <= 122) || code === 32;
+    const isCJK = (code >= 0x4e00 && code <= 0x9fff);
+    if (!isAsciiWord && !isCJK) weird++;
+  }
+  return weird / s.length > 0.35;
+}
+
+function tryFixEncoding(text) {
+  if (!text) return '';
+  const s = String(text);
+  if (!isGarbled(s)) return s;
+  try {
+    const buf = Buffer.from(s, 'binary');
+    return buf.toString('utf8');
+  } catch {
+    return s;
+  }
+}
+
+function jaccardTokens(a, b) {
+  const as = new Set(normalizeText(a).split(' ').filter(Boolean));
+  const bs = new Set(normalizeText(b).split(' ').filter(Boolean));
+  if (as.size === 0 || bs.size === 0) return 0;
+  let inter = 0;
+  for (const t of as) if (bs.has(t)) inter++;
+  return inter / (as.size + bs.size - inter);
+}
+
+function titleSimilarity(a, b) {
+  if (!a || !b) return 0;
+  const na = stripDecorations(a);
+  const nb = stripDecorations(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  if (na.includes(nb) || nb.includes(na)) return 0.9;
+  return jaccardTokens(na, nb);
+}
+
+function artistSimilarity(a, b) {
+  if (!a || !b) return 0;
+  return jaccardTokens(a, b);
+}
+
+function yearSimilarity(a, b) {
+  const ya = parseInt(a, 10);
+  const yb = parseInt(b, 10);
+  if (!ya || !yb) return 0;
+  if (Math.abs(ya - yb) <= 1) return 1;
+  if (Math.abs(ya - yb) <= 2) return 0.7;
+  return 0;
+}
+
+function durationSimilarity(a, b) {
+  const da = Number(a);
+  const db = Number(b);
+  if (!da || !db) return 0;
+  const diff = Math.abs(da - db);
+  if (diff <= 2) return 1;
+  if (diff <= 5) return 0.8;
+  if (diff <= 10) return 0.6;
+  if (diff <= 20) return 0.3;
+  return 0;
+}
+
+function computeMatchScore(result, origin) {
+  const titleScore = titleSimilarity(tryFixEncoding(result.title), origin.title) * 0.5;
+  const artistScore = artistSimilarity(tryFixEncoding(result.artist), origin.artist) * 0.3;
+  const albumScore = artistSimilarity(tryFixEncoding(result.album), origin.album) * 0.05;
+  const yearScore = yearSimilarity(result.year, origin.year) * 0.05;
+  const durationScore = durationSimilarity(result.duration, origin.duration) * 0.1;
+  return Number((titleScore + artistScore + albumScore + yearScore + durationScore).toFixed(4));
+}
+
+function inferBestQuery({ filename, trackPath, title, artist, album }) {
+  const baseName = stripDecorations(getBaseNameFromPath(filename || trackPath || ''));
+  const tagsTitle = stripDecorations(title || '');
+  const tagsArtist = stripDecorations(artist || '');
+  const { left, right } = splitArtistTitle(baseName);
+  const candidates = [];
+  if (right) candidates.push({ t: right, a: left });
+  if (baseName) candidates.push({ t: baseName, a: '' });
+  if (tagsTitle) candidates.push({ t: tagsTitle, a: tagsArtist });
+  const scored = candidates
+    .map((c) => ({
+      ...c,
+      score: titleSimilarity(c.t, tagsTitle || baseName) * 0.6 + artistSimilarity(c.a, tagsArtist) * 0.4
+    }))
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+  const best = scored[0] || { t: tagsTitle || baseName, a: tagsArtist };
+  const confident = (best.score || 0) >= 0.5;
+  return {
+    queryTitle: best.t || tagsTitle || baseName,
+    queryArtist: confident ? (best.a || tagsArtist) : '',
+    confidence: best.score || 0
+  };
 }
 
 function similarity(a, b) {
@@ -58,14 +199,7 @@ async function searchMusicBrainz(params, cfg) {
     const m = ua.match(/^([^\/]+)\/(.+)$/);
     if (m) { appName = m[1]; appVersion = m[2]; }
     const mb = new MusicBrainzApi({ appName, appVersion });
-
-    const qParts = [];
-    if (params.title) qParts.push(`recording:"${params.title}"`);
-    if (params.artist) qParts.push(`artist:"${params.artist}"`);
-    if (!qParts.length && params.query) qParts.push(params.query);
-    const query = qParts.join(' AND ');
-
-    const res = await mb.search('recording', { query }, 0, 10);
+    const res = await mb.search('recording', { query: `recording:"${params.title}"` }, 0, 10);
     const recs = res?.recordings || [];
     const results = [];
     for (const r of recs) {
@@ -157,13 +291,47 @@ function mergeAndDedupe(results) {
 
 export async function searchOnlineTags(params) {
   const cfg = await getConfig();
-  const { query, title, artist, album, filename, fingerprint, duration, trackPath } = params || {};
-  const baseParams = { query, title, artist, album, filename, fingerprint, duration, trackPath };
+  const { query, title, artist, album, filename, duration, trackPath } = params || {};
+  // 输入先做简体化
+  const sQuery = toSimplified(query || '');
+  const sTitle = toSimplified(title || '');
+  const sArtist = toSimplified(artist || '');
+  const sAlbum = toSimplified(album || '');
+  const sFilename = toSimplified(filename || '');
+  const sTrackPath = toSimplified(trackPath || '');
+  // 推断最可能的标题/歌手（基于路径/文件名/已有标签）
+  const inferred = inferBestQuery({ filename: sFilename, trackPath: sTrackPath, title: sTitle, artist: sArtist, album: sAlbum });
+  const origin = {
+    title: sTitle || inferred.queryTitle || sQuery || '',
+    artist: sArtist || inferred.queryArtist || '',
+    album: sAlbum || '',
+    duration: duration || null,
+    year: null
+  };
+  // 使用推断出的标题进行检索
+  const baseParams = {
+    query: sQuery || `${inferred.queryTitle || ''}`.trim(),
+    title: inferred.queryTitle || sTitle || '',
+    artist: inferred.queryArtist || ''
+  };
   const [mb, lf] = await Promise.all([
     searchMusicBrainz(baseParams, cfg),
     searchLastfm(baseParams, cfg)
   ]);
-  return mergeAndDedupe([ ...mb, ...lf ]).slice(0, 20);
+  // 输出字段也做简体化
+  const simplifyResult = async (r) => ({
+    ...r,
+    title: toSimplified(r.title),
+    artist: toSimplified(r.artist),
+    album: toSimplified(r.album)
+  });
+  const mergedRaw = mergeAndDedupe([ ...mb, ...lf ]);
+  const merged = await Promise.all(mergedRaw.map(simplifyResult));
+  // 基于原信息重算匹配得分并排序
+  const rescored = merged
+    .map((r) => ({ ...r, score: computeMatchScore(r, origin) }))
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+  return rescored.slice(0, 20);
 }
 
 export default {
