@@ -4,11 +4,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0; /* 允许内部滚动容器在Flex布局中收缩 */
 }
 
 .page-content {
   flex: 1;
   overflow: hidden;
+  min-height: 0; /* 关键：让子级（如MusicList）可以垂直滚动 */
   display: flex;
   flex-direction: column;
 }

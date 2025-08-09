@@ -11,9 +11,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px;
+  padding: 0 20px;
   z-index: 1000;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.control-buttons {
+  display: flex;
+  align-items: center;
+  gap: 35px;
 }
 
 /* 音乐信息区域 */
@@ -21,8 +27,8 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  min-width: 300px;
-  max-width: 400px;
+  min-width: 200px;
+  max-width: 25%;
 }
 
 .player-cover {
@@ -84,18 +90,21 @@
 /* 播放控制区域 */
 .player-controls {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  max-width: 500px;
+  justify-content: space-between;
+  gap: 20px;
+  width: 50%;
 }
 
-.control-buttons {
+.controls-left {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 250px;
 }
+
+
 
 .control-btn {
   background: transparent;
@@ -112,6 +121,8 @@
   font-size: 18px;
 }
 
+/* 模式与收藏统一按钮风格，使用 .control-btn + .active 高亮 */
+
 .control-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -127,6 +138,8 @@
   color: #4ecdc4;
   background: rgba(78, 205, 196, 0.1);
 }
+
+/* 去掉图标方框背景，直接用emoji或文字即可 */
 
 .play-btn-main {
   background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
@@ -207,8 +220,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 200px;
-  max-width: 300px;
+  justify-self: end;
 }
 
 .volume-slider {
@@ -241,19 +253,24 @@
 /* 播放列表面板 */
 .playlist-panel {
   position: fixed;
-  bottom: 100px;
-  right: 30px;
-  width: 350px;
-  max-height: 400px;
-  background: rgba(0, 0, 0, 0.95);
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 380px;
+  background: rgba(10, 10, 10, 0.98);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  z-index: 1001;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 2000;
   display: flex;
   flex-direction: column;
-  animation: slideInUp 0.3s ease-out;
+  animation: slideInRight 0.25s ease-out;
+}
+
+.playlist-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1500;
 }
 
 .playlist-header {
@@ -403,21 +420,45 @@
 }
 
 /* 歌词面板 */
-.lyrics-panel {
+/* KTV浮动歌词 */
+.floating-lyrics {
   position: fixed;
-  bottom: 100px;
-  left: 30px;
-  width: 350px;
-  max-height: 400px;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  z-index: 1001;
-  display: flex;
-  flex-direction: column;
-  animation: slideInUp 0.3s ease-out;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70vw;
+  pointer-events: none;
+  z-index: 1500;
+}
+/* 播放按钮右侧内联歌词 */
+.controls-lyrics {
+  background: rgba(0,0,0,0.25);
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  width: 50%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.controls-lyrics .lyrics-text {
+  font-size: 18px; /* 字体更大 */
+  font-weight: 600;
+  background: linear-gradient(90deg, #ff6b6b, #ffd166, #4ecdc4);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.floating-lyrics-line {
+  text-align: center;
+  font-size: 18px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.35);
+  padding: 8px 16px;
+  border-radius: 8px;
 }
 
 .lyrics-header {
@@ -541,38 +582,80 @@
   }
 }
 
-/* 响应式设计 */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* 响应式设计（窄屏额外修正，仅调整弹层宽度） */
 @media (max-width: 768px) {
+  .playlist-panel,
+  .floating-lyrics {
+    width: calc(100vw - 40px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+
+
+/* 大屏优化 */
+@media (min-width: 1600px) {
   .bottom-player {
-    height: 120px;
-    padding: 0 20px;
-    flex-direction: column;
-    justify-content: center;
+    grid-template-columns: 420px 1.6fr 420px;
+    height: 110px;
+    padding: 0 30px;
+  }
+  .controls-lyrics .lyrics-text { font-size: 20px; }
+}
+
+@media (max-width: 1600px) and (min-width: 1201px) {
+  .control-buttons { gap: 15px; flex-wrap: wrap; }
+}
+
+/* 笔记本（中屏）优化 */
+@media (max-width: 1200px) and (min-width: 901px) {
+  .bottom-player {
+    grid-template-columns: 320px 1fr 300px;
+  }
+  .control-buttons { gap: 10px; flex-wrap: wrap; }
+}
+
+/* 手机端（小屏）布局：上下堆叠 */
+@media (max-width: 900px) {
+  .bottom-player {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .bottom-player {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 10px 12px 12px 12px;
     gap: 10px;
   }
-  
-  .player-track-info {
-    min-width: auto;
-    max-width: none;
-    width: 100%;
-  }
-  
-  .player-controls {
-    max-width: none;
-    width: 100%;
-  }
-  
-  .player-volume {
-    min-width: auto;
-    max-width: none;
-    width: 100%;
-  }
-  
+  .player-track-info { max-width: 100%; }
+  /* 保持所有控件可见：同一列内分区排列 */
+  .player-controls { flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
+  .controls-left { align-items: center; }
+  .progress-section { width: 100%; gap: 8px; }
+  .controls-lyrics { display: none; }
+  .player-volume { justify-self: center; width: 100%; justify-content: center; display: flex; }
+  .control-buttons { gap: 10px; flex-wrap: wrap; }
+  .control-btn { width: 36px; height: 36px; }
+  .play-btn-main { width: 48px; height: 48px; }
+}
+
+@media (max-width: 768px) {
+  /* 小屏弹层宽度修正 */
   .playlist-panel,
-  .lyrics-panel {
+  .floating-lyrics {
     width: calc(100vw - 40px);
-    left: 20px;
-    right: 20px;
-    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
   }
+}
+
+/* 小于900隐藏歌词开关 */
+@media (max-width: 900px) {
+  .lyrics-toggle { display: none !important; }
 }

@@ -3,7 +3,29 @@
   padding: 20px;
   height: 100%;
   overflow-y: auto;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255,255,255,0.2) transparent; /* Firefox */
 }
+/* 自定义滚动条（WebKit） */
+.albums-view::-webkit-scrollbar {
+  width: 8px;
+}
+
+.albums-view::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.albums-view::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.albums-view::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #4ecdc4, #ff6b6b);
+}
+
 
 .albums-grid {
   display: grid;
@@ -41,6 +63,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .album-cover-placeholder {
@@ -107,19 +130,39 @@
 /* 响应式设计 */
 @media (max-width: 768px) {
   .albums-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
   }
   
   .album-card {
-    padding: 12px;
+    padding: 8px;
   }
   
   .album-name {
-    font-size: 1em;
+    font-size: 0.9em;
   }
   
   .album-artist {
-    font-size: 0.8em;
+    font-size: 0.7em;
   }
+}
+
+@media (max-width: 480px) {
+  .albums-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .album-card { padding: 6px; }
+  .album-cover { margin-bottom: 8px; }
+  .album-name { font-size: 0.85em; }
+  .album-artist { font-size: 0.68em; }
+  .albums-view{ padding: 0; }
+}
+
+/* 平板优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* .albums-grid { grid-template-columns: repeat(3, 1fr); } */
+}
+
+/* 大屏优化 */
+@media (min-width: 1600px) {
+  .albums-grid { gap: 24px; }
+  .album-name { font-size: 1.15em; }
 }

@@ -11,27 +11,29 @@ const AlbumsView = ({ albums = [], onAlbumClick }) => {
       <div className="albums-grid">
         {albums.map(album => (
           <div 
-            key={album.id} 
+            key={album.id || album._id} 
             className="album-card"
             onClick={() => onAlbumClick && onAlbumClick(album)}
           >
             <div className="album-cover">
-              <img 
-                src={album.coverImage || `/api/music/cover/${album.id}`} 
-                alt={album.name}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'block';
-                }}
-              />
+              {album.coverImage ? (
+                <img 
+                  src={album.coverImage}
+                  alt={album.name}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
               <div className="album-cover-placeholder">
                 <span>💿</span>
               </div>
             </div>
             <div className="album-info">
               <h3 className="album-name">{album.name}</h3>
-              <p className="album-artist">{album.artist}</p>
-              <p className="album-tracks">{album.trackCount || 0} 首歌曲</p>
+              <p className="album-artist">{album.artist || album.albumArtist}</p>
+              <p className="album-tracks">{album.trackCount || (album.tracks?.length || 0)} 首歌曲</p>
             </div>
           </div>
         ))}

@@ -3,26 +3,46 @@
   padding: 20px;
   height: 100%;
   overflow-y: auto;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255,255,255,0.2) transparent; /* Firefox */
 }
+/* 自定义滚动条（WebKit） */
+.artists-view::-webkit-scrollbar {
+  width: 8px;
+}
+
+.artists-view::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.artists-view::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.artists-view::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #4ecdc4, #ff6b6b);
+}
+
 
 .artists-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
   padding: 10px;
 }
 
 .artist-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 20px;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
   display: flex;
-  align-items: center;
-  gap: 15px;
+  flex-direction: column;
 }
 
 .artist-card:hover {
@@ -31,28 +51,25 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-.artist-avatar {
-  flex-shrink: 0;
+.artist-banner {
+  height: 160px;
+  background: linear-gradient(135deg, #334, #223);
+  background-size: cover;
+  background-position: center;
+  position: relative;
 }
 
-.avatar-placeholder {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.artist-banner-placeholder {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5em;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 48px;
+  color: rgba(255,255,255,0.8);
 }
 
-.artist-info {
-  flex: 1;
-  min-width: 0;
-}
+.artist-info { padding: 14px 16px; }
 
 .artist-name {
   font-size: 1.2em;
@@ -64,17 +81,8 @@
   white-space: nowrap;
 }
 
-.artist-albums {
-  font-size: 0.9em;
-  color: #ccc;
-  margin: 0 0 3px 0;
-}
-
-.artist-tracks {
-  font-size: 0.8em;
-  color: #999;
-  margin: 0;
-}
+.artist-meta { color: #ccc; font-size: 0.9em; display: flex; align-items: center; gap: 8px; }
+.artist-meta .dot { opacity: 0.6; }
 
 .empty-state {
   display: flex;
@@ -99,21 +107,40 @@
 /* 响应式设计 */
 @media (max-width: 768px) {
   .artists-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
   
-  .artist-card {
-    padding: 15px;
-  }
+  .artist-banner { height: 120px; }
   
-  .avatar-placeholder {
-    width: 50px;
-    height: 50px;
-    font-size: 1.2em;
+  .artist-name { font-size: 1.05em; }
+}
+
+/* 小屏进一步优化：统计信息多行展示 */
+@media (max-width: 600px) {
+  .artist-meta { flex-wrap: wrap; row-gap: 4px; column-gap: 8px; }
+  .artists-view{
+    padding: 0;
   }
-  
-  .artist-name {
-    font-size: 1.1em;
+}
+
+/* 平板优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .artists-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* 平板优化 */
+@media (min-width: 1025px) and (max-width: 1600px) {
+  .artists-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 大屏优化 */
+@media (min-width: 1600px) {
+  .artists-grid { gap: 24px; }
+  .artist-banner { height: 200px; }
+  .artist-name { font-size: 1.25em; }
 }

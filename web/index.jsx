@@ -4,11 +4,13 @@ import {
   MusicPage,
   AlbumsPage,
   ArtistsPage,
-  GenresPage,
   FavoritesPage,
   RecentlyPlayedPage,
-  SettingsPage
+  SettingsPage,
+  AlbumDetailView
 } from './views';
+import ShufflePage from './views/shuffle';
+import ArtistDetailView from './views/Artists/ArtistDetail';
 import './index.css';
 
 /**
@@ -50,7 +52,7 @@ const NASMusicPlayer = () => {
   
   // 歌词相关状态
   const [lyrics, setLyrics] = useState('');
-  const [showLyrics, setShowLyrics] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(true);
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [currentLyricLine, setCurrentLyricLine] = useState('');
   const [showLyricsPanel, setShowLyricsPanel] = useState(false);
@@ -62,6 +64,12 @@ const NASMusicPlayer = () => {
   const [tagSearchResults, setTagSearchResults] = useState([]);
   
   const audioRef = useRef(null);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth > 1200;
+    }
+    return true;
+  });
 
   /**
    * 加载音乐库统计信息
@@ -114,20 +122,7 @@ const NASMusicPlayer = () => {
     }
   };
 
-  /**
-   * 加载流派列表
-   */
-  const loadGenres = async () => {
-    try {
-      const response = await fetch('/api/music/genres');
-      const result = await response.json();
-      if (result.success) {
-        setMusicData(prev => ({ ...prev, genres: result.data }));
-      }
-    } catch (error) {
-      console.error('加载流派列表失败:', error);
-    }
-  };
+  // 已移除流派页面
 
   /**
    * 播放音乐
@@ -135,13 +130,19 @@ const NASMusicPlayer = () => {
    * @param {Array} playlistTracks - 播放列表
    */
   const playMusic = (track, playlistTracks = null) => {
+    const normId = track?._id || track?.id;
+    const normalizedTrack = { ...track, id: normId };
+
     if (playlistTracks) {
-      setPlaylist(playlistTracks);
-      const index = playlistTracks.findIndex(t => t.id === track.id);
+      // 确保播放列表内元素都有 id 字段
+      const normList = playlistTracks.map((t) => ({ ...t, id: t._id || t.id }));
+      setPlaylist(normList);
+      const index = normList.findIndex(t => (t._id || t.id) === normId);
       setCurrentPlaylistIndex(index);
     }
     
-    if (currentMusic?.id === track.id) {
+    const currentId = currentMusic ? (currentMusic._id || currentMusic.id) : null;
+    if (currentId && currentId === normId) {
       // 如果点击的是当前播放的音乐，则切换播放/暂停状态
       if (isPlaying) {
         audioRef.current.pause();
@@ -152,10 +153,49 @@ const NASMusicPlayer = () => {
       }
     } else {
       // 播放新的音乐
-      setCurrentMusic(track);
+      // 若未传入新的播放列表：
+      // - 如果当前曲目不在播放列表中，插入到第一位
+      // - 如果已存在，则不改变顺序，仅定位到该曲目
+      if (!playlistTracks) {
+        const existingIndex = playlist.findIndex((t) => (t?._id || t?.id) === normId);
+        if (existingIndex === -1) {
+          setPlaylist((prev) => [ normalizedTrack, ...prev ]);
+          setCurrentPlaylistIndex(0);
+        } else {
+          setCurrentPlaylistIndex(existingIndex);
+        }
+      }
+      setCurrentMusic(normalizedTrack);
       setIsPlaying(true);
-      loadRecommendations(track.id);
-      loadLyrics(track.id);
+      loadRecommendations(normId);
+      loadLyrics(normId);
+      // 记录最近播放
+      try {
+        fetch(`/api/music/recently-played/${normId}`, { method: 'POST' });
+      } catch (e) {}
+    }
+  };
+  /** 打开艺术家详情 */
+  const openArtist = async (artist) => {
+    try {
+      setIsLoading(true);
+      const artistId = artist.id || artist._id;
+      const res = await fetch(`/api/music/artists/${artistId}`);
+      const json = await res.json();
+      if (json?.success) {
+        const data = json.data || {};
+        // 规范化
+        const normTracks = (data.tracks || []).filter(Boolean).map((t) => ({ ...t, id: t._id || t.id }));
+        const normAlbums = (data.albums || []).filter(Boolean);
+        setSelectedArtist({ ...data, tracks: normTracks, albums: normAlbums });
+      } else {
+        setSelectedArtist(artist);
+      }
+    } catch (e) {
+      console.error('加载艺术家详情失败:', e);
+      setSelectedArtist(artist);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -210,7 +250,10 @@ const NASMusicPlayer = () => {
       const response = await fetch(`/api/music/recommendations/${trackId}?limit=10`);
       const result = await response.json();
       if (result.success) {
-        setRecommendations(result.data);
+        const recs = Array.isArray(result.data)
+          ? result.data.map((t) => ({ ...t, id: t._id || t.id }))
+          : [];
+        setRecommendations(recs);
       }
     } catch (error) {
       console.error('加载推荐失败:', error);
@@ -229,17 +272,14 @@ const NASMusicPlayer = () => {
         setLyrics(result.data);
         const parsed = parseLyrics(result.data);
         setParsedLyrics(parsed);
-        setShowLyrics(true);
       } else {
         setLyrics('暂无歌词');
         setParsedLyrics([]);
-        setShowLyrics(false);
       }
     } catch (error) {
       console.error('加载歌词失败:', error);
       setLyrics('暂无歌词');
       setParsedLyrics([]);
-      setShowLyrics(false);
     } finally {
       setLyricsLoading(false);
     }
@@ -292,6 +332,30 @@ const NASMusicPlayer = () => {
   const openTagEditor = (track) => {
     setEditingTrack({ ...track });
     setShowTagEditor(true);
+  };
+
+  /**
+   * 打开专辑详情
+   */
+  const openAlbum = async (album) => {
+    try {
+      setIsLoading(true);
+      const albumId = album.id || album._id;
+      const res = await fetch(`/api/music/albums/${albumId}`);
+      const json = await res.json();
+      if (json?.success) {
+        const data = json.data || {};
+        const normalizedTracks = (data.tracks || []).filter(Boolean).map((t) => ({ ...t, id: t._id || t.id }));
+        setSelectedAlbum({ ...data, tracks: normalizedTracks });
+      } else {
+        setSelectedAlbum(album);
+      }
+    } catch (e) {
+      console.error('加载专辑详情失败:', e);
+      setSelectedAlbum(album);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /**
@@ -358,9 +422,6 @@ const NASMusicPlayer = () => {
       case 'artists':
         loadArtists(1, searchQuery);
         break;
-      case 'genres':
-        loadGenres();
-        break;
     }
   };
 
@@ -369,6 +430,8 @@ const NASMusicPlayer = () => {
    */
   const handleViewChange = (view) => {
     setCurrentView(view);
+    // 移动端：切换视图后关闭侧边抽屉
+    setSidebarOpen(false);
   };
 
   /**
@@ -378,12 +441,17 @@ const NASMusicPlayer = () => {
     setCurrentView('settings');
   };
 
-  /**
-   * 处理音乐库管理按钮点击
-   */
-  const handleLibraryManageClick = () => {
-    setCurrentView('music');
+  // 处理搜索按钮点击/回车
+  const handleSearch = () => {
+    if (currentView === 'albums' && selectedAlbum) {
+      setSelectedAlbum(null);
+    }
+    if (currentView === 'artists' && selectedArtist) {
+      setSelectedArtist(null);
+    }
+    // 其余视图保持不变，依赖 useEffect 根据 searchQuery 自动刷新
   };
+
 
   // 音频事件处理
   useEffect(() => {
@@ -459,34 +527,89 @@ const NASMusicPlayer = () => {
             searchQuery={searchQuery}
             onPlay={(t) => playMusic(t)}
             onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
-            onFavorite={(t) => alert('已收藏：' + (t.title || ''))}
+            onFavorite={async (t) => {
+              try {
+                await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ favorite: true })
+                });
+              } catch (e) {}
+            }}
             onDetails={(t) => openTagEditor(t)}
           />
         );
       case 'albums':
-        return (
+        return selectedAlbum ? (
+          <AlbumDetailView
+            album={selectedAlbum}
+            onBack={() => setSelectedAlbum(null)}
+            onPlay={(t) => playMusic(t, selectedAlbum?.tracks || null)}
+            onPlayAll={() => {
+              const tracks = (selectedAlbum?.tracks || []).filter(Boolean);
+              if (tracks.length) {
+                playMusic(tracks[0], tracks);
+              }
+            }}
+            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
+            onFavorite={async (t, next) => {
+              try {
+                await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ favorite: next }) });
+              } catch (e) {}
+            }}
+          />
+        ) : (
           <AlbumsPage
             albums={musicData.albums}
-            onAlbumClick={setSelectedAlbum}
+            onAlbumClick={openAlbum}
           />
         );
       case 'artists':
-        return (
+        return selectedArtist ? (
+          <ArtistDetailView
+            artist={selectedArtist}
+            onBack={() => setSelectedArtist(null)}
+            onPlay={(t) => playMusic(t)}
+            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
+          />
+        ) : (
           <ArtistsPage
             artists={musicData.artists}
-            onArtistClick={setSelectedArtist}
-          />
-        );
-      case 'genres':
-        return (
-          <GenresPage
-            genres={musicData.genres}
+            onArtistClick={openArtist}
           />
         );
       case 'favorites':
-        return <FavoritesPage />;
+        return (
+          <FavoritesPage
+            onPlay={(t) => playMusic(t)}
+            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
+          />
+        );
       case 'recently-played':
-        return <RecentlyPlayedPage />;
+        return (
+          <RecentlyPlayedPage
+            onPlay={(t) => playMusic(t)}
+            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
+          />
+        );
+      case 'shuffle':
+        return (
+          <ShufflePage
+            searchQuery={searchQuery}
+            onPlay={(t) => playMusic(t)}
+            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
+            onFavorite={async (t) => {
+              try {
+                await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ favorite: true })
+                });
+              } catch (e) {}
+            }}
+            onDetails={(t) => openTagEditor(t)}
+          />
+        );
       case 'settings':
         return <SettingsPage />;
       default:
@@ -497,7 +620,7 @@ const NASMusicPlayer = () => {
   return (
     <div className="nas-music-player">
       {/* 左侧树形菜单 */}
-      <div className="sidebar">
+      <div className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="logo">
           <h2>🎵 NAS音乐</h2>
         </div>
@@ -513,22 +636,17 @@ const NASMusicPlayer = () => {
             </button>
             <button 
               className={currentView === 'albums' ? 'active' : ''}
-              onClick={() => handleViewChange('albums')}
+              onClick={() => { setSelectedAlbum(null); handleViewChange('albums'); }}
             >
               💿 专辑 ({musicData.stats.albums || 0})
             </button>
             <button 
               className={currentView === 'artists' ? 'active' : ''}
-              onClick={() => handleViewChange('artists')}
+              onClick={() => { setSelectedArtist(null); handleViewChange('artists'); }}
             >
               👤 艺术家 ({musicData.stats.artists || 0})
             </button>
-            <button 
-              className={currentView === 'genres' ? 'active' : ''}
-              onClick={() => handleViewChange('genres')}
-            >
-              🎭 流派 ({musicData.stats.genres || 0})
-            </button>
+            {/* 已移除流派入口 */}
           </nav>
         </div>
 
@@ -547,7 +665,10 @@ const NASMusicPlayer = () => {
             >
               🕒 最近播放
             </button>
-            <button className="nav-item">
+            <button 
+              className={currentView === 'shuffle' ? 'active' : ''}
+              onClick={() => handleViewChange('shuffle')}
+            >
               🔀 随机播放
             </button>
           </nav>
@@ -579,29 +700,50 @@ const NASMusicPlayer = () => {
         )}
       </div>
 
+      {/* 移动端侧边遮罩 */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
       {/* 主内容区 */}
       <div className="main-content">
         {/* 顶部工具栏 */}
         <div className="top-bar">
+          <div className="top-leading">
+            <button
+              className="menu-btn"
+              title="菜单"
+              onClick={() => setSidebarOpen((v) => !v)}
+            >
+              ☰
+            </button>
+            <div className="logo-mini">🎵 NAS音乐</div>
+          </div>
           <div className="search-container">
             <input
               type="text"
               placeholder="搜索音乐、专辑、艺术家..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
               className="search-input"
             />
-            <button className="search-btn">🔍</button>
+            {searchQuery && (
+              <button
+                className="search-clear-btn"
+                title="清空"
+                onClick={() => {
+                  setSearchQuery('');
+                  // 清空后也确保从详情返回列表
+                  if (currentView === 'albums' && selectedAlbum) setSelectedAlbum(null);
+                  if (currentView === 'artists' && selectedArtist) setSelectedArtist(null);
+                }}
+              >
+                ✕
+              </button>
+            )}
+            <button className="search-btn" onClick={handleSearch}>🔍</button>
           </div>
           
           <div className="view-controls">
-            <button 
-              className="view-btn" 
-              title="音乐库管理"
-              onClick={handleLibraryManageClick}
-            >
-              📋
-            </button>
             <button 
               className="view-btn" 
               title="设置"

@@ -32,6 +32,9 @@ const Player = ({
 }) => {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showLyricsPanel, setShowLyricsPanel] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [favorite, setFavorite] = useState(false);
+  const [playMode, setPlayMode] = useState('none'); // none | one | all | shuffle
 
   // 格式化时间
   const formatTime = (seconds) => {
@@ -56,11 +59,6 @@ const Player = ({
               <div className="player-info">
                 <div className="player-title">{currentMusic.title}</div>
                 <div className="player-artist">{currentMusic.artist}</div>
-                {showLyrics && currentLyricLine && (
-                  <div className="player-lyrics">
-                    {currentLyricLine}
-                  </div>
-                )}
               </div>
             </>
           ) : (
@@ -77,14 +75,27 @@ const Player = ({
         </div>
 
         <div className="player-controls">
-          <div className="control-buttons">
-            <button 
-              onClick={onShuffleToggle}
-              className={`control-btn ${isShuffled ? 'active' : ''}`}
-              title="随机播放"
+          <div className="controls-left">
+            <div className="control-buttons">
+            {/* 播放模式：合并随机/循环/单曲 */}
+            <button
+              onClick={() => {
+                const modes = ['none', 'shuffle', 'all', 'one'];
+                const idx = modes.indexOf(playMode);
+                setPlayMode(modes[(idx + 1) % modes.length]);
+                // 同步外部状态
+                if (modes[(idx + 1) % modes.length] === 'shuffle') {
+                  !isShuffled && onShuffleToggle && onShuffleToggle();
+                } else if (playMode === 'shuffle') {
+                  isShuffled && onShuffleToggle && onShuffleToggle();
+                }
+                if (onRepeatModeChange) onRepeatModeChange();
+              }}
+              className={`control-btn ${playMode !== 'none' ? 'active' : ''}`}
+              title={`播放模式: ${playMode}`}
               disabled={!currentMusic}
             >
-              🔀
+              {playMode === 'shuffle' ? '🔀' : playMode === 'one' ? '🔂' : '🔁'}
             </button>
             <button 
               onClick={onPrev} 
@@ -92,7 +103,7 @@ const Player = ({
               title="上一首"
               disabled={!currentMusic || playlist.length === 0}
             >
-              ⏮️
+              ‹
             </button>
             <button 
               onClick={currentMusic ? (isPlaying ? onPause : onPlay) : null}
@@ -100,7 +111,7 @@ const Player = ({
               title={currentMusic ? (isPlaying ? '暂停' : '播放') : '请先选择音乐'}
               disabled={!currentMusic}
             >
-              {currentMusic ? (isPlaying ? '⏸️' : '▶️') : '▶️'}
+              {currentMusic ? (isPlaying ? '❚❚' : '▶') : '▶'}
             </button>
             <button 
               onClick={onNext} 
@@ -108,60 +119,77 @@ const Player = ({
               title="下一首"
               disabled={!currentMusic || playlist.length === 0}
             >
-              ⏭️
+              ›
             </button>
-            <button 
-              onClick={onRepeatModeChange}
-              className={`control-btn ${repeatMode !== 'none' ? 'active' : ''}`}
-              title={`重复模式: ${repeatMode === 'none' ? '关闭' : repeatMode === 'one' ? '单曲' : '全部'}`}
+            {/* 收藏 */}
+            <button
+              onClick={() => {
+                if (!currentMusic) return;
+                const id = currentMusic._id || currentMusic.id;
+                fetch(`/api/music/tracks/${id}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ favorite: !favorite }) })
+                  .then(() => setFavorite(!favorite))
+                  .catch(() => {});
+              }}
+              className={`control-btn ${favorite ? 'active' : ''}`}
+              title={favorite ? '取消收藏' : '收藏'}
               disabled={!currentMusic}
             >
-              {repeatMode === 'one' ? '🔂' : '🔁'}
+              ⭐
             </button>
-          </div>
-          
-          <div className="progress-section">
-            <span className="time-display">{formatTime(currentTime)}</span>
-            <div className="progress-bar-container">
-              <div 
-                className="progress-bar-fill"
-                style={{ width: `${(currentTime / duration) * 100}%` }}
-              ></div>
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={currentTime}
-                onChange={(e) => {
-                  const time = parseFloat(e.target.value);
-                  onTimeChange(time);
-                }}
-                className="progress-slider"
-                disabled={!currentMusic}
-              />
             </div>
-            <span className="time-display">{formatTime(duration)}</span>
+
+            <div className="progress-section">
+              <span className="time-display">{formatTime(currentTime)}</span>
+              <div className="progress-bar-container">
+                <div 
+                  className="progress-bar-fill"
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                ></div>
+                <input
+                  type="range"
+                  min="0"
+                  max={duration || 0}
+                  value={currentTime}
+                  onChange={(e) => {
+                    const time = parseFloat(e.target.value);
+                    onTimeChange(time);
+                  }}
+                  className="progress-slider"
+                  disabled={!currentMusic}
+                />
+              </div>
+              <span className="time-display">{formatTime(duration)}</span>
+            </div>
           </div>
+
+          {showLyrics && currentMusic && (
+            <div className="controls-lyrics">
+              <span className="lyrics-text">{currentLyricLine || ''}</span>
+            </div>
+          )}
         </div>
 
         <div className="player-volume">
-          <span>🔊</span>
+          <button className="control-btn" title={muted ? '取消静音' : '静音'} onClick={() => { setMuted(!muted); onVolumeChange(muted ? volume : 0); }}>
+            {muted ? '🔈' : '🔊'}
+          </button>
           <input
             type="range"
             min="0"
             max="1"
             step="0.1"
-            value={volume}
+            value={muted ? 0 : volume}
             onChange={(e) => {
               const vol = parseFloat(e.target.value);
               onVolumeChange(vol);
+              if (vol > 0 && muted) setMuted(false);
             }}
             className="volume-slider"
           />
           <button 
-            onClick={() => setShowLyricsPanel(!showLyricsPanel)}
-            className={`control-btn ${showLyricsPanel ? 'active' : ''}`}
-            title="歌词面板"
+            onClick={onLyricsToggle}
+            className={`control-btn lyrics-toggle ${showLyrics ? 'active' : ''}`}
+            title="歌词"
             disabled={lyricsLoading || !currentMusic}
           >
             {lyricsLoading ? '⏳' : '📝'}
@@ -178,8 +206,10 @@ const Player = ({
 
       {/* 播放列表面板 */}
       {showPlaylist && (
-        <div className="playlist-panel">
-          <div className="playlist-header">
+        <>
+          <div className="playlist-overlay" onClick={() => setShowPlaylist(false)} />
+          <div className="playlist-panel">
+            <div className="playlist-header">
             <h3>播放列表 ({playlist.length})</h3>
             <div className="playlist-controls">
               <button 
@@ -196,90 +226,44 @@ const Player = ({
                 ✕
               </button>
             </div>
-          </div>
-          
-          <div className="playlist-tracks">
-            {playlist.length === 0 ? (
-              <div className="playlist-empty">
-                <p>播放列表为空</p>
-                <p>双击音乐或点击播放按钮添加音乐</p>
-              </div>
-            ) : (
-              playlist.map((track, index) => (
-                <div 
-                  key={track.id} 
-                  className={`playlist-item ${currentPlaylistIndex === index ? 'active' : ''}`}
-                  onClick={() => onPlaylistItemClick(track, index)}
-                >
-                  <div className="playlist-item-info">
-                    <div className="playlist-item-title">{track.title}</div>
-                    <div className="playlist-item-artist">{track.artist}</div>
-                  </div>
-                  <div className="playlist-item-duration">{formatTime(track.duration)}</div>
-                  <button 
-                    className="playlist-item-remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlaylistItemRemove(index);
-                    }}
-                  >
-                    ✕
-                  </button>
+            </div>
+            
+            <div className="playlist-tracks">
+              {playlist.length === 0 ? (
+                <div className="playlist-empty">
+                  <p>播放列表为空</p>
+                  <p>双击音乐或点击播放按钮添加音乐</p>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 歌词面板 */}
-      {showLyricsPanel && (
-        <div className="lyrics-panel">
-          <div className="lyrics-header">
-            <h3>歌词</h3>
-            <div className="lyrics-controls">
-              <button 
-                onClick={onLyricsToggle}
-                className={`lyrics-toggle-btn ${showLyrics ? 'active' : ''}`}
-                title={showLyrics ? '关闭歌词显示' : '开启歌词显示'}
-              >
-                {showLyrics ? '👁️' : '👁️‍🗨️'}
-              </button>
-              <button 
-                onClick={() => setShowLyricsPanel(false)}
-                className="lyrics-close-btn"
-              >
-                ✕
-              </button>
+              ) : (
+                playlist.map((track, index) => (
+                  <div 
+                    key={track.id} 
+                    className={`playlist-item ${currentPlaylistIndex === index ? 'active' : ''}`}
+                    onClick={() => onPlaylistItemClick(track, index)}
+                  >
+                    <div className="playlist-item-info">
+                      <div className="playlist-item-title">{track.title}</div>
+                      <div className="playlist-item-artist">{track.artist}</div>
+                    </div>
+                    <div className="playlist-item-duration">{formatTime(track.duration)}</div>
+                    <button 
+                      className="playlist-item-remove"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPlaylistItemRemove(index);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-          
-          <div className="lyrics-content">
-            {lyricsLoading ? (
-              <div className="lyrics-loading">
-                <div className="loading-spinner">⏳</div>
-                <p>加载歌词中...</p>
-              </div>
-            ) : parsedLyrics.length > 0 ? (
-              <div className="lyrics-list">
-                {parsedLyrics.map((line, index) => (
-                  <div 
-                    key={index}
-                    className={`lyrics-line ${currentLyricLine === line.text ? 'active' : ''}`}
-                  >
-                    {line.text}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="lyrics-empty">
-                <p>暂无歌词</p>
-                <p>该歌曲没有找到歌词文件</p>
-              </div>
-            )}
-          </div>
-        </div>
+        </>
       )}
+
+      {/* KTV式浮动歌词（保留，可按需与 inline 同时显示或仅保留一个） */}
     </>
   );
 };

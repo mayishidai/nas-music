@@ -9,6 +9,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
 }
 
 /* 表格样式 */
@@ -17,8 +18,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  /* 修复下拉菜单被裁剪：允许溢出可见 */
   overflow: visible;
+  max-height: calc(100% - 62px);
 }
 
 .ml-thead {
@@ -48,7 +49,7 @@
 
 .ml-tbody {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto; /* 垂直滚动 */
   overflow-x: hidden; /* 禁止横向滚动条 */
   min-height: 0;
   position: relative; /* 为绝对定位子元素提供层叠上下文 */
@@ -81,7 +82,7 @@
   padding: 10px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
-  cursor: pointer;
+  cursor: default;
   position: relative;
   overflow: visible; /* 保证行内弹层不被裁剪 */
 }
@@ -166,6 +167,15 @@
   text-overflow: ellipsis;
   color: #fff;
 }
+/* 链接按钮 */
+.ml-link {
+  background: transparent;
+  border: none;
+  color: #4ecdc4;
+  cursor: pointer;
+  padding: 0;
+}
+.ml-link:hover { text-decoration: underline; }
 
 .ml-sub {
   font-size: 11px;
@@ -302,6 +312,10 @@
   background: rgba(255, 255, 255, 0.05);
   gap: 20px;
   flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  flex-wrap: nowrap;
 }
 
 .ml-pg-info {
@@ -314,6 +328,8 @@
   display: flex;
   gap: 5px;
   align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .ml-pg-btn {
@@ -436,7 +452,7 @@
 @media (max-width: 1200px) {
   .ml-thead,
   .ml-row {
-    grid-template-columns: 2fr 1fr 1fr 120px;
+    grid-template-columns: 2fr 1fr 1fr 80px 120px;
   }
   
   .ml-col-quality {
@@ -464,20 +480,23 @@
   .ml-col-quality {
     display: none;
   }
+  .ml-col-actions { grid-column: 2 / 3; justify-content: flex-end; }
   
-  .ml-pagination {
-    flex-direction: column;
-    gap: 15px;
-  }
+  .ml-pagination { flex-direction: row; gap: 8px; padding: 12px 14px; }
   
-  .ml-pg-ctrls {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+  .ml-pg-ctrls { overflow-x: auto; }
+  /* 小屏只显示上一页/下一页 */
+  .ml-pg-btn.prev, .ml-pg-btn.next { display: inline-flex; }
+  .ml-pg-btn:not(.prev):not(.next) { display: none; }
   
-  .ml-pg-settings {
-    flex-direction: column;
-    gap: 10px;
-  }
+  .ml-pg-settings { gap: 8px; }
+  .ml-pg-jump { display: none; }
+  .ml-pg-info { display: none; }
+}
+
+/* 大屏优化 */
+@media (min-width: 1600px) {
+  .ml-thead { padding: 14px 24px; }
+  .ml-row { padding: 12px 24px; }
 }
 

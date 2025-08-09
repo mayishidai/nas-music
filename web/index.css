@@ -34,6 +34,17 @@ body {
   overflow: hidden; /* 去掉滚动条 */
 }
 
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+/* 大屏：更宽侧边栏与内容留白 */
+@media (min-width: 1600px) {
+  .sidebar { width: 320px; padding: 24px; }
+  .top-bar { padding: 24px 40px; }
+  .content-area { padding: 36px; }
+}
+
 .logo h2 {
   margin: 0 0 30px 0;
   font-size: 1.8em;
@@ -118,9 +129,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: 5px; /* 为滚动条留出空间 */
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 /* 美化推荐音乐滚动条 */
@@ -208,6 +219,18 @@ body {
   min-height: 80px;
 }
 
+.top-leading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 笔记本：适配搜索框与按钮尺寸 */
+@media (max-width: 1200px) and (min-width: 901px) {
+  .search-container { min-width: 320px; padding: 8px 16px; }
+  .search-input { font-size: 13px; }
+}
+
 .search-container {
   display: flex;
   align-items: center;
@@ -234,6 +257,7 @@ body {
   width: 100%;
   outline: none;
   font-weight: 500;
+  padding-right: 70px; /* 预留清空与搜索按钮空间 */
 }
 
 .search-input::placeholder {
@@ -253,6 +277,23 @@ body {
 
 .search-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* 搜索清空按钮 */
+.search-clear-btn {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  margin-left: 6px;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.search-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .view-controls {
@@ -830,52 +871,117 @@ body {
 }
 
 /* 响应式设计 */
-@media (max-width: 1200px) {
-  .nas-music-player {
-    flex-direction: column;
-  }
-  
+@media (max-width: 900px) {
+  .nas-music-player { flex-direction: row; }
   .sidebar {
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 15px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 78%;
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease-out;
+    z-index: 1500;
+    overflow-y: auto;
   }
-  
-  .nav-section {
-    margin-bottom: 0;
-    margin-right: 30px;
-    min-width: 200px;
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1400;
   }
-  
+  .menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    cursor: pointer;
+  }
+  .logo-mini { display: inline-block; margin-right: 10px; font-weight: 700; }
+  .top-bar { flex-direction: row; gap: 10px; align-items: center; }
+  .top-bar > .search-container { flex: 1; }
+  .view-controls { flex-shrink: 0; }
+}
+
+/* 大屏去掉顶部的 logo-mini，仅保留侧边栏 Logo */
+@media (min-width: 1201px) {
+  .logo-mini { display: none; }
+}
+
+@media (max-width: 900px) {
   .main-content {
-    padding-bottom: 100px;
+    padding-bottom: 200px;
   }
 }
 
 @media (max-width: 768px) {
-  .top-bar {
-    flex-direction: column;
-    gap: 15px;
-    padding: 15px 20px;
+  .nas-music-player { flex-direction: row; }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 78%;
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease-out;
+    z-index: 1500;
   }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1400;
+  }
+  .menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    cursor: pointer;
+  }
+  .top-bar { flex-direction: row; gap: 10px; padding: 15px 20px; align-items: center; }
+  .top-leading { gap: 8px; }
+  .top-bar > .search-container { flex: 1; }
+  .view-controls { flex-shrink: 0; }
   
   .search-container {
     width: 100%;
     min-width: auto;
+    padding: 8px 14px;
   }
   
   .search-input {
     width: 100%;
+    font-size: 13px;
   }
   
+  .logo h2 { font-size: 1.4em; margin-bottom: 16px; }
+  .nav-section h3 { display: none; }
+  .nav-menu button, .nav-item { padding: 10px 12px; font-size: 13px; }
+  .recommendations { display: none; }
+  
   .content-area {
-    padding: 20px;
+    padding: 10px;
   }
   
   .main-content {
-    padding-bottom: 120px;
+    padding-bottom: 200px; /* 小屏底部播放器高度更高，预留更多空间避免遮挡分页 */
   }
   
   .table-header {
@@ -909,4 +1015,18 @@ body {
   .form-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* 极小屏（窄手机）优化 */
+@media (max-width: 420px) {
+  .nav-section { min-width: 160px; }
+  .nav-menu { gap: 4px; }
+  .search-input { font-size: 12px; }
+  .top-bar > .search-container { flex: 1 1 auto; min-width: 0; }
+  .view-controls { width: auto; justify-content: flex-end; flex: 0 0 auto; }
+}
+
+/* 超小屏：隐藏顶部的小Logo，仅保留侧滑按钮 */
+@media (max-width: 600px) {
+  .logo-mini { display: none; }
 }

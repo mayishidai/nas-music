@@ -3,7 +3,7 @@ import './ArtistsView.css';
 
 /**
  * 艺术家视图组件
- * 展示艺术家列表
+ * 展示艺术家列表 - 卡片：上半区背景为歌手照片/占位，下半区展示信息
  */
 const ArtistsView = ({ artists = [], onArtistClick }) => {
   return (
@@ -11,19 +11,29 @@ const ArtistsView = ({ artists = [], onArtistClick }) => {
       <div className="artists-grid">
         {artists.map(artist => (
           <div 
-            key={artist.id} 
+            key={artist.id || artist._id} 
             className="artist-card"
             onClick={() => onArtistClick && onArtistClick(artist)}
           >
-            <div className="artist-avatar">
-              <div className="avatar-placeholder">
-                <span>{artist.name ? artist.name.charAt(0).toUpperCase() : '?'}</span>
-              </div>
+            <div
+              className="artist-banner"
+              style={{
+                backgroundImage: artist.photo || artist.coverImage
+                  ? `url(${artist.photo || artist.coverImage})`
+                  : undefined
+              }}
+            >
+              {!artist.photo && !artist.coverImage && (
+                <div className="artist-banner-placeholder">👤</div>
+              )}
             </div>
             <div className="artist-info">
-              <h3 className="artist-name">{artist.name}</h3>
-              <p className="artist-albums">{artist.albumCount || 0} 张专辑</p>
-              <p className="artist-tracks">{artist.trackCount || 0} 首歌曲</p>
+              <h3 className="artist-name">{artist.name || '未知艺术家'}</h3>
+              <div className="artist-meta">
+                <span>{artist.albumCount || 0} 张专辑</span>
+                <span className="dot">•</span>
+                <span>{artist.trackCount || 0} 首歌曲</span>
+              </div>
             </div>
           </div>
         ))}

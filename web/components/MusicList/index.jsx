@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './index.css';
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 
 /**
  * 格式化时长显示
@@ -44,7 +44,11 @@ const MusicList = ({
   onFavorite,
   onDetails,
   onOnlineSearch,
-  onPlay
+  onPlay,
+  filters = {},
+  mode = 'tracks', // 'tracks' | 'recent' | 'random'
+  onNavigateToAlbum,
+  onNavigateToArtist
 }) => {
   // 数据状态
   const [tracks, setTracks] = useState([]);
@@ -71,6 +75,7 @@ const MusicList = ({
     setIsLoading(true);
     setError('');
     try {
+      let url = '/api/music/tracks';
       const params = new URLSearchParams({
         page: String(targetPage),
         limit: String(limit),
@@ -78,12 +83,29 @@ const MusicList = ({
         order: sortOrder,
         search: searchKeyword || ''
       });
-      const res = await fetch(`/api/music/tracks?${params.toString()}`);
+      if (filters.genre) params.set('genre', filters.genre);
+      if (filters.artist) params.set('artist', filters.artist);
+      if (filters.album) params.set('album', filters.album);
+      if (filters.yearFrom) params.set('yearFrom', String(filters.yearFrom));
+      if (filters.yearTo) params.set('yearTo', String(filters.yearTo));
+      if (filters.decade) params.set('decade', String(filters.decade));
+      if (filters.minBitrate) params.set('minBitrate', String(filters.minBitrate));
+      if (filters.maxBitrate) params.set('maxBitrate', String(filters.maxBitrate));
+      if (typeof filters.favorite !== 'undefined') params.set('favorite', String(filters.favorite));
+
+      if (mode === 'recent') {
+        url = '/api/music/recently-played';
+        // 最近播放不使用排序参数
+        params.delete('sort');
+        params.delete('order');
+      }
+
+      const res = await fetch(`${url}?${params.toString()}`);
       const json = await res.json();
       if (!json?.success) throw new Error(json?.error || '加载失败');
 
       const docs = Array.isArray(json.data) ? json.data : [];
-      const mapped = docs.map((t) => ({
+      let mapped = docs.map((t) => ({
         id: t._id || t.id,
         _id: t._id || t.id,
         title: t.title,
@@ -97,6 +119,16 @@ const MusicList = ({
         filename: t.filename,
         coverImage: t.coverImage || null, // 新增封面图片字段
       }));
+
+      // 随机模式：打乱顺序
+      if (mode === 'random') {
+        const arr = [...mapped];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        mapped = arr;
+      }
 
       setTracks(mapped);
       const pgn = json.pagination || {};
@@ -177,6 +209,24 @@ const MusicList = ({
     loadTracks(1);
   }, [searchKeyword, sortKey, sortOrder, limit]);
 
+  // 小屏下统一每页数量为5
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 768px)');
+    const apply = () => {
+      if (mq.matches) {
+        setLimit(5);
+      } else {
+        setLimit(pageSize);
+      }
+    };
+    apply();
+    mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', apply) : mq.removeListener(apply);
+    };
+  }, [pageSize]);
+
   return (
     <div className="music-list">
       {/* 音乐列表表格 */}
@@ -202,7 +252,7 @@ const MusicList = ({
           {!isLoading && !error && tracks.length === 0 && (<div className="ml-row ml-empty">暂无数据</div>)}
 
           {!isLoading && !error && tracks.map((t) => (
-            <div key={t.id} className="ml-row">
+            <div key={t.id} className="ml-row" onDoubleClick={() => (onPlay ? onPlay(t) : null)}>
               <div className="ml-td ml-col-title">
                 <div className="ml-title-wrap">
                   {showCover && (
@@ -218,8 +268,20 @@ const MusicList = ({
                   </div>
                 </div>
               </div>
-              <div className="ml-td ml-col-album" title={t.album}>{t.album}</div>
-              <div className="ml-td ml-col-artist" title={t.artist}>{t.artist}</div>
+              <div className="ml-td ml-col-album" title={t.album}>
+                {onNavigateToAlbum ? (
+                  <button className="ml-link" onClick={(e) => { e.stopPropagation(); onNavigateToAlbum(t.album, t.artist); }}>
+                    {t.album}
+                  </button>
+                ) : t.album}
+              </div>
+              <div className="ml-td ml-col-artist" title={t.artist}>
+                {onNavigateToArtist ? (
+                  <button className="ml-link" onClick={(e) => { e.stopPropagation(); onNavigateToArtist(t.artist); }}>
+                    {t.artist}
+                  </button>
+                ) : t.artist}
+              </div>
               <div className="ml-td ml-col-duration">{formatDuration(t.duration)}</div>
               <div className="ml-td ml-col-quality">{formatQuality(t)}</div>
               <div className="ml-td ml-col-actions">
@@ -306,7 +368,7 @@ const MusicList = ({
         </div>
         
         <div className="ml-pg-ctrls">
-          <button disabled={!canPrev} onClick={() => loadTracks(page - 1)} className="ml-pg-btn">
+          <button disabled={!canPrev} onClick={() => loadTracks(page - 1)} className="ml-pg-btn prev">
             ◀ 上一页
           </button>
           
@@ -325,7 +387,7 @@ const MusicList = ({
             </button>
           ))}
           
-          <button disabled={!canNext} onClick={() => loadTracks(page + 1)} className="ml-pg-btn">
+          <button disabled={!canNext} onClick={() => loadTracks(page + 1)} className="ml-pg-btn next">
             下一页 ▶
           </button>
         </div>

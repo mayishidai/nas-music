@@ -624,6 +624,70 @@ router.get('/lyrics/:id', async (ctx) => {
   }
 });
 
+// 记录最近播放
+router.post('/recently-played/:id', async (ctx) => {
+  try {
+    const trackId = ctx.params.id;
+    const track = await new Promise((resolve, reject) => {
+      musicDB.findOne({ _id: trackId }, (err, doc) => (err ? reject(err) : resolve(doc)));
+    });
+    if (!track || track.type !== 'track') {
+      ctx.status = 404;
+      ctx.body = { error: '音乐不存在' };
+      return;
+    }
+
+    const config = await getConfig();
+    const list = Array.isArray(config.recentlyPlayed) ? config.recentlyPlayed : [];
+    const now = new Date().toISOString();
+    const without = list.filter((e) => e && e.id !== trackId); // 去重：移除旧记录
+    without.unshift({ id: trackId, at: now });
+    const limited = without.slice(0, 100);
+    await saveConfig({ ...config, recentlyPlayed: limited });
+    ctx.body = { success: true };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { error: '记录最近播放失败: ' + error.message };
+  }
+});
+
+// 获取最近播放（按记录顺序返回，支持分页和搜索）
+router.get('/recently-played', async (ctx) => {
+  try {
+    const { page = 1, limit = 20, search = '' } = ctx.query;
+    const p = parseInt(page);
+    const l = parseInt(limit);
+    const config = await getConfig();
+    const list = Array.isArray(config.recentlyPlayed) ? config.recentlyPlayed : [];
+    const ids = list.map((e) => e.id);
+    const uniqueIds = Array.from(new Set(ids));
+    const allDocs = await new Promise((resolve, reject) => {
+      musicDB.find({ type: 'track', _id: { $in: uniqueIds } }, (err, docs) => (err ? reject(err) : resolve(docs || [])));
+    });
+    // 建立id->doc映射
+    const map = new Map(allDocs.map((d) => [d._id, d]));
+    // 搜索过滤
+    const searchRegex = search ? new RegExp(search, 'i') : null;
+    const filteredOrdered = uniqueIds
+      .map((id) => map.get(id))
+      .filter(Boolean)
+      .filter((d) =>
+        !searchRegex || searchRegex.test(d.title || '') || searchRegex.test(d.artist || '') || searchRegex.test(d.album || '')
+      );
+    const total = filteredOrdered.length;
+    const start = (p - 1) * l;
+    const pageDocs = filteredOrdered.slice(start, start + l);
+    ctx.body = {
+      success: true,
+      data: pageDocs,
+      pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) }
+    };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { error: '获取最近播放失败: ' + error.message };
+  }
+});
+
 // 更新音乐Tag
 router.put('/tracks/:id/tags', async (ctx) => {
   try {
