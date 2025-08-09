@@ -7,7 +7,8 @@ import {
   FavoritesPage,
   RecentlyPlayedPage,
   SettingsPage,
-  AlbumDetailView
+  AlbumDetailView,
+  TrackDetailPage
 } from './views';
 import ShufflePage from './views/shuffle';
 import ArtistDetailView from './views/Artists/ArtistDetail';
@@ -66,10 +67,11 @@ const NASMusicPlayer = () => {
   const audioRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth > 1200;
+      return window.innerWidth > 900;
     }
     return true;
   });
+  const [isSmallScreen, setIsSmallScreen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false));
 
   /**
    * 加载音乐库统计信息
@@ -430,9 +432,37 @@ const NASMusicPlayer = () => {
    */
   const handleViewChange = (view) => {
     setCurrentView(view);
-    // 移动端：切换视图后关闭侧边抽屉
-    setSidebarOpen(false);
+    // 小屏：切换视图后关闭侧边抽屉；大屏保持展开
+    if (isSmallScreen) setSidebarOpen(false);
   };
+
+  // 监听窗口尺寸，控制侧边栏开关可用性
+  useEffect(() => {
+    const onResize = () => {
+      const small = window.innerWidth <= 900;
+      setIsSmallScreen(small);
+      if (!small) {
+        // 大屏：强制展开，禁用关闭
+        setSidebarOpen(true);
+      }
+    };
+    const openTrackDetail = (e) => {
+      const t = e.detail?.track;
+      if (t) {
+        setEditingTrack({ ...t, id: t._id || t.id });
+        setCurrentView('track-detail');
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', onResize);
+      window.addEventListener('openTrackDetail', openTrackDetail);
+      onResize();
+      return () => {
+        window.removeEventListener('resize', onResize);
+        window.removeEventListener('openTrackDetail', openTrackDetail);
+      };
+    }
+  }, []);
 
   /**
    * 处理设置按钮点击
@@ -536,7 +566,7 @@ const NASMusicPlayer = () => {
                 });
               } catch (e) {}
             }}
-            onDetails={(t) => openTagEditor(t)}
+            onDetails={(t) => { setEditingTrack({ ...t, id: t._id || t.id }); setCurrentView('track-detail'); }}
           />
         );
       case 'albums':
@@ -583,6 +613,7 @@ const NASMusicPlayer = () => {
           <FavoritesPage
             onPlay={(t) => playMusic(t)}
             onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
+            onDetails={(t) => { setEditingTrack({ ...t, id: t._id || t.id }); setCurrentView('track-detail'); }}
           />
         );
       case 'recently-played':
@@ -590,6 +621,7 @@ const NASMusicPlayer = () => {
           <RecentlyPlayedPage
             onPlay={(t) => playMusic(t)}
             onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
+            onDetails={(t) => { setEditingTrack({ ...t, id: t._id || t.id }); setCurrentView('track-detail'); }}
           />
         );
       case 'shuffle':
@@ -612,6 +644,13 @@ const NASMusicPlayer = () => {
         );
       case 'settings':
         return <SettingsPage />;
+      case 'track-detail':
+        return (
+          <TrackDetailPage
+            trackId={editingTrack?.id}
+            onBack={() => setCurrentView('music')}
+          />
+        );
       default:
         return <MusicPage />;
     }
@@ -701,20 +740,22 @@ const NASMusicPlayer = () => {
       </div>
 
       {/* 移动端侧边遮罩 */}
-      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+      {isSmallScreen && sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
 
       {/* 主内容区 */}
       <div className="main-content">
         {/* 顶部工具栏 */}
         <div className="top-bar">
           <div className="top-leading">
-            <button
-              className="menu-btn"
-              title="菜单"
-              onClick={() => setSidebarOpen((v) => !v)}
-            >
-              ☰
-            </button>
+            {isSmallScreen && (
+              <button
+                className="menu-btn"
+                title="菜单"
+                onClick={() => setSidebarOpen((v) => !v)}
+              >
+                ☰
+              </button>
+            )}
             <div className="logo-mini">🎵 NAS音乐</div>
           </div>
           <div className="search-container">

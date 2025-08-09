@@ -1,0 +1,10 @@
+.recently-view .fav-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.recently-view .fav-actions { display: flex; gap: 8px; align-items: center; }
+.recently-view .fav-search { padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; outline: none; }
+
+@media (max-width: 768px) {
+  .recently-view .fav-toolbar { gap: 10px; }
+  .recently-view .fav-search { flex: 1; }
+}
+
+

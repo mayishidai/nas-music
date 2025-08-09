@@ -6,10 +6,10 @@ import { MusicList } from '../../components';
 /**
  * 收藏页面组件
  */
-const FavoritesPage = ({ onPlay, onAddToPlaylist }) => {
+const FavoritesPage = ({ onPlay, onAddToPlaylist, onDetails }) => {
   const [search, setSearch] = useState('');
   return (
-    <div className="page-container">
+    <div className="page-container favorites-view">
       <div className="page-content">
         <div className="fav-toolbar">
           <h2>⭐ 我的收藏</h2>
@@ -26,7 +26,9 @@ const FavoritesPage = ({ onPlay, onAddToPlaylist }) => {
           searchKeyword={search}
           onPlay={onPlay}
           onAddToPlaylist={onAddToPlaylist}
+          onDetails={onDetails}
           filters={{ favorite: true }}
+          isFavoriteList
         />
       </div>
     </div>

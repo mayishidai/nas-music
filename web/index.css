@@ -912,8 +912,9 @@ body {
 }
 
 /* 大屏去掉顶部的 logo-mini，仅保留侧边栏 Logo */
-@media (min-width: 1201px) {
+@media (min-width: 901px) {
   .logo-mini { display: none; }
+  .menu-btn { display: none; }
 }
 
 @media (max-width: 900px) {
@@ -1029,4 +1030,10 @@ body {
 /* 超小屏：隐藏顶部的小Logo，仅保留侧滑按钮 */
 @media (max-width: 600px) {
   .logo-mini { display: none; }
+}
+
+/* 大屏：隐藏菜单按钮，侧边栏固定展开 */
+@media (min-width: 901px) {
+  .menu-btn { display: none !important; }
+  .sidebar { transform: none !important; }
 }

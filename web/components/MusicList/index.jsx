@@ -48,7 +48,8 @@ const MusicList = ({
   filters = {},
   mode = 'tracks', // 'tracks' | 'recent' | 'random'
   onNavigateToAlbum,
-  onNavigateToArtist
+  onNavigateToArtist,
+  isFavoriteList = false
 }) => {
   // 数据状态
   const [tracks, setTracks] = useState([]);
@@ -292,13 +293,34 @@ const MusicList = ({
                 >
                   ▶️
                 </button>
-                <button 
-                  className="ml-btn" 
-                  title="添加到播放列表" 
-                  onClick={() => (onAddToPlaylist ? onAddToPlaylist(t) : alert('已添加到播放列表：' + (t.title || '')))}
-                >
-                  ➕
-                </button>
+                {isFavoriteList ? (
+                  <button
+                    className="ml-btn"
+                    title="删除收藏"
+                    onClick={async () => {
+                      try {
+                        await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ favorite: false })
+                        });
+                        loadTracks(page);
+                      } catch (e) {
+                        alert('取消收藏失败');
+                      }
+                    }}
+                  >
+                    🗑️
+                  </button>
+                ) : (
+                  <button 
+                    className="ml-btn" 
+                    title="添加到播放列表" 
+                    onClick={() => (onAddToPlaylist ? onAddToPlaylist(t) : alert('已添加到播放列表：' + (t.title || '')))}
+                  >
+                    ➕
+                  </button>
+                )}
                 <div className="ml-more-container">
                   <button 
                     className="ml-btn more" 
@@ -326,31 +348,6 @@ const MusicList = ({
                         }}
                       >
                         ℹ️ 详情
-                      </button>
-                      <button 
-                        className="ml-more-item"
-                        onClick={async () => {
-                          if (onOnlineSearch) {
-                            onOnlineSearch(t);
-                            setShowMoreMenu(null);
-                            return;
-                          }
-                          try {
-                            const q = encodeURIComponent(`${t.title || ''} ${t.artist || ''}`.trim());
-                            const res = await fetch(`/api/music/search-tags?query=${q}`);
-                            const json = await res.json();
-                            if (json?.success && Array.isArray(json.data) && json.data.length) {
-                              alert(`搜索到${json.data.length}条结果，例如：\n` + `${json.data[0].title} - ${json.data[0].artist} (${json.data[0].album || ''})`);
-                            } else {
-                              alert('未找到在线结果');
-                            }
-                          } catch (e) {
-                            alert('在线搜索失败');
-                          }
-                          setShowMoreMenu(null);
-                        }}
-                      >
-                        🌐 在线搜索
                       </button>
                     </div>
                   )}

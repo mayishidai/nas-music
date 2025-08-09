@@ -27,14 +27,14 @@
 }
 
 
-.artists-grid {
+.artists-view .artists-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
   padding: 10px;
 }
 
-.artist-card {
+.artists-view .artist-card {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   cursor: pointer;
@@ -45,13 +45,13 @@
   flex-direction: column;
 }
 
-.artist-card:hover {
+.artists-view .artist-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   background: rgba(255, 255, 255, 0.15);
 }
 
-.artist-banner {
+.artists-view .artist-banner {
   height: 160px;
   background: linear-gradient(135deg, #334, #223);
   background-size: cover;
@@ -59,7 +59,7 @@
   position: relative;
 }
 
-.artist-banner-placeholder {
+.artists-view .artist-banner-placeholder {
   position: absolute;
   inset: 0;
   display: flex;
@@ -69,9 +69,9 @@
   color: rgba(255,255,255,0.8);
 }
 
-.artist-info { padding: 14px 16px; }
+.artists-view .artist-info { padding: 14px 16px; }
 
-.artist-name {
+.artists-view .artist-name {
   font-size: 1.2em;
   font-weight: 600;
   margin: 0 0 5px 0;
@@ -81,10 +81,10 @@
   white-space: nowrap;
 }
 
-.artist-meta { color: #ccc; font-size: 0.9em; display: flex; align-items: center; gap: 8px; }
-.artist-meta .dot { opacity: 0.6; }
+.artists-view .artist-meta { color: #ccc; font-size: 0.9em; display: flex; align-items: center; gap: 8px; }
+.artists-view .artist-meta .dot { opacity: 0.6; }
 
-.empty-state {
+.artists-view .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -94,31 +94,31 @@
   text-align: center;
 }
 
-.empty-state h3 {
+.artists-view .empty-state h3 {
   font-size: 1.5em;
   margin-bottom: 10px;
 }
 
-.empty-state p {
+.artists-view .empty-state p {
   font-size: 1em;
   opacity: 0.7;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .artists-grid {
+  .artists-view .artists-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
   
-  .artist-banner { height: 120px; }
+  .artists-view .artist-banner { height: 120px; }
   
-  .artist-name { font-size: 1.05em; }
+  .artists-view .artist-name { font-size: 1.05em; }
 }
 
 /* 小屏进一步优化：统计信息多行展示 */
 @media (max-width: 600px) {
-  .artist-meta { flex-wrap: wrap; row-gap: 4px; column-gap: 8px; }
+  .artists-view .artist-meta { flex-wrap: wrap; row-gap: 4px; column-gap: 8px; }
   .artists-view{
     padding: 0;
   }
@@ -126,14 +126,14 @@
 
 /* 平板优化 */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .artists-grid {
+  .artists-view .artists-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 /* 平板优化 */
 @media (min-width: 1025px) and (max-width: 1600px) {
-  .artists-grid {
+  .artists-view .artists-grid {
     grid-template-columns: repeat(4, 1fr);
   }
 }

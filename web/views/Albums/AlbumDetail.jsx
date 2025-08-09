@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import './AlbumDetail.css';
 
 /**
  * 专辑详情视图
  */
 const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, onFavorite }) => {
+  const [showMoreMenu, setShowMoreMenu] = useState(null);
   const tracks = useMemo(() => (album?.tracks || []).filter(Boolean), [album]);
   const cover = useMemo(() => {
     return album?.coverImage || tracks.find(t => t?.coverImage)?.coverImage || null;
@@ -59,15 +60,48 @@ const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, on
               <div className="td td-artist">{t.artist}</div>
               <div className="td td-duration">{formatDuration(t.duration)}</div>
               <div className="td td-actions">
-                <button className="row-btn" title="播放" onClick={() => onPlay && onPlay(t)}>▶️</button>
-                <button className="row-btn" title="加入播放列表" onClick={() => onAddToPlaylist && onAddToPlaylist(t)}>➕</button>
+                <button className="ml-btn play" title="播放" onClick={() => onPlay && onPlay(t)}>▶️</button>
                 <button
-                  className="row-btn"
-                  title={t.favorite ? '取消收藏' : '收藏'}
-                  onClick={() => onFavorite && onFavorite(t, !t.favorite)}
+                  className="ml-btn"
+                  title="添加到播放列表"
+                  onClick={() => onAddToPlaylist && onAddToPlaylist(t)}
                 >
-                  ⭐
+                  ➕
                 </button>
+                <div className="ml-more-container">
+                  <button
+                    className="ml-btn more"
+                    title="更多操作"
+                    onClick={() => setShowMoreMenu(showMoreMenu === (t._id || t.id) ? null : (t._id || t.id))}
+                  >
+                    ⋯
+                  </button>
+                  {showMoreMenu === (t._id || t.id) && (
+                    <div className="ml-more-menu">
+                      <button
+                        className="ml-more-item"
+                        onClick={() => {
+                          onFavorite && onFavorite(t, !t.favorite);
+                          setShowMoreMenu(null);
+                        }}
+                      >
+                        {t.favorite ? '⭐ 取消收藏' : '⭐ 收藏'}
+                      </button>
+                      <button
+                        className="ml-more-item"
+                        onClick={() => {
+                          if (typeof window !== 'undefined') {
+                            const ev = new CustomEvent('openTrackDetail', { detail: { track: t } });
+                            window.dispatchEvent(ev);
+                          }
+                          setShowMoreMenu(null);
+                        }}
+                      >
+                        ℹ️ 详情
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

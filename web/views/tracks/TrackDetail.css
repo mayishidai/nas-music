@@ -1,0 +1,40 @@
+.track-detail { display: flex; flex-direction: column; gap: 16px; height: 100%; padding: 16px; }
+/* 头部参考专辑详情：左封面右信息 */
+.td-back-row { margin-bottom: 8px; }
+.td-header { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: center; }
+.td-back { background: transparent; border: none; color: #ccc; cursor: pointer; }
+.td-cover-wrap { width: 120px; height: 120px; }
+.td-cover-img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: block; }
+.td-cover-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.08); border-radius: 10px; font-size: 42px; }
+.td-meta { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.td-file { color: #888; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-folder { color: #888; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.td-title { margin: 0; font-size: 1.4em; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-sub { color: #aaa; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-meta-actions { margin-top: 4px; }
+.track-detail .td-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+
+/* 表单区 */
+.td-body { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; }
+.track-detail .td-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.track-detail .td-form-row { display: flex; flex-direction: column; gap: 6px; }
+.track-detail .td-form-row label { color: #ccc; font-size: 12px; }
+.track-detail .td-form-row input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 8px 10px; color: #fff; }
+.track-detail .td-actions { margin-top: 8px; }
+
+/* 在线搜索结果 */
+.track-detail .td-online { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; }
+.track-detail .td-results { margin-top: 10px; max-height: 220px; overflow: auto; display: grid; gap: 8px; }
+.track-detail .td-result { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+.track-detail .td-result:hover { background: rgba(255,255,255,0.08); }
+.track-detail .td-r-title { font-weight: 600; }
+.track-detail .td-r-sub { color: #aaa; font-size: 12px; }
+
+@media (max-width: 768px) {
+  .td-header { grid-template-columns: auto 90px 1fr; gap: 12px; }
+  .td-cover-wrap { width: 90px; height: 90px; }
+  .track-detail .td-form { grid-template-columns: 1fr; }
+}
+
+

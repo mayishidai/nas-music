@@ -15,6 +15,7 @@ export { default as ArtistsView } from './Artists/ArtistsView';
 
 // 新增：专辑详情视图
 export { default as AlbumDetailView } from './Albums/AlbumDetail';
+export { default as TrackDetailPage } from './tracks/TrackDetail';
 
 // 新增：随机播放页面（重用 TracksView + MusicList 随机模式）
 export { default as ShufflePage } from './shuffle/index';

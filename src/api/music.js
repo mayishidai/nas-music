@@ -142,6 +142,24 @@ router.get('/tracks', async (ctx) => {
   }
 });
 
+// 获取单条音乐详情
+router.get('/tracks/:id', async (ctx) => {
+  try {
+    const track = await new Promise((resolve, reject) => {
+      musicDB.findOne({ _id: ctx.params.id }, (err, doc) => (err ? reject(err) : resolve(doc)));
+    });
+    if (!track || track.type !== 'track') {
+      ctx.status = 404;
+      ctx.body = { error: '音乐不存在' };
+      return;
+    }
+    ctx.body = { success: true, data: track };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { error: '获取音乐详情失败: ' + error.message };
+  }
+});
+
 // 收藏/取消收藏
 router.put('/tracks/:id/favorite', async (ctx) => {
   try {
@@ -739,6 +757,36 @@ router.put('/tracks/:id/tags', async (ctx) => {
     ctx.status = 500;
     ctx.body = { error: '更新Tag失败: ' + error.message };
     console.error('更新Tag失败:', error);
+  }
+});
+
+// 更新音乐封面（接收 base64 data URL）
+router.put('/tracks/:id/cover', async (ctx) => {
+  try {
+    const { coverImage } = ctx.request.body || {};
+    if (!coverImage || typeof coverImage !== 'string' || !coverImage.startsWith('data:image')) {
+      ctx.status = 400;
+      ctx.body = { error: '请提供有效的图片数据（base64 data URL）' };
+      return;
+    }
+
+    const track = await new Promise((resolve, reject) => {
+      musicDB.findOne({ _id: ctx.params.id }, (err, doc) => (err ? reject(err) : resolve(doc)));
+    });
+    if (!track || track.type !== 'track') {
+      ctx.status = 404;
+      ctx.body = { error: '音乐不存在' };
+      return;
+    }
+
+    await new Promise((resolve, reject) => {
+      musicDB.update({ _id: ctx.params.id }, { $set: { coverImage } }, {}, (err, numReplaced) => (err ? reject(err) : resolve(numReplaced)));
+    });
+
+    ctx.body = { success: true, message: '封面更新成功' };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { error: '更新封面失败: ' + error.message };
   }
 });
 

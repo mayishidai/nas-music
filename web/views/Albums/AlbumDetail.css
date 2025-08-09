@@ -6,14 +6,14 @@
   padding: 20px;
 }
 
-.album-detail-header {
+.album-detail .album-detail-header {
   display: grid;
   grid-template-columns: 140px 1fr;
   gap: 20px;
   align-items: center;
 }
 
-.ad-back {
+.album-detail .ad-back {
   grid-column: 1 / -1;
   justify-self: start;
   margin-bottom: 6px;
@@ -23,12 +23,12 @@
   cursor: pointer;
 }
 
-.ad-cover-wrap {
+.album-detail .ad-cover-wrap {
   width: 140px;
   height: 140px;
 }
 
-.ad-cover {
+.album-detail .ad-cover {
   width: 100%;
   height: 100%;
   border-radius: 10px;
@@ -36,7 +36,7 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 
-.ad-cover.placeholder {
+.album-detail .ad-cover.placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -45,9 +45,9 @@
   font-size: 42px;
 }
 
-.ad-meta {}
+.album-detail .ad-meta { min-width: 0; }
 
-.ad-title {
+.album-detail .ad-title {
   margin: 0 0 6px 0;
   font-size: 1.4em;
   line-height: 1.3;
@@ -55,14 +55,14 @@
   overflow: hidden;
 }
 
-.ad-sub {
+.album-detail .ad-sub {
   color: #bbb;
   margin-bottom: 10px;
 }
 
-.ad-actions { display: flex; gap: 10px; }
+.album-detail .ad-actions { display: flex; gap: 10px; }
 
-.ad-btn {
+.album-detail .ad-btn {
   padding: 8px 12px;
   border-radius: 6px;
   background: rgba(255,255,255,0.1);
@@ -70,65 +70,83 @@
   color: #fff;
   cursor: pointer;
 }
-.ad-btn.primary {
+.album-detail .ad-btn.primary {
   background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
   border: none;
 }
 
-.album-detail-tracks {
+.album-detail .album-detail-tracks {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible; /* 允许内部弹出层不被裁剪 */
 }
 
-.ad-tracks-header, .tr {
+.album-detail .ad-tracks-header, .album-detail .tr {
   display: grid;
-  grid-template-columns: 60px 1.5fr 1fr 100px 140px;
+  grid-template-columns: 60px 1.5fr 1fr 100px 160px; /* 加宽操作列，避免拥挤 */
   gap: 12px;
   padding: 12px 16px;
 }
 
-.ad-tracks-header {
+.album-detail .ad-tracks-header {
   background: rgba(255,255,255,0.08);
   color: #ccc;
   font-weight: 600;
 }
 
-.tr { border-top: 1px solid rgba(255,255,255,0.06); }
-.tr.empty { text-align: center; grid-column: 1 / -1; color: #888; }
+.album-detail .tr { border-top: 1px solid rgba(255,255,255,0.06); }
+.album-detail .tr.empty { text-align: center; grid-column: 1 / -1; color: #888; }
 
-.td, .th { display: flex; align-items: center; overflow: hidden; }
-.th-title, .td-title { overflow: hidden; }
+.album-detail .td, .album-detail .th { display: flex; align-items: center; overflow: hidden; font-size: 13px; }
+.album-detail .th-title, .album-detail .td-title { overflow: hidden; }
 
-.title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.td-cover { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }
-.title-text { min-width: 0; }
-.title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
-.sub { color: #999; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.album-detail .title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.album-detail .td-cover { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }
+.album-detail .title-text { min-width: 0; }
+.album-detail .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; font-size: 0.95em; }
+.album-detail .sub { color: #999; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.row-btn {
+.album-detail .row-btn {
   width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
   background: rgba(255,255,255,0.1); color: #fff; margin-left: 6px;
 }
 
+/* 对齐 MusicList 的按钮与更多菜单风格 */
+.album-detail .td-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  overflow: visible; /* 允许弹层 */
+}
+.album-detail .ml-btn { background: rgba(255, 255, 255, 0.1); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.album-detail .ml-btn.more { font-size: 16px; font-weight: bold; }
+.album-detail .ml-more-container { position: relative; overflow: visible; }
+.album-detail .ml-more-menu { position: absolute; top: 100%; right: 0; background: rgba(0,0,0,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; z-index: 10000; min-width: 140px; }
+.album-detail .ml-more-item { display: block; width: 100%; padding: 8px 12px; background: transparent; border: none; color: #ccc; text-align: left; }
+.album-detail .ml-more-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
 @media (max-width: 900px) {
-  .ad-tracks-header, .tr { grid-template-columns: 40px 1fr 100px 120px; }
-  .th-artist, .td-artist { display: none; }
+  .album-detail .ad-tracks-header, .album-detail .tr { grid-template-columns: 40px 1fr 100px 120px; }
+  .album-detail .th-artist, .album-detail .td-artist { display: none; }
 }
 
 @media (max-width: 600px) {
   /* 手机小屏：隐藏时长列，收紧为三列 */
-  .ad-tracks-header, .tr { grid-template-columns: 40px 1fr 120px; }
-  .th-duration, .td-duration { display: none; }
+  .album-detail .ad-tracks-header, .album-detail .tr { grid-template-columns: 40px 1fr 120px; }
+  .album-detail .th-duration, .album-detail .td-duration { display: none; }
 }
 
 @media (max-width: 768px) {
   .album-detail { padding: 12px; gap: 12px; }
-  .album-detail-header { grid-template-columns: 100px 1fr; gap: 12px; }
-  .ad-cover-wrap { width: 100px; height: 100px; }
-  .ad-title { font-size: 1.2em; }
-  .ad-sub { font-size: 0.9em; }
+  .album-detail .album-detail-header { grid-template-columns: 100px 1fr; gap: 12px; }
+  .album-detail .ad-cover-wrap { width: 100px; height: 100px; }
+  .album-detail .ad-title { font-size: 1.15em; }
+  .album-detail .ad-sub { font-size: 0.9em; }
+  .album-detail .td, .album-detail .th { font-size: 12px; }
+  .album-detail .title { font-size: 0.9em; }
+  .album-detail .sub { font-size: 10px; }
 }
 
 
