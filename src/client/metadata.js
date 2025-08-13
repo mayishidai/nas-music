@@ -3,7 +3,7 @@ import path from 'path';
 import { parseFile } from 'music-metadata';
 import { upsertTrackByPath, getConfig, saveConfig, removeTracksByLibraryPathPrefix, removeMediaLibraryStats, updateMediaLibraryStats } from './database.js';
 import { normalizeText, extractArtistTitleFromFilename } from '../utils/textUtils.js';
-import { extractLyrics } from '../utils/musicUtil.js';
+import { extractLyrics, extractCoverImage } from '../utils/musicUtil.js';
 
 // 支持的音乐文件格式
 const SUPPORTED_FORMATS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
@@ -38,15 +38,7 @@ export async function getMetadata(filePath) {
     const genre = await normalizeText(metadata.common.genre?.join(', ') || 'Unknown');
     
     // 提取封面
-    let coverImage = null;
-    if (metadata.common.picture && metadata.common.picture.length > 0) {
-      const picture = metadata.common.picture[0];
-      if (picture.data) {
-        const format = picture.format || 'jpeg';
-        coverImage = `data:image/${format};base64,${picture.data.toString('base64')}`;
-      }
-    }
-    
+    let coverImage = extractCoverImage(metadata);
     // 提取歌词
     const lyrics = await normalizeText(extractLyrics(metadata));
     

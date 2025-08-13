@@ -94,7 +94,7 @@ const NASMusicPlayer = () => {
   const loadAlbums = async (page = 1, search = '') => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/music/albums?page=${page}&limit=20&search=${search}`);
+      const response = await fetch(`/api/music/albums?page=${page}&pageSize=20&query=${search}`);
       const result = await response.json();
       if (result.success) {
         setMusicData(prev => ({ ...prev, albums: result.data }));
@@ -112,7 +112,7 @@ const NASMusicPlayer = () => {
   const loadArtists = async (page = 1, search = '') => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/music/artists?page=${page}&limit=20&search=${search}`);
+      const response = await fetch(`/api/music/artists?page=${page}&pageSize=20&query=${search}`);
       const result = await response.json();
       if (result.success) {
         setMusicData(prev => ({ ...prev, artists: result.data }));

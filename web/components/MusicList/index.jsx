@@ -37,7 +37,7 @@ function formatQuality(track) {
  * 提供音乐列表展示、分页、排序等功能
  */
 const MusicList = ({
-  pageSize = DEFAULT_PAGE_SIZE,
+  default_pageSize = DEFAULT_PAGE_SIZE,
   showCover = true,
   searchKeyword,
   onAddToPlaylist,
@@ -62,7 +62,7 @@ const MusicList = ({
   
   // 分页状态
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(pageSize);
+  const [pageSize, setPageSize] = useState(default_pageSize);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
   
@@ -79,11 +79,13 @@ const MusicList = ({
       let url = '/api/music/tracks';
       const params = new URLSearchParams({
         page: String(targetPage),
-        limit: String(limit),
+        pageSize: String(pageSize),
         sort: sortKey,
         order: sortOrder,
-        search: searchKeyword || ''
+        search: searchKeyword || '' // 使用 search 参数
       });
+      
+      // 添加过滤条件
       if (filters.genre) params.set('genre', filters.genre);
       if (filters.artist) params.set('artist', filters.artist);
       if (filters.album) params.set('album', filters.album);
@@ -94,21 +96,35 @@ const MusicList = ({
       if (filters.maxBitrate) params.set('maxBitrate', String(filters.maxBitrate));
       if (typeof filters.favorite !== 'undefined') params.set('favorite', String(filters.favorite));
 
-      if (mode === 'recent') {
-        url = '/api/music/recently-played';
-        // 最近播放不使用排序参数
-        params.delete('sort');
-        params.delete('order');
-      }
+             if (mode === 'recent') {
+         url = '/api/music/recently-played';
+         // 最近播放使用 limit 和 offset 参数
+         params.delete('page');
+         params.set('limit', String(pageSize));
+         params.set('offset', String((targetPage - 1) * pageSize));
+         // 最近播放不使用排序参数和搜索参数
+         params.delete('sort');
+         params.delete('order');
+         params.delete('search');
+       }
 
       const res = await fetch(`${url}?${params.toString()}`);
       const json = await res.json();
       if (!json?.success) throw new Error(json?.error || '加载失败');
 
-      const docs = Array.isArray(json.data) ? json.data : [];
+      // 处理数据
+      let docs = [];
+      if (mode === 'recent') {
+        // 最近播放模式返回格式不同
+        docs = Array.isArray(json.data) ? json.data : [];
+      } else {
+        // 其他模式返回标准化分页格式
+        docs = Array.isArray(json.data) ? json.data : [];
+      }
+
       let mapped = docs.map((t) => ({
-        id: t._id || t.id,
-        _id: t._id || t.id,
+        id: t.id,
+        _id: t.id, // 保持兼容性
         title: t.title,
         artist: t.artist,
         album: t.album,
@@ -118,7 +134,10 @@ const MusicList = ({
         bitrate: t.bitrate,
         sampleRate: t.sampleRate,
         filename: t.filename,
-        coverImage: t.coverImage || null, // 新增封面图片字段
+        coverImage: t.coverImage || null,
+        favorite: t.favorite,
+        playCount: t.playCount,
+        lastPlayed: t.lastPlayed
       }));
 
       // 随机模式：打乱顺序
@@ -132,10 +151,26 @@ const MusicList = ({
       }
 
       setTracks(mapped);
-      const pgn = json.pagination || {};
-      setTotal(pgn.total || mapped.length || 0);
-      setPages(pgn.pages || Math.ceil((pgn.total || mapped.length || 0) / limit));
-      setPage(pgn.page || targetPage);
+      
+      // 处理分页信息
+      if (mode === 'recent') {
+        // 最近播放模式使用 total 字段
+        const total = json.total || 0;
+        setTotal(total);
+        setPages(Math.ceil(total / pageSize));
+        setPage(targetPage);
+      } else {
+        // 其他模式使用标准化分页格式
+        if (json.pagination) {
+          setTotal(json.pagination.total || 0);
+          setPages(json.pagination.pages || 1);
+          setPage(json.pagination.page || targetPage);
+        } else {
+          setTotal(0);
+          setPages(1);
+          setPage(targetPage);
+        }
+      }
     } catch (err) {
       setError(err.message || '加载失败');
     } finally {
@@ -205,28 +240,33 @@ const MusicList = ({
     loadTracks(n);
   };
 
-  // 监听搜索词和排序变化
-  useEffect(() => {
-    loadTracks(1);
-  }, [searchKeyword, sortKey, sortOrder, limit]);
+     // 监听搜索词和排序变化
+   useEffect(() => {
+     // 最近播放模式不响应搜索词变化
+     if (mode === 'recent') {
+       loadTracks(1);
+     } else {
+       loadTracks(1);
+     }
+   }, [searchKeyword, sortKey, sortOrder, pageSize, mode]);
 
-  // 小屏下统一每页数量为5
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(max-width: 768px)');
-    const apply = () => {
-      if (mq.matches) {
-        setLimit(5);
-      } else {
-        setLimit(pageSize);
-      }
-    };
-    apply();
-    mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
-    return () => {
-      mq.removeEventListener ? mq.removeEventListener('change', apply) : mq.removeListener(apply);
-    };
-  }, [pageSize]);
+     // 小屏下统一每页数量为5
+   useEffect(() => {
+     if (typeof window === 'undefined') return;
+     const mq = window.matchMedia('(max-width: 768px)');
+     const apply = () => {
+       if (mq.matches) {
+         setPageSize(5);
+       } else {
+         setPageSize(pageSize);
+       }
+     };
+     apply();
+     mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
+     return () => {
+       mq.removeEventListener ? mq.removeEventListener('change', apply) : mq.removeListener(apply);
+     };
+   }, [pageSize]);
 
   return (
     <div className="music-list">
@@ -253,14 +293,37 @@ const MusicList = ({
           {!isLoading && !error && tracks.length === 0 && (<div className="ml-row ml-empty">暂无数据</div>)}
 
           {!isLoading && !error && tracks.map((t) => (
-            <div key={t.id} className="ml-row" onDoubleClick={() => (onPlay ? onPlay(t) : null)}>
+            <div key={t.id} className="ml-row" onDoubleClick={async () => {
+              // 记录最近播放
+              try {
+                await fetch(`/api/music/recently-played/${t.id}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' }
+                });
+              } catch (e) {
+                console.error('记录播放失败:', e);
+              }
+              
+              if (onPlay) {
+                onPlay(t);
+              }
+            }}>
               <div className="ml-td ml-col-title">
                 <div className="ml-title-wrap">
                   {showCover && (
                     <img
                       className="ml-cover"
-                      src={t.coverImage || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjBmMGYwIi8+CjxwYXRoIGQ9Ik0xNiA4TDIyIDE2TDE2IDI0TDEwIDE2TDE2IDhaIiBmaWxsPSIjY2NjIi8+Cjwvc3ZnPg=='}
+                      src={t.coverImage ? 
+                        (t.coverImage.startsWith('data:') ? 
+                          t.coverImage : 
+                          `/api/music/tracks/${t.id}/cover`
+                        ) : 
+                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjBmMGYwIi8+CjxwYXRoIGQ9Ik0xNiA4TDIyIDE2TDE2IDI0TDEwIDE2TDE2IDhaIiBmaWxsPSIjY2NjIi8+Cjwvc3ZnPg=='
+                      }
                       alt="封面"
+                      onError={(e) => {
+                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjBmMGYwIi8+CjxwYXRoIGQ9Ik0xNiA4TDIyIDE2TDE2IDI0TDEwIDE2TDE2IDhaIiBmaWxsPSIjY2NjIi8+Cjwvc3ZnPg==';
+                      }}
                     />
                   )}
                   <div className="ml-title-text">
@@ -289,7 +352,21 @@ const MusicList = ({
                 <button 
                   className="ml-btn play" 
                   title="播放" 
-                  onClick={() => (onPlay ? onPlay(t) : null)}
+                  onClick={async () => {
+                    // 记录最近播放
+                    try {
+                      await fetch(`/api/music/recently-played/${t.id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                    } catch (e) {
+                      console.error('记录播放失败:', e);
+                    }
+                    
+                    if (onPlay) {
+                      onPlay(t);
+                    }
+                  }}
                 >
                   ▶️
                 </button>
@@ -299,14 +376,18 @@ const MusicList = ({
                     title="删除收藏"
                     onClick={async () => {
                       try {
-                        await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, {
+                        const res = await fetch(`/api/music/tracks/${t.id}/favorite`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ favorite: false })
                         });
+                        const json = await res.json();
+                        if (!json.success) {
+                          throw new Error(json.error || '取消收藏失败');
+                        }
                         loadTracks(page);
                       } catch (e) {
-                        alert('取消收藏失败');
+                        alert('取消收藏失败: ' + e.message);
                       }
                     }}
                   >
@@ -333,8 +414,25 @@ const MusicList = ({
                     <div className="ml-more-menu">
                       <button 
                         className="ml-more-item"
-                        onClick={() => {
-                          onFavorite ? onFavorite(t) : alert('已点击收藏：' + (t.title || ''));
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/music/tracks/${t.id}/favorite`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ favorite: true })
+                            });
+                            const json = await res.json();
+                            if (!json.success) {
+                              throw new Error(json.error || '收藏失败');
+                            }
+                            if (onFavorite) {
+                              onFavorite(t);
+                            } else {
+                              alert('收藏成功：' + (t.title || ''));
+                            }
+                          } catch (e) {
+                            alert('收藏失败: ' + e.message);
+                          }
                           setShowMoreMenu(null);
                         }}
                       >
@@ -393,17 +491,17 @@ const MusicList = ({
           </button>
         </div>
         
-        <div className="ml-pg-settings">
-          <select 
-            value={limit} 
-            onChange={(e) => { setLimit(Number(e.target.value)); }} 
-            title="每页数量"
-            className="ml-pg-select"
-          >
-            {[5, 10, 20].map((n) => (
-              <option key={n} value={n}>{n}/页</option>
-            ))}
-          </select>
+                 <div className="ml-pg-settings">
+           <select 
+             value={pageSize} 
+             onChange={(e) => { setPageSize(Number(e.target.value)); }} 
+             title="每页数量"
+             className="ml-pg-select"
+           >
+             {[5, 10, 20].map((n) => (
+               <option key={n} value={n}>{n}/页</option>
+             ))}
+           </select>
           
           <div className="ml-pg-jump">
             <span>跳转到：</span>

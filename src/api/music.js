@@ -13,41 +13,49 @@ import {
   getTracksByAlbum, 
   getTracksByArtist, 
   getRecentlyPlayedTracks,
-  searchTracks,
-  searchAlbums,
-  searchArtists
 } from '../client/database.js';
 
 const router = new Router();
 
-// 获取所有音乐
-router.get('/tracks', async (ctx) => {
-  try {
-    const { query, limit = 10, offset = 0 } = ctx.query;
-    
-    if (query) {
-      // 搜索音乐
-      const tracks = await searchTracks(query, parseInt(limit));
-      ctx.body = {
-        success: true,
-        data: tracks.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-        total: tracks.length
-      };
-    } else {
-      // 获取所有音乐
-      const tracks = await getAllTracks();
-      ctx.body = {
-        success: true,
-        data: tracks.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-        total: tracks.length
-      };
-    }
-  } catch (error) {
-    console.error('获取音乐列表失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '获取音乐列表失败' };
-  }
-});
+ // 获取所有音乐
+ router.get('/tracks', async (ctx) => {
+   try {
+     const { 
+       page = 1, 
+       pageSize = 10, 
+       sort = 'title', 
+       order = 'asc', 
+       search = '',
+       genre, artist, album, yearFrom, yearTo, decade, minBitrate, maxBitrate, favorite
+     } = ctx.query;
+     
+     const result = await getAllTracks({
+       page: parseInt(page),
+       pageSize: parseInt(pageSize),
+       sort,
+       order,
+       search,
+       genre,
+       artist,
+       album,
+       yearFrom,
+       yearTo,
+       decade,
+       minBitrate,
+       maxBitrate,
+       favorite
+     });
+     
+     ctx.body = {
+       success: true,
+       ...result
+     };
+   } catch (error) {
+     console.error('获取音乐列表失败:', error);
+     ctx.status = 500;
+     ctx.body = { success: false, error: '获取音乐列表失败' };
+   }
+ });
 
 // 获取单条音乐详情
 router.get('/tracks/:id', async (ctx) => {
@@ -92,81 +100,76 @@ router.put('/tracks/:id/favorite', async (ctx) => {
   }
 });
 
-// 收藏列表
-router.get('/favorites', async (ctx) => {
-  try {
-    const { limit = 50, offset = 0 } = ctx.query;
-    const tracks = await getFavoriteTracks();
-    
-    ctx.body = {
-      success: true,
-      data: tracks.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-      total: tracks.length
-    };
-  } catch (error) {
-    console.error('获取收藏列表失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '获取收藏列表失败' };
-  }
-});
+ // 收藏列表
+ router.get('/favorites', async (ctx) => {
+   try {
+     const { page = 1, pageSize = 10, sort = 'title', order = 'asc' } = ctx.query;
+     
+     const result = await getFavoriteTracks({
+       page: parseInt(page),
+       pageSize: parseInt(pageSize),
+       sort,
+       order
+     });
+     
+     ctx.body = {
+       success: true,
+       ...result
+     };
+   } catch (error) {
+     console.error('获取收藏列表失败:', error);
+     ctx.status = 500;
+     ctx.body = { success: false, error: '获取收藏列表失败' };
+   }
+ });
 
-// 获取专辑列表
-router.get('/albums', async (ctx) => {
-  try {
-    const { query, limit = 50, offset = 0 } = ctx.query;
-    
-    if (query) {
-      // 搜索专辑
-      const albums = await searchAlbums(query, parseInt(limit));
-      ctx.body = {
-        success: true,
-        data: albums.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-        total: albums.length
-      };
-    } else {
-      // 获取所有专辑
-      const albums = await getAlbums();
-      ctx.body = {
-        success: true,
-        data: albums.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-        total: albums.length
-      };
-    }
-  } catch (error) {
-    console.error('获取专辑列表失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '获取专辑列表失败' };
-  }
-});
+ // 获取专辑列表
+ router.get('/albums', async (ctx) => {
+   try {
+     const { query, page = 1, pageSize = 10, sort = 'title', order = 'asc' } = ctx.query;
+     
+     const result = await getAlbums({
+       query,
+       page: parseInt(page),
+       pageSize: parseInt(pageSize),
+       sort,
+       order
+     });
+     
+     ctx.body = {
+       success: true,
+       ...result
+     };
+   } catch (error) {
+     console.error('获取专辑列表失败:', error);
+     ctx.status = 500;
+     ctx.body = { success: false, error: '获取专辑列表失败' };
+   }
+ });
 
-// 获取艺术家列表
-router.get('/artists', async (ctx) => {
-  try {
-    const { query, limit = 50, offset = 0 } = ctx.query;
-    
-    if (query) {
-      // 搜索艺术家
-      const artists = await searchArtists(query, parseInt(limit));
-      ctx.body = {
-        success: true,
-        data: artists.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-        total: artists.length
-      };
-    } else {
-      // 获取所有艺术家
-      const artists = await getArtists();
-      ctx.body = {
-        success: true,
-        data: artists.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-        total: artists.length
-      };
-    }
-  } catch (error) {
-    console.error('获取艺术家列表失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '获取艺术家列表失败' };
-  }
-});
+ // 获取艺术家列表
+ router.get('/artists', async (ctx) => {
+   try {
+     const { query, page = 1, pageSize = 10, sort = 'name', order = 'asc' } = ctx.query;
+     
+     const result = await getArtists({
+       query,
+       page: parseInt(page),
+       pageSize: parseInt(pageSize),
+       sort,
+       order
+     });
+     
+     ctx.body = {
+       success: true,
+       ...result
+     };
+   } catch (error) {
+     console.error('获取艺术家列表失败:', error);
+     ctx.status = 500;
+     ctx.body = { success: false, error: '获取艺术家列表失败' };
+   }
+ });
 
 // 获取专辑详情
 router.get('/albums/:id', async (ctx) => {
@@ -240,7 +243,8 @@ router.get('/recommendations/:trackId', async (ctx) => {
     }
     
     // 简单的推荐算法：基于相同艺术家和专辑
-    const allTracks = await getAllTracks();
+    const allTracksResult = await getAllTracks({ pageSize: 1000 }); // 获取足够多的音乐用于推荐
+    const allTracks = allTracksResult.data || [];
     const recommendations = allTracks
       .filter(t => t.id !== trackId)
       .filter(t => 
@@ -342,23 +346,25 @@ router.post('/recently-played/:id', async (ctx) => {
   }
 });
 
-// 获取最近播放（按记录顺序返回，支持分页和搜索）
-router.get('/recently-played', async (ctx) => {
-  try {
-    const { limit = 20, offset = 0 } = ctx.query;
-    const tracks = await getRecentlyPlayedTracks(parseInt(limit) + parseInt(offset));
-    
-    ctx.body = {
-      success: true,
-      data: tracks.slice(parseInt(offset), parseInt(offset) + parseInt(limit)),
-      total: tracks.length
-    };
-  } catch (error) {
-    console.error('获取最近播放失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '获取最近播放失败' };
-  }
-});
+ // 获取最近播放（按记录顺序返回，支持分页）
+ router.get('/recently-played', async (ctx) => {
+   try {
+     const { limit = 20, offset = 0 } = ctx.query;
+     const result = await getRecentlyPlayedTracks({
+       limit: parseInt(limit),
+       offset: parseInt(offset)
+     });
+     
+     ctx.body = {
+       success: true,
+       ...result
+     };
+   } catch (error) {
+     console.error('获取最近播放失败:', error);
+     ctx.status = 500;
+     ctx.body = { success: false, error: '获取最近播放失败' };
+   }
+ });
 
 // 获取音乐统计信息
 router.get('/stats', async (ctx) => {
@@ -450,53 +456,57 @@ router.get('/tracks/:id/cover', async (ctx) => {
   }
 });
 
-// 搜索音乐（支持多字段搜索）
-router.get('/search', async (ctx) => {
-  try {
-    const { q, type = 'tracks', limit = 50, offset = 0 } = ctx.query;
-    
-    if (!q) {
-      ctx.status = 400;
-      ctx.body = { success: false, error: '搜索关键词不能为空' };
-      return;
-    }
-    
-    let results = [];
-    let total = 0;
-    
-    switch (type) {
-      case 'tracks':
-        results = await searchTracks(q, parseInt(limit) + parseInt(offset));
-        total = results.length;
-        results = results.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
-        break;
-      case 'albums':
-        results = await searchAlbums(q, parseInt(limit) + parseInt(offset));
-        total = results.length;
-        results = results.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
-        break;
-      case 'artists':
-        results = await searchArtists(q, parseInt(limit) + parseInt(offset));
-        total = results.length;
-        results = results.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
-        break;
-      default:
-        ctx.status = 400;
-        ctx.body = { success: false, error: '不支持的搜索类型' };
-        return;
-    }
-    
-    ctx.body = {
-      success: true,
-      data: results,
-      total,
-      type
-    };
-  } catch (error) {
-    console.error('搜索失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '搜索失败' };
-  }
-});
+ // 搜索音乐（支持多字段搜索）
+ router.get('/search', async (ctx) => {
+   try {
+     const { q, type = 'tracks', page = 1, pageSize = 10 } = ctx.query;
+     
+     if (!q) {
+       ctx.status = 400;
+       ctx.body = { success: false, error: '搜索关键词不能为空' };
+       return;
+     }
+     
+     let results = [];
+     
+     switch (type) {
+       case 'tracks':
+         results = await getAllTracks({
+           search: q,
+           page: parseInt(page),
+           pageSize: parseInt(pageSize)
+         });
+         break;
+       case 'albums':
+         results = await getAlbums({
+           query: q,
+           page: parseInt(page),
+           pageSize: parseInt(pageSize)
+         });
+         break;
+       case 'artists':
+         results = await getArtists({
+           query: q,
+           page: parseInt(page),
+           pageSize: parseInt(pageSize)
+         });
+         break;
+       default:
+         ctx.status = 400;
+         ctx.body = { success: false, error: '不支持的搜索类型' };
+         return;
+     }
+     
+     ctx.body = {
+       success: true,
+       ...results,
+       type
+     };
+   } catch (error) {
+     console.error('搜索失败:', error);
+     ctx.status = 500;
+     ctx.body = { success: false, error: '搜索失败' };
+   }
+ });
 
 export default router;

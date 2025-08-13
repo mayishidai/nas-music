@@ -34,3 +34,17 @@ export function extractLyrics(metadata) {
       return '';
     }
   }
+
+export function extractCoverImage(metadata) {
+  if(!metadata || !metadata.common || !metadata.common.picture) { return null; }
+  const picture = metadata.common.picture.length > 0 ? metadata.common.picture[0] : null;
+  if (picture &&  picture.data) {
+    try {
+      const buf = Buffer.isBuffer(picture.data) ? picture.data : Buffer.from(picture.data);
+      const mime = picture.format && String(picture.format).startsWith('image/') ? picture.format : 'image/jpeg';
+      return `data:${mime};base64,${buf.toString('base64')}`;
+    } catch {
+      return null;
+    }
+  }
+}

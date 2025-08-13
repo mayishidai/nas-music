@@ -341,6 +341,7 @@ export async function findTrackByPath(trackPath) {
 
 // 根据路径更新或插入音乐
 export async function upsertTrackByPath(trackDoc) {
+  trackDoc.id = trackDoc.path
   try {
     const existing = await queryOne('SELECT id FROM music WHERE path = ?', [trackDoc.path]);
     
@@ -500,18 +501,132 @@ export async function deleteAllTracks() {
   }
 }
 
-// 获取所有音乐
-export async function getAllTracks() {
+// 获取所有音乐（支持搜索、排序、分页）
+export async function getAllTracks(options = {}) {
   try {
-    const tracks = await query('SELECT * FROM music WHERE type = ?', ['track']);
-    return tracks.map(track => {
-      track.artists = deserializeArray(track.artists);
-      track.artistIds = deserializeArray(track.artistIds);
-      return track;
-    });
+    const {
+      search = '',
+      sort = 'title',
+      order = 'asc',
+      page = 1,
+      pageSize = 10,
+      genre,
+      artist,
+      album,
+      yearFrom,
+      yearTo,
+      decade,
+      minBitrate,
+      maxBitrate,
+      favorite
+    } = options;
+
+    // 构建 WHERE 条件
+    const whereConditions = ['type = ?'];
+    const params = ['track'];
+
+    if (search) {
+      whereConditions.push('(title LIKE ? OR artist LIKE ? OR album LIKE ? OR filename LIKE ?)');
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
+    if (genre) {
+      whereConditions.push('genre LIKE ?');
+      params.push(`%${genre}%`);
+    }
+
+    if (artist) {
+      whereConditions.push('artist LIKE ?');
+      params.push(`%${artist}%`);
+    }
+
+    if (album) {
+      whereConditions.push('album LIKE ?');
+      params.push(`%${album}%`);
+    }
+
+    if (yearFrom) {
+      whereConditions.push('year >= ?');
+      params.push(parseInt(yearFrom));
+    }
+
+    if (yearTo) {
+      whereConditions.push('year <= ?');
+      params.push(parseInt(yearTo));
+    }
+
+    if (decade) {
+      const decadeStart = parseInt(decade);
+      const decadeEnd = decadeStart + 9;
+      whereConditions.push('year >= ? AND year <= ?');
+      params.push(decadeStart, decadeEnd);
+    }
+
+    if (minBitrate) {
+      whereConditions.push('bitrate >= ?');
+      params.push(parseInt(minBitrate));
+    }
+
+    if (maxBitrate) {
+      whereConditions.push('bitrate <= ?');
+      params.push(parseInt(maxBitrate));
+    }
+
+    if (favorite !== undefined) {
+      const isFavorite = favorite === 'true' || favorite === '1' || favorite === true;
+      whereConditions.push('favorite = ?');
+      params.push(isFavorite ? 1 : 0);
+    }
+
+    // 构建 SQL 查询
+    let sql = 'SELECT * FROM music WHERE ' + whereConditions.join(' AND ');
+
+    // 添加排序
+    const validSortFields = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'lastPlayed', 'favorite'];
+    const validOrders = ['asc', 'desc'];
+    
+    const sortField = validSortFields.includes(sort) ? sort : 'title';
+    const sortOrder = validOrders.includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
+    
+    sql += ` ORDER BY ${sortField} ${sortOrder}`;
+
+    // 获取总数
+    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countResult = await queryOne(countSql, params);
+    const total = countResult ? countResult.count : 0;
+
+    // 添加分页
+    const offset = (page - 1) * pageSize;
+    sql += ' LIMIT ? OFFSET ?';
+    params.push(pageSize, offset);
+
+    const tracks = await query(sql, params);
+    
+    return {
+      data: tracks.map(track => ({
+        ...track,
+        artists: deserializeArray(track.artists),
+        artistIds: deserializeArray(track.artistIds)
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        pages: Math.ceil(total / pageSize)
+      }
+    };
   } catch (error) {
-    console.error('获取所有音乐失败:', error);
-    return [];
+    console.error('获取音乐列表失败:', error);
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        pages: 0
+      }
+    };
   }
 }
 
@@ -551,9 +666,6 @@ export async function updateMediaLibraryStats(libraryId, tracks) {
       artistCount: new Set(tracks.map(t => t.artist).filter(Boolean)).size,
       lastScanned: new Date().toISOString()
     };
-
-    console.log(stats);
-    
     if (existing) {
       await run('UPDATE config SET data = ? WHERE id = ?', [
         JSON.stringify(stats),
@@ -631,94 +743,247 @@ export async function updateTrack(trackId, updates) {
   }
 }
 
-// 搜索音乐
-export async function searchTracks(query, limit = 50) {
-  try {
-    if (!query || query.trim() === '') {
-      const tracks = await query('SELECT * FROM music WHERE type = ? LIMIT ?', ['track', limit]);
-      return tracks.map(track => {
-        track.artists = deserializeArray(track.artists);
-        track.artistIds = deserializeArray(track.artistIds);
-        return track;
-      });
-    }
-    
-    const searchTerm = `%${query.toLowerCase()}%`;
-    const tracks = await query(`
-      SELECT * FROM music 
-      WHERE type = ? 
-      AND (LOWER(title) LIKE ? OR LOWER(artist) LIKE ? OR LOWER(album) LIKE ? OR LOWER(filename) LIKE ?)
-      LIMIT ?
-    `, ['track', searchTerm, searchTerm, searchTerm, searchTerm, limit]);
-    
-    return tracks.map(track => {
-      track.artists = deserializeArray(track.artists);
-      track.artistIds = deserializeArray(track.artistIds);
-      return track;
-    });
-  } catch (error) {
-    console.error('搜索音乐失败:', error);
-    return [];
-  }
-}
 
-// 获取收藏的音乐
-export async function getFavoriteTracks() {
+// 获取收藏的音乐（支持排序、分页）
+export async function getFavoriteTracks(options = {}) {
   try {
-    const tracks = await query('SELECT * FROM music WHERE type = ? AND favorite = 1', ['track']);
-    return tracks.map(track => {
-      track.artists = deserializeArray(track.artists);
-      track.artistIds = deserializeArray(track.artistIds);
-      return track;
-    });
+    const {
+      sort = 'title',
+      order = 'asc',
+      page = 1,
+      pageSize = 10
+    } = options;
+
+    // 构建 SQL 查询
+    let sql = 'SELECT * FROM music WHERE type = ? AND favorite = 1';
+
+    // 添加排序
+    const validSortFields = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'lastPlayed'];
+    const validOrders = ['asc', 'desc'];
+    
+    const sortField = validSortFields.includes(sort) ? sort : 'title';
+    const sortOrder = validOrders.includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
+    
+    sql += ` ORDER BY ${sortField} ${sortOrder}`;
+
+    // 获取总数
+    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countResult = await queryOne(countSql, ['track']);
+    const total = countResult ? countResult.count : 0;
+
+    // 添加分页
+    const offset = (page - 1) * pageSize;
+    sql += ' LIMIT ? OFFSET ?';
+
+    const tracks = await query(sql, ['track', pageSize, offset]);
+    
+    return {
+      data: tracks.map(track => ({
+        ...track,
+        artists: deserializeArray(track.artists),
+        artistIds: deserializeArray(track.artistIds)
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        pages: Math.ceil(total / pageSize)
+      }
+    };
   } catch (error) {
     console.error('获取收藏音乐失败:', error);
-    return [];
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        pages: 0
+      }
+    };
   }
 }
 
-// 获取最近播放的音乐
-export async function getRecentlyPlayedTracks(limit = 20) {
+// 获取最近播放的音乐（支持分页）
+export async function getRecentlyPlayedTracks(options = {}) {
   try {
+    const {
+      limit = 20,
+      offset = 0
+    } = options;
+
     const tracks = await query(`
       SELECT * FROM music 
       WHERE type = ? AND lastPlayed IS NOT NULL 
       ORDER BY lastPlayed DESC 
-      LIMIT ?
-    `, ['track', limit]);
+      LIMIT ? OFFSET ?
+    `, ['track', limit, offset]);
     
-    return tracks.map(track => {
-      track.artists = deserializeArray(track.artists);
-      track.artistIds = deserializeArray(track.artistIds);
-      return track;
-    });
+    // 获取总数
+    const countResult = await queryOne(`
+      SELECT COUNT(*) as count FROM music 
+      WHERE type = ? AND lastPlayed IS NOT NULL
+    `, ['track']);
+    const total = countResult ? countResult.count : 0;
+    
+    return {
+      data: tracks.map(track => ({
+        ...track,
+        artists: deserializeArray(track.artists),
+        artistIds: deserializeArray(track.artistIds)
+      })),
+      total
+    };
   } catch (error) {
     console.error('获取最近播放音乐失败:', error);
-    return [];
+    return {
+      data: [],
+      total: 0
+    };
   }
 }
 
-// 获取专辑列表
-export async function getAlbums() {
+// 获取专辑列表（支持搜索、排序、分页）
+export async function getAlbums(options = {}) {
   try {
-    const albums = await query('SELECT * FROM albums');
-    return albums.map(album => {
-      album.artists = deserializeArray(album.artists);
-      return album;
-    });
+    const {
+      query: searchQuery = '',
+      sort = 'title',
+      order = 'asc',
+      page = 1,
+      pageSize = 10
+    } = options;
+
+    // 构建 WHERE 条件
+    const whereConditions = [];
+    const params = [];
+
+    if (searchQuery) {
+      whereConditions.push('(title LIKE ? OR artist LIKE ?)');
+      const searchTerm = `%${searchQuery}%`;
+      params.push(searchTerm, searchTerm);
+    }
+
+    // 构建 SQL 查询
+    let sql = 'SELECT * FROM albums';
+    if (whereConditions.length > 0) {
+      sql += ' WHERE ' + whereConditions.join(' AND ');
+    }
+
+    // 添加排序
+    const validSortFields = ['title', 'artist', 'year', 'trackCount'];
+    const validOrders = ['asc', 'desc'];
+    
+    const sortField = validSortFields.includes(sort) ? sort : 'title';
+    const sortOrder = validOrders.includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
+    
+    sql += ` ORDER BY ${sortField} ${sortOrder}`;
+
+    // 获取总数
+    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countResult = await queryOne(countSql, params);
+    const total = countResult ? countResult.count : 0;
+
+    // 添加分页
+    const offset = (page - 1) * pageSize;
+    sql += ' LIMIT ? OFFSET ?';
+    params.push(pageSize, offset);
+
+    const albums = await query(sql, params);
+    
+    return {
+      data: albums.map(album => ({
+        ...album,
+        artists: deserializeArray(album.artists)
+      })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        pages: Math.ceil(total / pageSize)
+      }
+    };
   } catch (error) {
     console.error('获取专辑列表失败:', error);
-    return [];
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        pages: 0
+      }
+    };
   }
 }
 
-// 获取艺术家列表
-export async function getArtists() {
+// 获取艺术家列表（支持搜索、排序、分页）
+export async function getArtists(options = {}) {
   try {
-    return await query('SELECT * FROM artists');
+    const {
+      query: searchQuery = '',
+      sort = 'name',
+      order = 'asc',
+      page = 1,
+      pageSize = 10
+    } = options;
+
+    // 构建 WHERE 条件
+    const whereConditions = [];
+    const params = [];
+
+    if (searchQuery) {
+      whereConditions.push('name LIKE ?');
+      params.push(`%${searchQuery}%`);
+    }
+
+    // 构建 SQL 查询
+    let sql = 'SELECT * FROM artists';
+    if (whereConditions.length > 0) {
+      sql += ' WHERE ' + whereConditions.join(' AND ');
+    }
+
+    // 添加排序
+    const validSortFields = ['name', 'trackCount', 'albumCount'];
+    const validOrders = ['asc', 'desc'];
+    
+    const sortField = validSortFields.includes(sort) ? sort : 'name';
+    const sortOrder = validOrders.includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
+    
+    sql += ` ORDER BY ${sortField} ${sortOrder}`;
+
+    // 获取总数
+    const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as count');
+    const countResult = await queryOne(countSql, params);
+    const total = countResult ? countResult.count : 0;
+
+    // 添加分页
+    const offset = (page - 1) * pageSize;
+    sql += ' LIMIT ? OFFSET ?';
+    params.push(pageSize, offset);
+
+    const artists = await query(sql, params);
+    
+    return {
+      data: artists,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        pages: Math.ceil(total / pageSize)
+      }
+    };
   } catch (error) {
     console.error('获取艺术家列表失败:', error);
-    return [];
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        pages: 0
+      }
+    };
   }
 }
 
@@ -776,7 +1041,7 @@ export async function findAlbumById(albumId) {
 }
 
 // 获取歌手的音乐列表
-export async function getTracksByArtist(artistId, limit = 50) {
+export async function getTracksByArtist(artistId, limit = 10) {
   try {
     const tracks = await query(`
       SELECT * FROM music 
@@ -796,7 +1061,7 @@ export async function getTracksByArtist(artistId, limit = 50) {
 }
 
 // 获取专辑的音乐列表
-export async function getTracksByAlbum(albumId, limit = 50) {
+export async function getTracksByAlbum(albumId, limit = 10) {
   try {
     const tracks = await query('SELECT * FROM music WHERE type = ? AND albumId = ? LIMIT ?', [
       'track',
@@ -815,56 +1080,6 @@ export async function getTracksByAlbum(albumId, limit = 50) {
   }
 }
 
-// 搜索歌手
-export async function searchArtists(query, limit = 20) {
-  try {
-    if (!query || query.trim() === '') {
-      return await query('SELECT * FROM artists LIMIT ?', [limit]);
-    }
-    
-    const searchTerm = `%${query.toLowerCase()}%`;
-    return await query(`
-      SELECT * FROM artists 
-      WHERE LOWER(name) LIKE ? OR LOWER(normalizedName) LIKE ?
-      LIMIT ?
-    `, [searchTerm, searchTerm, limit]);
-  } catch (error) {
-    console.error('搜索歌手失败:', error);
-    return [];
-  }
-}
-
-// 搜索专辑
-export async function searchAlbums(query, limit = 20) {
-  try {
-    if (!query || query.trim() === '') {
-      const albums = await query('SELECT * FROM albums LIMIT ?', [limit]);
-      return albums.map(album => {
-        album.artists = deserializeArray(album.artists);
-        return album;
-      });
-    }
-    
-    const searchTerm = `%${query.toLowerCase()}%`;
-    const albums = await query(`
-      SELECT * FROM albums 
-      WHERE LOWER(title) LIKE ? OR LOWER(artist) LIKE ? OR LOWER(normalizedTitle) LIKE ?
-      LIMIT ?
-    `, [searchTerm, searchTerm, searchTerm, limit]);
-    
-    return albums.map(album => {
-      album.artists = deserializeArray(album.artists);
-      return album;
-    });
-  } catch (error) {
-    console.error('搜索专辑失败:', error);
-    return [];
-  }
-}
-
-// 导出数据库实例（用于调试）
-export { musicDB };
-
 export default {
   getConfig,
   saveConfig,
@@ -881,19 +1096,14 @@ export default {
   rebuildIndexes,
   findTrackById,
   updateTrack,
-  searchTracks,
   getFavoriteTracks,
   getRecentlyPlayedTracks,
   getAlbums,
   getArtists,
-  // 新增的歌手相关函数
   findArtistByName,
   findArtistById,
   getTracksByArtist,
-  searchArtists,
-  // 新增的专辑相关函数
   findAlbumByTitleAndArtist,
   findAlbumById,
   getTracksByAlbum,
-  searchAlbums,
 };
