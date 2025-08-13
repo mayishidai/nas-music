@@ -25,7 +25,6 @@
     "koa-router": "^13.0.1",
     "koa-session": "^7.0.2",
     "koa-static": "^5.0.0",
-    "lokijs": "^1.5.12",
     "music-metadata": "^11.7.3",
     "musicbrainz-api": "^0.25.1",
     "nodemon": "^3.1.9",
@@ -33,6 +32,7 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.8.0",
     "simptrad": "^0.2.0",
+    "sqlite3": "^5.1.7",
     "vite": "^6.3.2",
     "vite-plugin-css-injected-by-js": "^3.5.2"
   }
