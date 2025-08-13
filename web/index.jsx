@@ -56,8 +56,6 @@ const NASMusicPlayer = () => {
   const [parsedLyrics, setParsedLyrics] = useState([]);
   
   // Tag编辑器状态
-  const [showTagEditor, setShowTagEditor] = useState(false);
-  const [editingTrack, setEditingTrack] = useState(null);
   const [tagSearchResults, setTagSearchResults] = useState([]);
   
   const audioRef = useRef(null);
@@ -133,30 +131,6 @@ const NASMusicPlayer = () => {
       try {
         fetch(`/api/music/recently-played/${normId}`, { method: 'POST' });
       } catch (e) {}
-    }
-  };
-
-  /** 打开艺术家详情 */
-  const openArtist = async (artist) => {
-    try {
-      setIsLoading(true);
-      const artistId = artist.id || artist._id;
-      const res = await fetch(`/api/music/artists/${artistId}`);
-      const json = await res.json();
-      if (json?.success) {
-        const data = json.data || {};
-        // 规范化
-        const normTracks = (data.tracks || []).filter(Boolean).map((t) => ({ ...t, id: t._id || t.id }));
-        const normAlbums = (data.albums || []).filter(Boolean);
-        setSelectedArtist({ ...data, tracks: normTracks, albums: normAlbums });
-      } else {
-        setSelectedArtist(artist);
-      }
-    } catch (e) {
-      console.error('加载艺术家详情失败:', e);
-      setSelectedArtist(artist);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -285,87 +259,6 @@ const NASMusicPlayer = () => {
       }
     }
     return '';
-  };
-
-  /**
-   * 打开Tag编辑器
-   */
-  const openTagEditor = (track) => {
-    setEditingTrack({ ...track });
-    setShowTagEditor(true);
-  };
-
-  /**
-   * 打开专辑详情
-   */
-  const openAlbum = async (album) => {
-    try {
-      setIsLoading(true);
-      const albumId = album.id || album._id;
-      const res = await fetch(`/api/music/albums/${albumId}`);
-      const json = await res.json();
-      if (json?.success) {
-        const data = json.data || {};
-        const normalizedTracks = (data.tracks || []).filter(Boolean).map((t) => ({ ...t, id: t._id || t.id }));
-        setSelectedAlbum({ ...data, tracks: normalizedTracks });
-      } else {
-        setSelectedAlbum(album);
-      }
-    } catch (e) {
-      console.error('加载专辑详情失败:', e);
-      setSelectedAlbum(album);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * 在线搜索Tag
-   */
-  const searchTags = async (query) => {
-    try {
-      const response = await fetch(`/api/music/search-tags?query=${encodeURIComponent(query)}`);
-      const result = await response.json();
-      if (result.success) {
-        setTagSearchResults(result.data);
-      }
-    } catch (error) {
-      console.error('搜索Tag失败:', error);
-    }
-  };
-
-  /**
-   * 保存Tag修改
-   */
-  const saveTagChanges = async () => {
-    try {
-      const response = await fetch(`/api/music/tracks/${editingTrack.id}/tags`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: editingTrack.title,
-          artist: editingTrack.artist,
-          album: editingTrack.album,
-          albumArtist: editingTrack.albumArtist,
-          year: editingTrack.year,
-          genre: editingTrack.genre,
-          track: editingTrack.track
-        })
-      });
-      
-      const result = await response.json();
-      if (result.success) {
-        alert('Tag更新成功！');
-        setShowTagEditor(false);
-      } else {
-        alert('更新失败: ' + result.error);
-      }
-    } catch (error) {
-      console.error('保存Tag失败:', error);
-      alert('保存失败');
-    }
   };
 
   /**
@@ -505,38 +398,13 @@ const NASMusicPlayer = () => {
       case 'music':
         return <MusicPage />;
       case 'albums':
-        return selectedAlbum ? (
-          <AlbumDetailView
-            album={selectedAlbum}
-            onBack={() => setSelectedAlbum(null)}
-            onPlay={(t) => playMusic(t, selectedAlbum?.tracks || null)}
-            onPlayAll={() => {
-              const tracks = (selectedAlbum?.tracks || []).filter(Boolean);
-              if (tracks.length) {
-                playMusic(tracks[0], tracks);
-              }
-            }}
-            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
-            onFavorite={async (t, next) => {
-              try {
-                await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ favorite: next }) });
-              } catch (e) {}
-            }}
-          />
-        ) : (
-          <AlbumsPage onAlbumClick={openAlbum} />
-        );
+        return <AlbumsPage />
+      case 'album-detail':
+        return <AlbumDetailView />
+      case 'artist-detail':
+        return <ArtistDetailView />
       case 'artists':
-        return selectedArtist ? (
-          <ArtistDetailView
-            artist={selectedArtist}
-            onBack={() => setSelectedArtist(null)}
-            onPlay={(t) => playMusic(t)}
-            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
-          />
-        ) : (
-          <ArtistsPage onArtistClick={openArtist} />
-        );
+        return <ArtistsPage />
       case 'favorites':
         return <FavoritesPage />;
       case 'recently-played':
@@ -546,12 +414,7 @@ const NASMusicPlayer = () => {
       case 'settings':
         return <SettingsPage />;
       case 'track-detail':
-        return (
-          <TrackDetailPage
-            trackId={editingTrack?.id}
-            onBack={() => setCurrentView('music')}
-          />
-        );
+        return <TrackDetailPage />
       default:
         return <MusicPage />;
     }
@@ -774,146 +637,6 @@ const NASMusicPlayer = () => {
         }}
         onPlaylistClear={() => setPlaylist([])}
       />
-
-      {/* Tag编辑器模态框 */}
-      {showTagEditor && editingTrack && (
-        <div className="modal-overlay">
-          <div className="tag-editor-modal">
-            <div className="modal-header">
-              <h3>编辑音乐信息</h3>
-              <button 
-                onClick={() => setShowTagEditor(false)}
-                className="close-btn"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="modal-content">
-              <div className="tag-form">
-                <div className="form-group">
-                  <label>标题</label>
-                  <input
-                    type="text"
-                    value={editingTrack.title}
-                    onChange={(e) => setEditingTrack({...editingTrack, title: e.target.value})}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>艺术家</label>
-                  <input
-                    type="text"
-                    value={editingTrack.artist}
-                    onChange={(e) => setEditingTrack({...editingTrack, artist: e.target.value})}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>专辑</label>
-                  <input
-                    type="text"
-                    value={editingTrack.album}
-                    onChange={(e) => setEditingTrack({...editingTrack, album: e.target.value})}
-                  />
-                </div>
-                
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>年份</label>
-                    <input
-                      type="number"
-                      value={editingTrack.year || ''}
-                      onChange={(e) => setEditingTrack({...editingTrack, year: parseInt(e.target.value) || null})}
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label>音轨号</label>
-                    <input
-                      type="number"
-                      value={editingTrack.track || ''}
-                      onChange={(e) => setEditingTrack({...editingTrack, track: parseInt(e.target.value) || null})}
-                    />
-                  </div>
-                </div>
-                
-                <div className="form-group">
-                  <label>流派</label>
-                  <input
-                    type="text"
-                    value={editingTrack.genre}
-                    onChange={(e) => setEditingTrack({...editingTrack, genre: e.target.value})}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>在线搜索</label>
-                  <div className="search-tags">
-                    <input
-                      type="text"
-                      placeholder="搜索歌曲信息..."
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          searchTags(e.target.value);
-                        }
-                      }}
-                    />
-                    <button 
-                      onClick={(e) => {
-                        const input = e.target.previousElementSibling;
-                        searchTags(input.value);
-                      }}
-                    >
-                      搜索
-                    </button>
-                  </div>
-                  
-                  {tagSearchResults.length > 0 && (
-                    <div className="search-results">
-                      {tagSearchResults.map((result, index) => (
-                        <div 
-                          key={index} 
-                          className="search-result-item"
-                          onClick={() => {
-                            setEditingTrack({
-                              ...editingTrack,
-                              title: result.title,
-                              artist: result.artist,
-                              album: result.album,
-                              year: result.year
-                            });
-                          }}
-                        >
-                          <div className="result-title">{result.title}</div>
-                          <div className="result-info">{result.artist} - {result.album}</div>
-                          {result.year && <div className="result-year">{result.year}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="modal-footer">
-              <button 
-                onClick={() => setShowTagEditor(false)}
-                className="cancel-btn"
-              >
-                取消
-              </button>
-              <button 
-                onClick={saveTagChanges}
-                className="save-btn"
-              >
-                保存
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 隐藏的音频元素 */}
       <audio ref={audioRef} />
     </div>

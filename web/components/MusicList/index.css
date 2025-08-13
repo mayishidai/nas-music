@@ -11,57 +11,6 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* 工具栏样式 */
-.music-list-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.toolbar-left h3 {
-  margin: 0;
-  font-size: 1.2em;
-  color: #fff;
-  font-weight: 600;
-}
-
-.track-count {
-  color: #ccc;
-  font-size: 0.9em;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-size-select {
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 0.9em;
-  cursor: pointer;
-}
-
-.page-size-select:focus {
-  outline: none;
-  border-color: #4ecdc4;
-  box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
-}
-
 /* 错误提示样式 */
 .error-message {
   display: flex;
@@ -353,25 +302,68 @@
 /* 分页控件样式 */
 .pagination {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 20px;
+  padding: 16px 20px;
   background: rgba(255, 255, 255, 0.05);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
 
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9em;
+}
+
+.track-count {
+  font-weight: 500;
+}
+
+.page-info {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-size-select {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: #4ecdc4;
+  box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
+}
+
+.page-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .page-btn {
-  padding: 8px 12px;
+  padding: 6px 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: 0.85em;
   transition: all 0.2s ease;
-  min-width: 40px;
+  min-width: 36px;
 }
 
 .page-btn:hover:not(:disabled) {
@@ -392,16 +384,6 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .music-list-toolbar {
-    flex-direction: column;
-    gap: 10px;
-    align-items: stretch;
-  }
-  
-  .toolbar-left {
-    justify-content: space-between;
-  }
-  
   .music-table {
     font-size: 0.9em;
   }
@@ -438,6 +420,21 @@
   .col-year {
     display: none;
   }
+  
+  .pagination {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .pagination-info {
+    justify-content: center;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 480px) {
@@ -452,6 +449,21 @@
   .music-table th,
   .music-table td {
     padding: 6px 2px;
+  }
+  
+  .pagination-info {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+  
+  .pagination-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .page-buttons {
+    justify-content: center;
   }
 }
 

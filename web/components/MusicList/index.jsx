@@ -98,9 +98,11 @@ const MusicList = ({
         setTracks(prev => prev.map(t => 
           t.id === track.id ? { ...t, favorite: !t.favorite } : t
         ));
+      } else {
+        console.error('收藏操作失败');
       }
     } catch (error) {
-      console.error('收藏操作失败:', error);
+      console.error('收藏操作出错:', error);
     }
   };
 
@@ -119,116 +121,96 @@ const MusicList = ({
    */
   const handleRecordPlay = async (trackId) => {
     try {
-      await fetch(`/api/music/recently-played/${trackId}`, { method: 'POST' });
+      await fetch(`/api/music/recently-played/${trackId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error) {
       console.error('记录播放失败:', error);
     }
   };
 
   /**
-   * 加载音乐列表
+   * 加载音乐数据
    */
-  const loadTracks = async (targetPage = page) => {
+  const loadTracks = async (targetPage = 1) => {
     setIsLoading(true);
     setError('');
+    
     try {
-      let url = '/api/music/tracks';
-      const params = new URLSearchParams({
-        page: String(targetPage),
-        pageSize: String(pageSize),
-        sort: sortKey,
-        order: sortOrder,
-        search: searchKeyword || '' // 使用 search 参数
-      });
+      const params = new URLSearchParams();
+      params.set('page', String(targetPage));
+      params.set('pageSize', String(pageSize));
+      params.set('sort', sortKey);
+      params.set('order', sortOrder);
       
-      // 添加过滤条件
-      if (filters.genre) params.set('genre', filters.genre);
-      if (filters.artist) params.set('artist', filters.artist);
-      if (filters.album) params.set('album', filters.album);
-      if (filters.yearFrom) params.set('yearFrom', String(filters.yearFrom));
-      if (filters.yearTo) params.set('yearTo', String(filters.yearTo));
-      if (filters.decade) params.set('decade', String(filters.decade));
-      if (filters.minBitrate) params.set('minBitrate', String(filters.minBitrate));
-      if (filters.maxBitrate) params.set('maxBitrate', String(filters.maxBitrate));
-      if (typeof filters.favorite !== 'undefined') params.set('favorite', String(filters.favorite));
+      if (searchKeyword) {
+        params.set('search', searchKeyword);
+      }
+      
+      // 添加过滤器
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.set(key, String(value));
+        }
+      });
 
+      let url;
       if (mode === 'recent') {
-        url = '/api/music/recently-played';
-        // 最近播放使用 limit 和 offset 参数
+        // 最近播放模式
         params.delete('page');
         params.set('limit', String(pageSize));
         params.set('offset', String((targetPage - 1) * pageSize));
-        // 最近播放不使用排序参数和搜索参数
-        params.delete('sort');
-        params.delete('order');
-        params.delete('search');
-      }
-
-      const res = await fetch(`${url}?${params.toString()}`);
-      const json = await res.json();
-      if (!json?.success) throw new Error(json?.error || '加载失败');
-
-      // 处理数据
-      let docs = [];
-      if (mode === 'recent') {
-        // 最近播放模式返回格式不同
-        docs = Array.isArray(json.data) ? json.data : [];
+        url = `/api/music/recently-played?${params.toString()}`;
+      } else if (isFavoriteList) {
+        // 收藏列表模式
+        url = `/api/music/favorites?${params.toString()}`;
       } else {
-        // 其他模式返回标准化分页格式
-        docs = Array.isArray(json.data) ? json.data : [];
+        // 普通音乐列表模式
+        url = `/api/music/tracks?${params.toString()}`;
       }
 
-      let mapped = docs.map((t) => ({
-        id: t.id,
-        _id: t.id, // 保持兼容性
-        title: t.title,
-        artist: t.artist,
-        album: t.album,
-        duration: t.duration,
-        year: t.year,
-        genre: t.genre,
-        bitrate: t.bitrate,
-        sampleRate: t.sampleRate,
-        filename: t.filename,
-        coverImage: t.coverImage || null,
-        favorite: t.favorite,
-        playCount: t.playCount,
-        lastPlayed: t.lastPlayed
-      }));
+      const response = await fetch(url);
+      const json = await response.json();
 
-      // 随机模式：打乱顺序
-      if (mode === 'random') {
-        const arr = [...mapped];
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
+      if (response.ok) {
+        let tracksData, paginationData;
+        
+        if (mode === 'recent') {
+          tracksData = json.data || json;
+          paginationData = { total: json.total || tracksData.length };
+        } else {
+          tracksData = json.data || json;
+          paginationData = json.pagination || { total: tracksData.length };
         }
-        mapped = arr;
-      }
 
-      setTracks(mapped);
-      
-      // 处理分页信息
-      if (mode === 'recent') {
-        // 最近播放模式使用 total 字段
-        const total = json.total || 0;
-        setTotal(total);
-        setPages(Math.ceil(total / pageSize));
+        // 处理数据映射
+        const processedTracks = tracksData.map(t => ({
+          id: t.id || t._id,
+          title: t.title,
+          artist: t.artist,
+          album: t.album,
+          duration: t.duration,
+          year: t.year,
+          filename: t.filename,
+          bitrate: t.bitrate,
+          sampleRate: t.sampleRate,
+          coverImage: t.coverImage,
+          favorite: t.favorite,
+          playCount: t.playCount,
+          lastPlayed: t.lastPlayed
+        }));
+
+        setTracks(processedTracks);
+        setTotal(paginationData.total);
+        setPages(Math.ceil(paginationData.total / pageSize));
         setPage(targetPage);
       } else {
-        // 其他模式使用标准化分页格式
-        if (json.pagination) {
-          setTotal(json.pagination.total || 0);
-          setPages(json.pagination.pages || 1);
-          setPage(json.pagination.page || targetPage);
-        } else {
-          setTotal(0);
-          setPages(1);
-          setPage(targetPage);
-        }
+        setError(json.message || '加载失败');
       }
-    } catch (err) {
-      setError(err.message || '加载失败');
+    } catch (error) {
+      console.error('加载音乐列表失败:', error);
+      setError('网络错误，请重试');
     } finally {
       setIsLoading(false);
     }
@@ -239,7 +221,7 @@ const MusicList = ({
    */
   const handleSort = (key) => {
     if (sortKey === key) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortKey(key);
       setSortOrder('asc');
@@ -247,34 +229,11 @@ const MusicList = ({
   };
 
   /**
-   * 生成页码数组
+   * 处理分页
    */
-  const getPageNumbers = () => {
-    const pageNumbers = [];
-    const maxVisible = 5;
-    
-    if (pages <= maxVisible) {
-      for (let i = 1; i <= pages; i++) {
-        pageNumbers.push(i);
-      }
-    } else {
-      const start = Math.max(1, page - Math.floor(maxVisible / 2));
-      const end = Math.min(pages, start + maxVisible - 1);
-      
-      for (let i = start; i <= end; i++) {
-        pageNumbers.push(i);
-      }
-    }
-    
-    return pageNumbers;
-  };
-
-  /**
-   * 处理页码变化
-   */
-  const handlePageChange = (targetPage) => {
-    if (targetPage >= 1 && targetPage <= pages && targetPage !== page) {
-      loadTracks(targetPage);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pages) {
+      loadTracks(newPage);
     }
   };
 
@@ -287,16 +246,30 @@ const MusicList = ({
     loadTracks(1);
   };
 
-  // 监听搜索关键词变化
+  /**
+   * 获取页码数组
+   */
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxVisible = 5;
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    let end = Math.min(pages, start + maxVisible - 1);
+    
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pageNumbers.push(i);
+    }
+    
+    return pageNumbers;
+  };
+
+  // 监听搜索关键词和过滤器变化
   useEffect(() => {
-    setPage(1);
     loadTracks(1);
   }, [searchKeyword, sortKey, sortOrder, pageSize, ...Object.values(filters)]);
-
-  // 初始加载
-  useEffect(() => {
-    loadTracks(1);
-  }, []);
 
   // 处理双击播放
   const handleDoubleClick = (track) => {
@@ -306,32 +279,6 @@ const MusicList = ({
 
   return (
     <div className="music-list-container">
-      {/* 工具栏 */}
-      <div className="music-list-toolbar">
-        <div className="toolbar-left">
-          <h3>
-            {mode === 'recent' && '最近播放'}
-            {mode === 'random' && '随机播放'}
-            {isFavoriteList && '我的收藏'}
-            {mode === 'tracks' && !isFavoriteList && '音乐列表'}
-          </h3>
-          <span className="track-count">共 {total} 首</span>
-        </div>
-        
-        <div className="toolbar-right">
-          <select 
-            value={pageSize} 
-            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-            className="page-size-select"
-          >
-            <option value={10}>10 首/页</option>
-            <option value={20}>20 首/页</option>
-            <option value={50}>50 首/页</option>
-            <option value={100}>100 首/页</option>
-          </select>
-        </div>
-      </div>
-
       {/* 错误提示 */}
       {error && (
         <div className="error-message">
@@ -516,35 +463,55 @@ const MusicList = ({
       </div>
 
       {/* 分页控件 */}
-      {pages > 1 && (
-        <div className="pagination">
-          <button 
-            className="page-btn"
-            disabled={page === 1}
-            onClick={() => handlePageChange(page - 1)}
-          >
-            上一页
-          </button>
-          
-          {getPageNumbers().map((pageNum) => (
-            <button
-              key={pageNum}
-              className={`page-btn ${pageNum === page ? 'active' : ''}`}
-              onClick={() => handlePageChange(pageNum)}
-            >
-              {pageNum}
-            </button>
-          ))}
-          
-          <button 
-            className="page-btn"
-            disabled={page === pages}
-            onClick={() => handlePageChange(page + 1)}
-          >
-            下一页
-          </button>
+      <div className="pagination">
+        <div className="pagination-info">
+          <span className="track-count">共 {total} 首</span>
+          <span className="page-info">
+            第 {page} 页，共 {pages} 页
+          </span>
         </div>
-      )}
+        
+        <div className="pagination-controls">
+          <select 
+            value={pageSize} 
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+            className="page-size-select"
+          >
+            <option value={10}>10 首/页</option>
+            <option value={20}>20 首/页</option>
+            <option value={50}>50 首/页</option>
+            <option value={100}>100 首/页</option>
+          </select>
+          
+          <div className="page-buttons">
+            <button 
+              className="page-btn"
+              disabled={page === 1}
+              onClick={() => handlePageChange(page - 1)}
+            >
+              上一页
+            </button>
+            
+            {getPageNumbers().map((pageNum) => (
+              <button
+                key={pageNum}
+                className={`page-btn ${pageNum === page ? 'active' : ''}`}
+                onClick={() => handlePageChange(pageNum)}
+              >
+                {pageNum}
+              </button>
+            ))}
+            
+            <button 
+              className="page-btn"
+              disabled={page === pages}
+              onClick={() => handlePageChange(page + 1)}
+            >
+              下一页
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
