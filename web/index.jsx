@@ -24,10 +24,6 @@ const NASMusicPlayer = () => {
   
   // 音乐数据状态
   const [musicData, setMusicData] = useState({
-    tracks: [],
-    albums: [],
-    artists: [],
-    genres: [],
     stats: {}
   });
   
@@ -89,44 +85,6 @@ const NASMusicPlayer = () => {
   };
 
   /**
-   * 加载专辑列表
-   */
-  const loadAlbums = async (page = 1, search = '') => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/music/albums?page=${page}&pageSize=20&query=${search}`);
-      const result = await response.json();
-      if (result.success) {
-        setMusicData(prev => ({ ...prev, albums: result.data }));
-      }
-    } catch (error) {
-      console.error('加载专辑列表失败:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * 加载艺术家列表
-   */
-  const loadArtists = async (page = 1, search = '') => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/music/artists?page=${page}&pageSize=20&query=${search}`);
-      const result = await response.json();
-      if (result.success) {
-        setMusicData(prev => ({ ...prev, artists: result.data }));
-      }
-    } catch (error) {
-      console.error('加载艺术家列表失败:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 已移除流派页面
-
-  /**
    * 播放音乐
    * @param {Object} track - 音乐信息
    * @param {Array} playlistTracks - 播放列表
@@ -177,6 +135,7 @@ const NASMusicPlayer = () => {
       } catch (e) {}
     }
   };
+
   /** 打开艺术家详情 */
   const openArtist = async (artist) => {
     try {
@@ -400,30 +359,12 @@ const NASMusicPlayer = () => {
       if (result.success) {
         alert('Tag更新成功！');
         setShowTagEditor(false);
-        loadData();
       } else {
         alert('更新失败: ' + result.error);
       }
     } catch (error) {
       console.error('保存Tag失败:', error);
       alert('保存失败');
-    }
-  };
-
-  /**
-   * 加载数据
-   */
-  const loadData = () => {
-    switch (currentView) {
-      case 'music':
-        // 交由 MusicList 内部加载
-        break;
-      case 'albums':
-        loadAlbums(1, searchQuery);
-        break;
-      case 'artists':
-        loadArtists(1, searchQuery);
-        break;
     }
   };
 
@@ -453,13 +394,26 @@ const NASMusicPlayer = () => {
         setCurrentView('track-detail');
       }
     };
+    const handlePlayMusic = (e) => {
+      const { track, playlistTracks } = e.detail;
+      playMusic(track, playlistTracks);
+    };
+    const handleAddToPlaylist = (e) => {
+      const { track } = e.detail;
+      setPlaylist((prev) => [...prev, track]);
+    };
+    
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', onResize);
       window.addEventListener('openTrackDetail', openTrackDetail);
+      window.addEventListener('playMusic', handlePlayMusic);
+      window.addEventListener('addToPlaylist', handleAddToPlaylist);
       onResize();
       return () => {
         window.removeEventListener('resize', onResize);
         window.removeEventListener('openTrackDetail', openTrackDetail);
+        window.removeEventListener('playMusic', handlePlayMusic);
+        window.removeEventListener('addToPlaylist', handleAddToPlaylist);
       };
     }
   }, []);
@@ -481,7 +435,6 @@ const NASMusicPlayer = () => {
     }
     // 其余视图保持不变，依赖 useEffect 根据 searchQuery 自动刷新
   };
-
 
   // 音频事件处理
   useEffect(() => {
@@ -542,8 +495,7 @@ const NASMusicPlayer = () => {
   // 组件加载时初始化
   useEffect(() => {
     loadStats();
-    loadData();
-  }, [currentView, searchQuery]);
+  }, []);
 
   /**
    * 渲染当前页面内容
@@ -551,24 +503,7 @@ const NASMusicPlayer = () => {
   const renderCurrentPage = () => {
     switch (currentView) {
       case 'music':
-        return (
-          <MusicPage
-            stats={musicData.stats}
-            searchQuery={searchQuery}
-            onPlay={(t) => playMusic(t)}
-            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
-            onFavorite={async (t) => {
-              try {
-                await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ favorite: true })
-                });
-              } catch (e) {}
-            }}
-            onDetails={(t) => { setEditingTrack({ ...t, id: t._id || t.id }); setCurrentView('track-detail'); }}
-          />
-        );
+        return <MusicPage />;
       case 'albums':
         return selectedAlbum ? (
           <AlbumDetailView
@@ -589,10 +524,7 @@ const NASMusicPlayer = () => {
             }}
           />
         ) : (
-          <AlbumsPage
-            albums={musicData.albums}
-            onAlbumClick={openAlbum}
-          />
+          <AlbumsPage onAlbumClick={openAlbum} />
         );
       case 'artists':
         return selectedArtist ? (
@@ -603,45 +535,14 @@ const NASMusicPlayer = () => {
             onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
           />
         ) : (
-          <ArtistsPage
-            artists={musicData.artists}
-            onArtistClick={openArtist}
-          />
+          <ArtistsPage onArtistClick={openArtist} />
         );
       case 'favorites':
-        return (
-          <FavoritesPage
-            onPlay={(t) => playMusic(t)}
-            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
-            onDetails={(t) => { setEditingTrack({ ...t, id: t._id || t.id }); setCurrentView('track-detail'); }}
-          />
-        );
+        return <FavoritesPage />;
       case 'recently-played':
-        return (
-          <RecentlyPlayedPage
-            onPlay={(t) => playMusic(t)}
-            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
-            onDetails={(t) => { setEditingTrack({ ...t, id: t._id || t.id }); setCurrentView('track-detail'); }}
-          />
-        );
+        return <RecentlyPlayedPage />;
       case 'shuffle':
-        return (
-          <ShufflePage
-            searchQuery={searchQuery}
-            onPlay={(t) => playMusic(t)}
-            onAddToPlaylist={(t) => setPlaylist((prev) => [...prev, t])}
-            onFavorite={async (t) => {
-              try {
-                await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ favorite: true })
-                });
-              } catch (e) {}
-            }}
-            onDetails={(t) => openTagEditor(t)}
-          />
-        );
+        return <ShufflePage />;
       case 'settings':
         return <SettingsPage />;
       case 'track-detail':

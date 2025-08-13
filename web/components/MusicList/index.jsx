@@ -40,15 +40,8 @@ const MusicList = ({
   default_pageSize = DEFAULT_PAGE_SIZE,
   showCover = true,
   searchKeyword,
-  onAddToPlaylist,
-  onFavorite,
-  onDetails,
-  onOnlineSearch,
-  onPlay,
   filters = {},
   mode = 'tracks', // 'tracks' | 'recent' | 'random'
-  onNavigateToAlbum,
-  onNavigateToArtist,
   isFavoriteList = false
 }) => {
   // 数据状态
@@ -68,6 +61,69 @@ const MusicList = ({
   
   // 更多操作菜单状态
   const [showMoreMenu, setShowMoreMenu] = useState(null);
+
+  /**
+   * 播放音乐
+   */
+  const handlePlay = (track) => {
+    // 触发自定义事件，让主组件处理播放
+    window.dispatchEvent(new CustomEvent('playMusic', { 
+      detail: { track, playlistTracks: null } 
+    }));
+  };
+
+  /**
+   * 添加到播放列表
+   */
+  const handleAddToPlaylist = (track) => {
+    // 触发自定义事件，让主组件处理添加到播放列表
+    window.dispatchEvent(new CustomEvent('addToPlaylist', { 
+      detail: { track } 
+    }));
+  };
+
+  /**
+   * 收藏/取消收藏
+   */
+  const handleFavorite = async (track) => {
+    try {
+      const response = await fetch(`/api/music/tracks/${track.id}/favorite`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite: !track.favorite })
+      });
+      
+      if (response.ok) {
+        // 更新本地状态
+        setTracks(prev => prev.map(t => 
+          t.id === track.id ? { ...t, favorite: !t.favorite } : t
+        ));
+      }
+    } catch (error) {
+      console.error('收藏操作失败:', error);
+    }
+  };
+
+  /**
+   * 查看详情
+   */
+  const handleDetails = (track) => {
+    // 触发自定义事件，让主组件处理详情页面
+    window.dispatchEvent(new CustomEvent('openTrackDetail', { 
+      detail: { track } 
+    }));
+  };
+
+  /**
+   * 记录播放
+   */
+  const handleRecordPlay = async (trackId) => {
+    try {
+      await fetch(`/api/music/recently-played/${trackId}`, { method: 'POST' });
+    } catch (error) {
+      console.error('记录播放失败:', error);
+    }
+  };
 
   /**
    * 加载音乐列表
@@ -96,17 +152,17 @@ const MusicList = ({
       if (filters.maxBitrate) params.set('maxBitrate', String(filters.maxBitrate));
       if (typeof filters.favorite !== 'undefined') params.set('favorite', String(filters.favorite));
 
-             if (mode === 'recent') {
-         url = '/api/music/recently-played';
-         // 最近播放使用 limit 和 offset 参数
-         params.delete('page');
-         params.set('limit', String(pageSize));
-         params.set('offset', String((targetPage - 1) * pageSize));
-         // 最近播放不使用排序参数和搜索参数
-         params.delete('sort');
-         params.delete('order');
-         params.delete('search');
-       }
+      if (mode === 'recent') {
+        url = '/api/music/recently-played';
+        // 最近播放使用 limit 和 offset 参数
+        params.delete('page');
+        params.set('limit', String(pageSize));
+        params.set('offset', String((targetPage - 1) * pageSize));
+        // 最近播放不使用排序参数和搜索参数
+        params.delete('sort');
+        params.delete('order');
+        params.delete('search');
+      }
 
       const res = await fetch(`${url}?${params.toString()}`);
       const json = await res.json();
@@ -202,327 +258,293 @@ const MusicList = ({
         pageNumbers.push(i);
       }
     } else {
-      if (page <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pageNumbers.push(i);
-        }
-        pageNumbers.push('...');
-        pageNumbers.push(pages);
-      } else if (page >= pages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push('...');
-        for (let i = pages - 3; i <= pages; i++) {
-          pageNumbers.push(i);
-        }
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push('...');
-        for (let i = page - 1; i <= page + 1; i++) {
-          pageNumbers.push(i);
-        }
-        pageNumbers.push('...');
-        pageNumbers.push(pages);
+      const start = Math.max(1, page - Math.floor(maxVisible / 2));
+      const end = Math.min(pages, start + maxVisible - 1);
+      
+      for (let i = start; i <= end; i++) {
+        pageNumbers.push(i);
       }
     }
     
     return pageNumbers;
   };
 
-  // 计算分页状态
-  const canPrev = page > 1;
-  const canNext = pages > 0 && page < pages;
-
   /**
-   * 跳转到指定页面
+   * 处理页码变化
    */
-  const jumpTo = (val) => {
-    const n = Math.min(Math.max(1, Number(val) || 1), Math.max(1, pages || 1));
-    loadTracks(n);
+  const handlePageChange = (targetPage) => {
+    if (targetPage >= 1 && targetPage <= pages && targetPage !== page) {
+      loadTracks(targetPage);
+    }
   };
 
-     // 监听搜索词和排序变化
-   useEffect(() => {
-     // 最近播放模式不响应搜索词变化
-     if (mode === 'recent') {
-       loadTracks(1);
-     } else {
-       loadTracks(1);
-     }
-   }, [searchKeyword, sortKey, sortOrder, pageSize, mode]);
+  /**
+   * 处理每页数量变化
+   */
+  const handlePageSizeChange = (newPageSize) => {
+    setPageSize(newPageSize);
+    setPage(1);
+    loadTracks(1);
+  };
 
-     // 小屏下统一每页数量为5
-   useEffect(() => {
-     if (typeof window === 'undefined') return;
-     const mq = window.matchMedia('(max-width: 768px)');
-     const apply = () => {
-       if (mq.matches) {
-         setPageSize(5);
-       } else {
-         setPageSize(pageSize);
-       }
-     };
-     apply();
-     mq.addEventListener ? mq.addEventListener('change', apply) : mq.addListener(apply);
-     return () => {
-       mq.removeEventListener ? mq.removeEventListener('change', apply) : mq.removeListener(apply);
-     };
-   }, [pageSize]);
+  // 监听搜索关键词变化
+  useEffect(() => {
+    setPage(1);
+    loadTracks(1);
+  }, [searchKeyword, sortKey, sortOrder, pageSize, ...Object.values(filters)]);
+
+  // 初始加载
+  useEffect(() => {
+    loadTracks(1);
+  }, []);
+
+  // 处理双击播放
+  const handleDoubleClick = (track) => {
+    handlePlay(track);
+    handleRecordPlay(track.id);
+  };
 
   return (
-    <div className="music-list">
-      {/* 音乐列表表格 */}
-      <div className="ml-table">
-        <div className="ml-thead">
-          <div className="ml-th ml-col-title" onClick={() => handleSort('title')}>
-            标题 {sortKey === 'title' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-          </div>
-          <div className="ml-th ml-col-album" onClick={() => handleSort('album')}>
-            专辑 {sortKey === 'album' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-          </div>
-          <div className="ml-th ml-col-artist" onClick={() => handleSort('artist')}>
-            歌手 {sortKey === 'artist' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-          </div>
-          <div className="ml-th ml-col-duration">时长</div>
-          <div className="ml-th ml-col-quality">品质</div>
-          <div className="ml-th ml-col-actions">操作</div>
+    <div className="music-list-container">
+      {/* 工具栏 */}
+      <div className="music-list-toolbar">
+        <div className="toolbar-left">
+          <h3>
+            {mode === 'recent' && '最近播放'}
+            {mode === 'random' && '随机播放'}
+            {isFavoriteList && '我的收藏'}
+            {mode === 'tracks' && !isFavoriteList && '音乐列表'}
+          </h3>
+          <span className="track-count">共 {total} 首</span>
         </div>
-
-        <div className="ml-tbody">
-          {isLoading && (<div className="ml-row ml-loading">加载中...</div>)}
-          {!isLoading && error && (<div className="ml-row ml-error">{error}</div>)}
-          {!isLoading && !error && tracks.length === 0 && (<div className="ml-row ml-empty">暂无数据</div>)}
-
-          {!isLoading && !error && tracks.map((t) => (
-            <div key={t.id} className="ml-row" onDoubleClick={async () => {
-              // 记录最近播放
-              try {
-                await fetch(`/api/music/recently-played/${t.id}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' }
-                });
-              } catch (e) {
-                console.error('记录播放失败:', e);
-              }
-              
-              if (onPlay) {
-                onPlay(t);
-              }
-            }}>
-              <div className="ml-td ml-col-title">
-                <div className="ml-title-wrap">
-                  {showCover && (
-                    <img
-                      className="ml-cover"
-                      src={t.coverImage ? 
-                        (t.coverImage.startsWith('data:') ? 
-                          t.coverImage : 
-                          `/api/music/tracks/${t.id}/cover`
-                        ) : 
-                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjBmMGYwIi8+CjxwYXRoIGQ9Ik0xNiA4TDIyIDE2TDE2IDI0TDEwIDE2TDE2IDhaIiBmaWxsPSIjY2NjIi8+Cjwvc3ZnPg=='
-                      }
-                      alt="封面"
-                      onError={(e) => {
-                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjZjBmMGYwIi8+CjxwYXRoIGQ9Ik0xNiA4TDIyIDE2TDE2IDI0TDEwIDE2TDE2IDhaIiBmaWxsPSIjY2NjIi8+Cjwvc3ZnPg==';
-                      }}
-                    />
-                  )}
-                  <div className="ml-title-text">
-                    <div className="ml-title" title={t.title}>{t.title}</div>
-                    <div className="ml-sub">{t.artist}</div>
-                  </div>
-                </div>
-              </div>
-              <div className="ml-td ml-col-album" title={t.album}>
-                {onNavigateToAlbum ? (
-                  <button className="ml-link" onClick={(e) => { e.stopPropagation(); onNavigateToAlbum(t.album, t.artist); }}>
-                    {t.album}
-                  </button>
-                ) : t.album}
-              </div>
-              <div className="ml-td ml-col-artist" title={t.artist}>
-                {onNavigateToArtist ? (
-                  <button className="ml-link" onClick={(e) => { e.stopPropagation(); onNavigateToArtist(t.artist); }}>
-                    {t.artist}
-                  </button>
-                ) : t.artist}
-              </div>
-              <div className="ml-td ml-col-duration">{formatDuration(t.duration)}</div>
-              <div className="ml-td ml-col-quality">{formatQuality(t)}</div>
-              <div className="ml-td ml-col-actions">
-                <button 
-                  className="ml-btn play" 
-                  title="播放" 
-                  onClick={async () => {
-                    // 记录最近播放
-                    try {
-                      await fetch(`/api/music/recently-played/${t.id}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
-                    } catch (e) {
-                      console.error('记录播放失败:', e);
-                    }
-                    
-                    if (onPlay) {
-                      onPlay(t);
-                    }
-                  }}
-                >
-                  ▶️
-                </button>
-                {isFavoriteList ? (
-                  <button
-                    className="ml-btn"
-                    title="删除收藏"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(`/api/music/tracks/${t.id}/favorite`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ favorite: false })
-                        });
-                        const json = await res.json();
-                        if (!json.success) {
-                          throw new Error(json.error || '取消收藏失败');
-                        }
-                        loadTracks(page);
-                      } catch (e) {
-                        alert('取消收藏失败: ' + e.message);
-                      }
-                    }}
-                  >
-                    🗑️
-                  </button>
-                ) : (
-                  <button 
-                    className="ml-btn" 
-                    title="添加到播放列表" 
-                    onClick={() => (onAddToPlaylist ? onAddToPlaylist(t) : alert('已添加到播放列表：' + (t.title || '')))}
-                  >
-                    ➕
-                  </button>
-                )}
-                <div className="ml-more-container">
-                  <button 
-                    className="ml-btn more" 
-                    title="更多操作"
-                    onClick={() => setShowMoreMenu(showMoreMenu === t.id ? null : t.id)}
-                  >
-                    ⋯
-                  </button>
-                  {showMoreMenu === t.id && (
-                    <div className="ml-more-menu">
-                      <button 
-                        className="ml-more-item"
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`/api/music/tracks/${t.id}/favorite`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ favorite: true })
-                            });
-                            const json = await res.json();
-                            if (!json.success) {
-                              throw new Error(json.error || '收藏失败');
-                            }
-                            if (onFavorite) {
-                              onFavorite(t);
-                            } else {
-                              alert('收藏成功：' + (t.title || ''));
-                            }
-                          } catch (e) {
-                            alert('收藏失败: ' + e.message);
-                          }
-                          setShowMoreMenu(null);
-                        }}
-                      >
-                        ⭐ 收藏
-                      </button>
-                      <button 
-                        className="ml-more-item"
-                        onClick={() => {
-                          if (onDetails) {
-                            onDetails(t);
-                          } else if (typeof window !== 'undefined') {
-                            window.dispatchEvent(new CustomEvent('openTrackDetail', { detail: { track: t } }));
-                          }
-                          setShowMoreMenu(null);
-                        }}
-                      >
-                        ℹ️ 详情
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+        
+        <div className="toolbar-right">
+          <select 
+            value={pageSize} 
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+            className="page-size-select"
+          >
+            <option value={10}>10 首/页</option>
+            <option value={20}>20 首/页</option>
+            <option value={50}>50 首/页</option>
+            <option value={100}>100 首/页</option>
+          </select>
         </div>
       </div>
 
-      {/* 分页控件 */}
-      <div className="ml-pagination">
-        <div className="ml-pg-info">
-          共 {total} 条，第 {page} 页，共 {pages || 1} 页
+      {/* 错误提示 */}
+      {error && (
+        <div className="error-message">
+          <p>❌ {error}</p>
+          <button onClick={() => loadTracks(1)}>重试</button>
         </div>
+      )}
+
+      {/* 音乐列表 */}
+      <div className="music-list">
+        <table className="music-table">
+          <thead>
+            <tr>
+              <th className="col-cover" style={{ width: showCover ? '60px' : '0' }}>
+                {showCover && '封面'}
+              </th>
+              <th 
+                className="col-title sortable"
+                onClick={() => handleSort('title')}
+              >
+                标题
+                {sortKey === 'title' && (
+                  <span className="sort-indicator">
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th 
+                className="col-artist sortable"
+                onClick={() => handleSort('artist')}
+              >
+                艺术家
+                {sortKey === 'artist' && (
+                  <span className="sort-indicator">
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th 
+                className="col-album sortable"
+                onClick={() => handleSort('album')}
+              >
+                专辑
+                {sortKey === 'album' && (
+                  <span className="sort-indicator">
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th 
+                className="col-duration sortable"
+                onClick={() => handleSort('duration')}
+              >
+                时长
+                {sortKey === 'duration' && (
+                  <span className="sort-indicator">
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th 
+                className="col-year sortable"
+                onClick={() => handleSort('year')}
+              >
+                年份
+                {sortKey === 'year' && (
+                  <span className="sort-indicator">
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
+              <th className="col-quality">品质</th>
+              <th className="col-actions">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tracks.map((track) => (
+              <tr 
+                key={track.id} 
+                className="music-row"
+                onDoubleClick={() => handleDoubleClick(track)}
+              >
+                <td className="col-cover">
+                  {showCover && (
+                    <div className="cover-container">
+                      {track.coverImage ? (
+                        <img 
+                          src={track.coverImage.startsWith('data:') 
+                            ? track.coverImage 
+                            : `/api/music/tracks/${track.id}/cover`
+                          }
+                          alt="封面"
+                          className="cover-image"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className="cover-placeholder">
+                        <span>🎵</span>
+                      </div>
+                    </div>
+                  )}
+                </td>
+                <td className="col-title">
+                  <div className="title-cell">
+                    <span className="title-text">{track.title || '未知标题'}</span>
+                    {track.favorite && <span className="favorite-indicator">⭐</span>}
+                  </div>
+                </td>
+                <td className="col-artist">
+                  {track.artist || '未知艺术家'}
+                </td>
+                <td className="col-album">
+                  {track.album || '未知专辑'}
+                </td>
+                <td className="col-duration">
+                  {formatDuration(track.duration)}
+                </td>
+                <td className="col-year">
+                  {track.year || '—'}
+                </td>
+                <td className="col-quality">
+                  {formatQuality(track)}
+                </td>
+                <td className="col-actions">
+                  <div className="action-buttons">
+                    <button 
+                      className="action-btn play-btn"
+                      onClick={() => {
+                        handlePlay(track);
+                        handleRecordPlay(track.id);
+                      }}
+                      title="播放"
+                    >
+                      ▶️
+                    </button>
+                    <button 
+                      className="action-btn add-btn"
+                      onClick={() => handleAddToPlaylist(track)}
+                      title="添加到播放列表"
+                    >
+                      ➕
+                    </button>
+                    <button 
+                      className={`action-btn favorite-btn ${track.favorite ? 'favorited' : ''}`}
+                      onClick={() => handleFavorite(track)}
+                      title={track.favorite ? '取消收藏' : '收藏'}
+                    >
+                      {track.favorite ? '⭐' : '☆'}
+                    </button>
+                    <button 
+                      className="action-btn details-btn"
+                      onClick={() => handleDetails(track)}
+                      title="详情"
+                    >
+                      ℹ️
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         
-        <div className="ml-pg-ctrls">
-          <button disabled={!canPrev} onClick={() => loadTracks(page - 1)} className="ml-pg-btn prev">
-            ◀ 上一页
+        {/* 加载状态 */}
+        {isLoading && (
+          <div className="loading-overlay">
+            <div className="loading-spinner">🔄</div>
+            <p>加载中...</p>
+          </div>
+        )}
+        
+        {/* 空状态 */}
+        {!isLoading && tracks.length === 0 && (
+          <div className="empty-state">
+            <h3>暂无音乐</h3>
+            <p>没有找到符合条件的音乐</p>
+          </div>
+        )}
+      </div>
+
+      {/* 分页控件 */}
+      {pages > 1 && (
+        <div className="pagination">
+          <button 
+            className="page-btn"
+            disabled={page === 1}
+            onClick={() => handlePageChange(page - 1)}
+          >
+            上一页
           </button>
           
-          {getPageNumbers().map((pageNum, index) => (
+          {getPageNumbers().map((pageNum) => (
             <button
-              key={index}
-              className={`ml-pg-btn ${pageNum === page ? 'active' : ''} ${pageNum === '...' ? 'ellipsis' : ''}`}
-              onClick={() => {
-                if (pageNum !== '...') {
-                  loadTracks(pageNum);
-                }
-              }}
-              disabled={pageNum === '...'}
+              key={pageNum}
+              className={`page-btn ${pageNum === page ? 'active' : ''}`}
+              onClick={() => handlePageChange(pageNum)}
             >
               {pageNum}
             </button>
           ))}
           
-          <button disabled={!canNext} onClick={() => loadTracks(page + 1)} className="ml-pg-btn next">
-            下一页 ▶
+          <button 
+            className="page-btn"
+            disabled={page === pages}
+            onClick={() => handlePageChange(page + 1)}
+          >
+            下一页
           </button>
         </div>
-        
-                 <div className="ml-pg-settings">
-           <select 
-             value={pageSize} 
-             onChange={(e) => { setPageSize(Number(e.target.value)); }} 
-             title="每页数量"
-             className="ml-pg-select"
-           >
-             {[5, 10, 20].map((n) => (
-               <option key={n} value={n}>{n}/页</option>
-             ))}
-           </select>
-          
-          <div className="ml-pg-jump">
-            <span>跳转到：</span>
-            <input
-              type="number"
-              min={1}
-              max={Math.max(1, pages || 1)}
-              defaultValue={page}
-              onKeyDown={(e) => { 
-                if (e.key === 'Enter') {
-                  jumpTo(e.currentTarget.value);
-                  e.currentTarget.blur();
-                }
-              }}
-              onBlur={(e) => { e.currentTarget.value = String(page); }}
-              className="ml-pg-jump-input"
-            />
-            <span>页</span>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

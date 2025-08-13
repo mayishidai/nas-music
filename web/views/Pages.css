@@ -38,3 +38,168 @@
   font-size: 1.2em;
   opacity: 0.7;
 }
+
+/* 工具栏样式 */
+.artists-toolbar,
+.albums-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.artists-toolbar h2,
+.albums-toolbar h2 {
+  margin: 0;
+  font-size: 1.5em;
+  color: #333;
+}
+
+.artists-actions,
+.albums-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.artists-search,
+.albums-search {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.artists-search:focus,
+.albums-search:focus {
+  outline: none;
+  border-color: #4ecdc4;
+  box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
+}
+
+.search-btn {
+  padding: 8px 16px;
+  background: #4ecdc4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.search-btn:hover {
+  background: #45b7aa;
+}
+
+/* 加载状态样式 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #888;
+}
+
+.loading-spinner {
+  font-size: 2em;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.end-state {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+  font-style: italic;
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #888;
+  text-align: center;
+}
+
+.empty-state h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.5em;
+  color: #666;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1em;
+  opacity: 0.7;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .artists-toolbar,
+  .albums-toolbar {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  
+  .artists-toolbar h2,
+  .albums-toolbar h2 {
+    font-size: 1.4em;
+  }
+  
+  .artists-actions,
+  .albums-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .artists-search,
+  .albums-search {
+    min-width: 200px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .search-btn {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .artists-toolbar,
+  .albums-toolbar {
+    padding: 16px 20px;
+  }
+  
+  .artists-toolbar h2,
+  .albums-toolbar h2 {
+    font-size: 1.2em;
+  }
+  
+  .artists-search,
+  .albums-search {
+    min-width: 160px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .search-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+}

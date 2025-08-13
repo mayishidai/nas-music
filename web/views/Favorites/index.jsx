@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import '../Pages.css';
 import './Favorites.css';
 import { MusicList } from '../../components';
@@ -6,8 +6,9 @@ import { MusicList } from '../../components';
 /**
  * 收藏页面组件
  */
-const FavoritesPage = ({ onPlay, onAddToPlaylist, onDetails }) => {
+const FavoritesPage = () => {
   const [search, setSearch] = useState('');
+  
   return (
     <div className="page-container favorites-view">
       <div className="page-content">
@@ -24,9 +25,6 @@ const FavoritesPage = ({ onPlay, onAddToPlaylist, onDetails }) => {
         </div>
         <MusicList
           searchKeyword={search}
-          onPlay={onPlay}
-          onAddToPlaylist={onAddToPlaylist}
-          onDetails={onDetails}
           filters={{ favorite: true }}
           isFavoriteList
         />

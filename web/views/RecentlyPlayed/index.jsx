@@ -6,8 +6,9 @@ import { MusicList } from '../../components';
 /**
  * 最近播放页面组件
  */
-const RecentlyPlayedPage = ({ onPlay, onAddToPlaylist, onDetails }) => {
+const RecentlyPlayedPage = () => {
   const [search, setSearch] = useState('');
+  
   return (
     <div className="page-container recently-view">
       <div className="page-content">
@@ -24,18 +25,6 @@ const RecentlyPlayedPage = ({ onPlay, onAddToPlaylist, onDetails }) => {
         </div>
         <MusicList
           searchKeyword={search}
-          onPlay={onPlay}
-          onAddToPlaylist={onAddToPlaylist}
-          onDetails={onDetails}
-          onFavorite={async (t) => {
-            try {
-              await fetch(`/api/music/tracks/${t._id || t.id}/favorite`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ favorite: !t.favorite })
-              });
-            } catch (e) {}
-          }}
           mode="recent"
         />
       </div>
