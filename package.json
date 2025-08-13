@@ -13,7 +13,6 @@
     "build": "node build.js"
   },
   "dependencies": {
-    "@seald-io/nedb": "^4.1.2",
     "@vitejs/plugin-react-swc": "^3.9.0",
     "axios": "^1.11.0",
     "chokidar": "^4.0.3",
@@ -26,9 +25,9 @@
     "koa-router": "^13.0.1",
     "koa-session": "^7.0.2",
     "koa-static": "^5.0.0",
+    "lokijs": "^1.5.12",
     "music-metadata": "^11.7.3",
     "musicbrainz-api": "^0.25.1",
-    "simptrad": "^1.0.3",
     "nodemon": "^3.1.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

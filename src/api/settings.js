@@ -1,13 +1,9 @@
 import Router from 'koa-router';
 import axios from 'axios';
-import { getConfig, saveConfig } from '../client/database.js';
-import { 
-  getMediaLibraries, 
-  addMediaLibrary, 
-  deleteMediaLibrary, 
-  scanMediaLibrary, 
-  getScanProgress 
-} from '../client/music.js';
+import { getConfig, saveConfig, getMusicStats } from '../client/database.js';
+import { getMediaLibraries, addMediaLibrary, deleteMediaLibrary, scanMediaLibrary, getScanProgress } from '../client/metadata.js';
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const router = new Router();
 
@@ -52,7 +48,7 @@ router.get('/api-configs', async (ctx) => {
  */
 router.put('/api-configs', async (ctx) => {
   try {
-    const { musicbrainz, lastfm, security } = ctx.request.body;
+    const { musicbrainz, lastfm } = ctx.request.body;
     const config = await getConfig();
     
     // 更新配置
@@ -117,9 +113,9 @@ router.post('/media-libraries', async (ctx) => {
       };
       return;
     }
-    
     const newLibrary = await addMediaLibrary(libraryPath);
-    
+    // 异步开始扫描
+    scanMediaLibrary(newLibrary.id);
     ctx.body = {
       success: true,
       data: newLibrary,
@@ -248,8 +244,6 @@ router.post('/test-api/:service', async (ctx) => {
         };
         break;
         
-      // 已移除 acoustid/tencent/netease 测试
-        
       default:
         ctx.status = 400;
         ctx.body = {
@@ -258,8 +252,6 @@ router.post('/test-api/:service', async (ctx) => {
         };
         return;
     }
-    
-    // 部分服务不需要 apiKey，跳过空校验
     
     // 发送测试请求
     const response = await axios.get(testUrl, { params: testParams });
@@ -283,47 +275,6 @@ router.post('/test-api/:service', async (ctx) => {
   }
 });
 
-// ==================== 系统信息接口 ====================
-
-/**
- * 获取系统信息
- * GET /api/settings/system-info
- */
-router.get('/system-info', async (ctx) => {
-  try {
-    const os = require('os');
-    const process = require('process');
-    
-    const systemInfo = {
-      platform: os.platform(),
-      arch: os.arch(),
-      nodeVersion: process.version,
-      memory: {
-        total: os.totalmem(),
-        free: os.freemem(),
-        used: os.totalmem() - os.freemem()
-      },
-      cpu: {
-        cores: os.cpus().length,
-        model: os.cpus()[0].model
-      },
-      uptime: os.uptime(),
-      loadAverage: os.loadavg()
-    };
-    
-    ctx.body = {
-      success: true,
-      data: systemInfo
-    };
-  } catch (error) {
-    console.error('获取系统信息失败:', error);
-    ctx.status = 500;
-    ctx.body = {
-      success: false,
-      error: '获取系统信息失败'
-    };
-  }
-});
 
 // ==================== 音乐统计接口 ====================
 
@@ -333,31 +284,7 @@ router.get('/system-info', async (ctx) => {
  */
 router.get('/music-stats', async (ctx) => {
   try {
-    const { musicDB } = await import('../client/database.js');
-    
-    const stats = await new Promise((resolve) => {
-      Promise.all([
-        new Promise((res) => musicDB.count({ type: 'track' }, (err, count) => res(err ? 0 : count))),
-        new Promise((res) => musicDB.count({ type: 'album' }, (err, count) => res(err ? 0 : count))),
-        new Promise((res) => musicDB.count({ type: 'artist' }, (err, count) => res(err ? 0 : count))),
-        new Promise((res) => musicDB.count({ type: 'genre' }, (err, count) => res(err ? 0 : count)))
-      ]).then(([tracks, albums, artists, genres]) => {
-        resolve({
-          tracks,
-          albums,
-          artists,
-          genres
-        });
-      }).catch(() => {
-        resolve({
-          tracks: 0,
-          albums: 0,
-          artists: 0,
-          genres: 0
-        });
-      });
-    });
-    
+    const stats = await getMusicStats();
     ctx.body = {
       success: true,
       data: stats

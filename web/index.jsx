@@ -78,7 +78,7 @@ const NASMusicPlayer = () => {
    */
   const loadStats = async () => {
     try {
-      const response = await fetch('/api/music/stats');
+      const response = await fetch('/api/settings/music-stats');
       const result = await response.json();
       if (result.success) {
         setMusicData(prev => ({ ...prev, stats: result.data }));
