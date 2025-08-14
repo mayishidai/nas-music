@@ -217,11 +217,6 @@ body {
     margin-left: 0;
   }
   
-  /* 确保在小屏幕上Player组件也有固定高度 */
-  .app-container .bottom-player {
-    height: 120px;
-  }
-  
   /* 移动端遮罩层样式 */
   .sidebar-overlay {
     position: fixed;

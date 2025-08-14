@@ -629,6 +629,7 @@
     grid-template-columns: 320px 1fr 300px;
   }
   .control-buttons { gap: 10px; flex-wrap: wrap; }
+  .controls-lyrics{ display: none; }
 }
 
 /* 手机端（小屏）布局：上下堆叠 */
@@ -636,10 +637,11 @@
   .bottom-player {
     display: grid;
     grid-template-columns: 1fr;
-    height: 120px;
+    height: 180px;
     padding: 10px 12px 12px 12px;
     gap: 10px;
   }
+  .lyrics-toggle { display: none !important; }
   .player-track-info { max-width: 100%; }
   /* 保持所有控件可见：同一列内分区排列 */
   .player-controls { flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
@@ -657,12 +659,12 @@
     justify-content: center;
     min-width: auto;
   }
-  .control-buttons { gap: 10px; flex-wrap: wrap; }
+  .control-buttons { width: 250px; gap: 10px; flex-wrap: wrap; }
   .control-btn { width: 36px; height: 36px; }
   .play-btn-main { width: 48px; height: 48px; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   /* 小屏弹层宽度修正 */
   .playlist-panel,
   .floating-lyrics {
@@ -672,7 +674,118 @@
   }
 }
 
-/* 小于900隐藏歌词开关 */
-@media (max-width: 900px) {
-  .lyrics-toggle { display: none !important; }
+/* 移动端音量控制 */
+.mobile-volume-controls {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-left: 10px;
 }
+
+.mobile-volume-slider {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.mobile-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #4ecdc4;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.mobile-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #4ecdc4;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 900px) {
+  .player-controls {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .controls-left {
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .control-buttons {
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .mobile-volume-controls {
+    display: flex;
+  }
+  
+  .player-volume {
+    display: none;
+  }
+  
+  .controls-right {
+    display: none;
+  }
+  
+  .progress-section {
+    width: 100%;
+  }
+  
+  .progress-bar-container {
+    flex: 1;
+  }
+  
+  .time-display {
+    font-size: 0.8em;
+    min-width: 35px;
+  }
+  
+  .player-track-info {
+    padding: 8px 12px;
+  }
+  
+  .player-cover {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .player-title {
+    font-size: 0.9em;
+  }
+  
+  .player-artist {
+    font-size: 0.8em;
+  }
+  
+  .player-lyrics {
+    font-size: 0.7em;
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 480px){
+  .controls-left .mobile-volume-controls .control-btn{
+    display: none;
+  }
+  .controls-left .mobile-volume-controls .mobile-volume-slider{
+    display: none;
+  }
+  .controls-left .mobile-volume-controls .player-list-btn{
+    display: block;
+  }
+} 

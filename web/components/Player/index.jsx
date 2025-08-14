@@ -262,94 +262,133 @@ const Player = forwardRef((props, ref) => {
         </div>
 
         <div className="player-controls">
-          <div className="controls-left">
-            <div className="control-buttons">
-              {/* 播放模式：合并随机/循环/单曲 */}
-              <button
-                onClick={() => {
-                  const modes = ['none', 'shuffle', 'all', 'one'];
-                  const idx = modes.indexOf(playMode);
-                  setPlayMode(modes[(idx + 1) % modes.length]);
-                  // 同步外部状态
-                  if (modes[(idx + 1) % modes.length] === 'shuffle') {
-                    !isShuffled && setIsShuffled(true);
-                  } else if (playMode === 'shuffle') {
-                    isShuffled && setIsShuffled(false);
-                  }
-                  const nextMode = modes[(idx + 1) % modes.length];
-                  if (nextMode === 'one') {
-                    setRepeatMode('one');
-                  } else if (nextMode === 'all') {
-                    setRepeatMode('all');
-                  } else {
-                    setRepeatMode('none');
-                  }
-                }}
-                className={`control-btn ${playMode !== 'none' ? 'active' : ''}`}
-                title={`播放模式: ${playMode}`}
-                disabled={!currentMusic}
-              >
-                {playMode === 'shuffle' ? '🔀' : playMode === 'one' ? '🔂' : '🔁'}
-              </button>
-              <button 
-                onClick={prevTrack}
-                className="control-btn"
-                disabled={!currentMusic || playlist.length === 0}
-                title="上一首"
-              >
-                ⏮️
-              </button>
-              <button 
-                onClick={() => {
-                  if (isPlaying) {
-                    audioRef.current.pause();
-                  } else {
-                    audioRef.current.play();
-                  }
-                }}
-                className="play-btn-main"
-                disabled={!currentMusic}
-                title={isPlaying ? '暂停' : '播放'}
-              >
-                {isPlaying ? '⏸️' : '▶️'}
-              </button>
-              <button 
-                onClick={nextTrack}
-                className="control-btn"
-                disabled={!currentMusic || playlist.length === 0}
-                title="下一首"
-              >
-                ⏭️
-              </button>
-              
-              {/* 收藏按钮 */}
-              <button
-                onClick={async () => {
-                  if (!currentMusic) return;
-                  try {
-                    const response = await fetch(`/api/music/favorites/${currentMusic.id}`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({ favorite: !favorite })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                      setFavorite(!favorite);
+          <div className="player-controls-left">
+            <div className="controls-left">
+              <div className="control-buttons">
+                {/* 播放模式：合并随机/循环/单曲 */}
+                <button
+                  onClick={() => {
+                    const modes = ['none', 'shuffle', 'all', 'one'];
+                    const idx = modes.indexOf(playMode);
+                    setPlayMode(modes[(idx + 1) % modes.length]);
+                    // 同步外部状态
+                    if (modes[(idx + 1) % modes.length] === 'shuffle') {
+                      !isShuffled && setIsShuffled(true);
+                    } else if (playMode === 'shuffle') {
+                      isShuffled && setIsShuffled(false);
                     }
-                  } catch (error) {
-                    console.error('收藏操作失败:', error);
-                  }
-                }}
-                className={`control-btn ${favorite ? 'active' : ''}`}
-                disabled={!currentMusic}
-                title={favorite ? '取消收藏' : '收藏'}
-              >
-                {favorite ? '❤️' : '🤍'}
-              </button>
+                    const nextMode = modes[(idx + 1) % modes.length];
+                    if (nextMode === 'one') {
+                      setRepeatMode('one');
+                    } else if (nextMode === 'all') {
+                      setRepeatMode('all');
+                    } else {
+                      setRepeatMode('none');
+                    }
+                  }}
+                  className={`control-btn ${playMode !== 'none' ? 'active' : ''}`}
+                  title={`播放模式: ${playMode}`}
+                  disabled={!currentMusic}
+                >
+                  {playMode === 'shuffle' ? '🔀' : playMode === 'one' ? '🔂' : '🔁'}
+                </button>
+                <button 
+                  onClick={prevTrack}
+                  className="control-btn"
+                  disabled={!currentMusic || playlist.length === 0}
+                  title="上一首"
+                >
+                  ⏮️
+                </button>
+                <button 
+                  onClick={() => {
+                    if (isPlaying) {
+                      audioRef.current.pause();
+                    } else {
+                      audioRef.current.play();
+                    }
+                  }}
+                  className="play-btn-main"
+                  disabled={!currentMusic}
+                  title={isPlaying ? '暂停' : '播放'}
+                >
+                  {isPlaying ? '⏸️' : '▶️'}
+                </button>
+                <button 
+                  onClick={nextTrack}
+                  className="control-btn"
+                  disabled={!currentMusic || playlist.length === 0}
+                  title="下一首"
+                >
+                  ⏭️
+                </button>
+                
+                {/* 收藏按钮 */}
+                <button
+                  onClick={async () => {
+                    if (!currentMusic) return;
+                    try {
+                      const response = await fetch(`/api/music/favorites/${currentMusic.id}`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ favorite: !favorite })
+                      });
+                      const result = await response.json();
+                      if (result.success) {
+                        setFavorite(!favorite);
+                      }
+                    } catch (error) {
+                      console.error('收藏操作失败:', error);
+                    }
+                  }}
+                  className={`control-btn ${favorite ? 'active' : ''}`}
+                  disabled={!currentMusic}
+                  title={favorite ? '取消收藏' : '收藏'}
+                >
+                  {favorite ? '❤️' : '🤍'}
+                </button>
+              </div>
+              {/* 移动端音量控制 */}
+              <div className="mobile-volume-controls">
+                  <button
+                    onClick={() => {
+                      setMuted(!muted);
+                      if (audioRef.current) {
+                        audioRef.current.muted = !muted;
+                      }
+                    }}
+                    className="control-btn"
+                    title={muted ? '取消静音' : '静音'}
+                  >
+                    {muted ? '🔇' : volume > 0.5 ? '🔊' : volume > 0 ? '🔉' : '🔈'}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={muted ? 0 : volume}
+                    onChange={(e) => {
+                      const newVolume = parseFloat(e.target.value);
+                      setVolume(newVolume);
+                      if (audioRef.current) {
+                        audioRef.current.volume = newVolume;
+                      }
+                    }}
+                    className="mobile-volume-slider"
+                  />
+                  
+                  <button
+                    onClick={() => setShowPlaylist(!showPlaylist)}
+                    className="control-btn player-list-btn"
+                    title="播放列表"
+                  >
+                    📋
+                  </button>
+                </div>
             </div>
-
             <div className="progress-section">
               <span className="time-display">{formatTime(currentTime)}</span>
               <div className="progress-bar-container">
@@ -392,6 +431,7 @@ const Player = forwardRef((props, ref) => {
           </div>
         </div>
 
+        {/* 桌面端音量控制 - 小屏幕下隐藏 */}
         <div className="player-volume">
           {/* 音量控制 */}
           <button
