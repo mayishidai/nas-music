@@ -47,6 +47,8 @@
   flex: 1;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .music-table {
@@ -54,6 +56,9 @@
   border-collapse: separate;
   border-spacing: 0;
   background: transparent;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .music-table thead {
@@ -61,6 +66,13 @@
   top: 0;
   z-index: 10;
   background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.music-table thead tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
 
 .music-table th {
@@ -87,8 +99,29 @@
 }
 
 .music-table tbody {
-  max-height: calc(100vh - 300px);
+  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  display: block;
+}
+
+.music-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* 确保表头和tbody使用相同的列宽 */
+.music-table thead tr,
+.music-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.music-table thead th,
+.music-table tbody td {
+  box-sizing: border-box;
 }
 
 .music-table td {
@@ -115,7 +148,13 @@
 .col-cover {
   width: 60px;
   min-width: 60px;
+  max-width: 60px;
   text-align: center !important;
+}
+
+/* 当不显示封面时隐藏封面列 */
+.music-table:not(.show-cover) .col-cover {
+  display: none;
 }
 
 .cover-container {
@@ -150,6 +189,7 @@
 .col-title {
   min-width: 200px;
   max-width: 300px;
+  width: 25%;
 }
 
 .title-cell {
@@ -178,6 +218,7 @@
 .col-artist {
   min-width: 150px;
   max-width: 200px;
+  width: 20%;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
   overflow: hidden;
@@ -187,6 +228,7 @@
 .col-album {
   min-width: 150px;
   max-width: 200px;
+  width: 20%;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
   overflow: hidden;
@@ -195,6 +237,8 @@
 
 .col-duration {
   width: 80px;
+  min-width: 80px;
+  max-width: 80px;
   text-align: center !important;
   font-family: 'Courier New', monospace;
   color: rgba(255, 255, 255, 0.8);
@@ -205,6 +249,8 @@
 
 .col-year {
   width: 80px;
+  min-width: 80px;
+  max-width: 80px;
   text-align: center;
   color: rgba(255, 255, 255, 0.8);
   white-space: nowrap;
@@ -214,6 +260,8 @@
 
 .col-filesize {
   width: 100px;
+  min-width: 100px;
+  max-width: 100px;
   text-align: center !important;
   font-size: 0.85em;
   color: rgba(255, 255, 255, 0.7);
@@ -226,6 +274,7 @@
 .col-actions {
   width: 150px;
   min-width: 120px;
+  max-width: 150px;
   text-align: center !important;
   flex-shrink: 0;
 }

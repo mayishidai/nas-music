@@ -173,10 +173,10 @@ const MusicList = ({
 
       {/* 音乐列表 */}
       <div className="music-list">
-        <table className="music-table">
+        <table className={`music-table ${showCover ? 'show-cover' : ''}`}>
           <thead>
             <tr>
-              <th className="col-cover" style={{ width: showCover ? '60px' : '0' }}>
+              <th className="col-cover">
                 {showCover && '封面'}
               </th>
               <th 
