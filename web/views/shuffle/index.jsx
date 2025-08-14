@@ -71,7 +71,10 @@ const ShufflePage = ({ router, player }) => {
   return (
     <div className="page-container shuffle-container">
       <div className="fav-toolbar">
-        <h2>🎲 随机播放</h2>
+        <div className="fav-toolbar-left">
+          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <h2>🎲 随机播放</h2>
+        </div>
         <div className="fav-actions">
           <input
             className="fav-search"

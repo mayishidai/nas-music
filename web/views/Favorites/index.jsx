@@ -71,7 +71,20 @@ const FavoritesPage = ({ router, player }) => {
   return (
     <div className="page-container favorites-container">
       <div className="fav-toolbar">
-        <h2>⭐ 我的收藏</h2>
+        <div className="fav-toolbar-left">
+          <button 
+            className="sidebar-toggle"
+            onClick={() => {
+              const sidebar = document.querySelector('.sidebar');
+              if (sidebar) {
+                sidebar.classList.toggle('open');
+              }
+            }}
+          >
+            ☰
+          </button>
+          <h2>⭐ 我的收藏</h2>
+        </div>
         <div className="fav-actions">
           <input
             className="fav-search"

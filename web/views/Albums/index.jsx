@@ -63,7 +63,10 @@ const AlbumsPage = ({ router, player }) => {
   return (
     <div className="page-container albums-container">
       <div className="fav-toolbar">
-        <h2>💿 专辑库</h2>
+        <div className="fav-toolbar-left">
+          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <h2>💿 专辑库</h2>
+        </div>
         <div className="fav-actions">
           <input
             className="fav-search"

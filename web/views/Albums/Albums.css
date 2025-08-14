@@ -5,6 +5,33 @@
   padding: 20px 35px 12px 35px;
 }
 
+.albums-container .fav-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.albums-container .sidebar-toggle {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+}
+
+.albums-container .sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
 .albums-container .fav-actions { 
   display: flex; 
   gap: 8px; 
@@ -42,7 +69,7 @@
 }
 
 .albums-view{
-  padding: 20px 35px;
+  padding: 35px;
   overflow-y: hidden;
 }
 
@@ -189,13 +216,17 @@
     padding: 16px;
   }
   
-  .albums-view .fav-toolbar {
+  .albums-container .fav-toolbar {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
   
-  .albums-view .fav-search {
+  .albums-container .fav-toolbar-left {
+    justify-content: space-between;
+  }
+  
+  .albums-container .fav-search {
     min-width: auto;
     width: 100%;
   }

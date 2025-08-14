@@ -5,6 +5,33 @@
   padding: 20px 35px 12px 35px;
 }
 
+.artists-container .fav-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.artists-container .sidebar-toggle {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+}
+
+.artists-container .sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
 .artists-container .fav-actions { 
   display: flex; 
   gap: 8px; 
@@ -41,61 +68,69 @@
   border-color: rgba(255,255,255,0.3);
 }
 
-
-.artists-view {
-  padding: 20px 35px;
+.artists-view{
+  padding: 35px;
   overflow-y: hidden;
 }
 
 .artists-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
   padding: 10px;
 }
 
 .artist-card {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
+  padding: 15px;
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .artist-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   background: rgba(255, 255, 255, 0.15);
 }
 
-.artist-banner {
-  height: 160px;
-  background: linear-gradient(135deg, #334, #223);
-  background-size: cover;
-  background-position: center;
+.artist-avatar {
   position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
 }
 
-.artist-banner-placeholder {
-  position: absolute;
-  inset: 0;
+.artist-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.artist-avatar-placeholder {
+  display: none;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
-  color: rgba(255,255,255,0.8);
+  font-size: 3em;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .artist-info {
-  padding: 14px 16px;
+  text-align: center;
 }
 
 .artist-name {
-  font-size: 1.2em;
+  font-size: 1.1em;
   font-weight: 600;
   margin: 0 0 5px 0;
   color: #fff;
@@ -104,16 +139,19 @@
   white-space: nowrap;
 }
 
-.artist-meta {
-  color: #ccc;
+.artist-tracks {
   font-size: 0.9em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: #ccc;
+  margin: 0 0 3px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.artist-meta .dot {
-  opacity: 0.6;
+.artist-albums {
+  font-size: 0.8em;
+  color: #999;
+  margin: 0;
 }
 
 /* 加载状态 */
@@ -178,13 +216,17 @@
     padding: 16px;
   }
   
-  .artists-view .fav-toolbar {
+  .artists-container .fav-toolbar {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
   
-  .artists-view .fav-search {
+  .artists-container .fav-toolbar-left {
+    justify-content: space-between;
+  }
+  
+  .artists-container .fav-search {
     min-width: auto;
     width: 100%;
   }
@@ -195,11 +237,11 @@
     padding: 5px;
   }
   
-  .artist-banner {
-    height: 140px;
+  .artist-avatar {
+    height: 220px;
   }
   
-  .artist-banner-placeholder {
+  .artist-avatar-placeholder {
     font-size: 3em;
   }
   
@@ -209,12 +251,17 @@
   
   .artist-name {
     font-size: 1.2em;
+    margin-bottom: 6px;
+  }
+  
+  .artist-tracks {
+    font-size: 0.95em;
     margin-bottom: 10px;
   }
   
-  .artist-meta {
-    font-size: 0.9em;
-    gap: 8px;
+  .artist-albums {
+    font-size: 0.85em;
+    padding: 4px 10px;
   }
 }
 
@@ -224,11 +271,11 @@
     gap: 12px;
   }
   
-  .artist-banner {
-    height: 120px;
+  .artist-avatar {
+    height: 180px;
   }
   
-  .artist-banner-placeholder {
+  .artist-avatar-placeholder {
     font-size: 2.5em;
   }
   
@@ -240,9 +287,7 @@
     font-size: 1.1em;
   }
   
-  .artist-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+  .artist-tracks {
+    font-size: 0.9em;
   }
 }

@@ -63,7 +63,10 @@ const NASMusicPlayer = () => {
     getCurrentData: () => viewData,
     
     // 获取当前页面名称
-    getCurrentView: () => currentView
+    getCurrentView: () => currentView,
+
+    // 切换侧边栏
+    switchSidebar: () => setSidebarOpen(!sidebarOpen)
   };
 
   /**
@@ -160,14 +163,7 @@ const NASMusicPlayer = () => {
         <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
             <h1>🎵 NAS音乐</h1>
-            <button 
-              className="sidebar-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? '‹' : '›'}
-            </button>
           </div>
-          
           <nav className="sidebar-nav">
             <button 
               className={`nav-item ${currentView === 'music' ? 'active' : ''}`}
@@ -216,7 +212,7 @@ const NASMusicPlayer = () => {
 
         {/* 主内容区域 */}
         <div className="main-content">
-          {renderCurrentPage()}
+        {renderCurrentPage()}
         </div>
       </div>
       {/* 播放器组件 */}

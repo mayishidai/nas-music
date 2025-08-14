@@ -53,6 +53,7 @@ body {
 
 .app-container .main-container .sidebar:not(.open) {
   transform: translateX(-100%);
+  display: none;
 }
 
 .app-container .main-container .sidebar-header {

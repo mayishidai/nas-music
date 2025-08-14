@@ -21,17 +21,17 @@ const ArtistsPage = ({ router, player }) => {
       setLoading(true);
       const response = await fetch(`/api/music/artists?page=${targetPage}&pageSize=${pageSize}`);
       const result = await response.json();
-
+      
       if (result.success) {
         const newArtists = result.data || [];
         const pagination = result.pagination || {};
-
+        
         if (targetPage === 1) {
           setArtists(newArtists);
         } else {
           setArtists(prev => [...prev, ...newArtists]);
         }
-
+        
         setTotal(pagination.total || 0);
         setHasMore(pagination.page < pagination.pages);
         setPage(targetPage);
@@ -63,7 +63,10 @@ const ArtistsPage = ({ router, player }) => {
   return (
     <div className="page-container artists-container">
       <div className="fav-toolbar">
-        <h2>👤 艺术家库</h2>
+        <div className="fav-toolbar-left">
+          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <h2>👤 艺术家库</h2>
+        </div>
         <div className="fav-actions">
           <input
             className="fav-search"
@@ -90,25 +93,25 @@ const ArtistsPage = ({ router, player }) => {
                   className="artist-card"
                   onClick={() => handleArtistClick(artist)}
                 >
-                  <div
-                    className="artist-banner"
-                    style={{
-                      backgroundImage: artist.photo || artist.coverImage
-                        ? `url(${artist.photo || artist.coverImage})`
-                        : undefined
-                    }}
-                  >
-                    {!artist.photo && !artist.coverImage && (
-                      <div className="artist-banner-placeholder">👤</div>
-                    )}
+                  <div className="artist-avatar">
+                    {artist.photo ? (
+                      <img 
+                        src={artist.photo}
+                        alt={artist.name}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className="artist-avatar-placeholder">
+                      <span>👤</span>
+                    </div>
                   </div>
                   <div className="artist-info">
-                    <h3 className="artist-name">{artist.name || '未知艺术家'}</h3>
-                    <div className="artist-meta">
-                      <span>{artist.albumCount || 0} 张专辑</span>
-                      <span className="dot">•</span>
-                      <span>{artist.trackCount || 0} 首歌曲</span>
-                    </div>
+                    <h3 className="artist-name">{artist.name}</h3>
+                    <p className="artist-tracks">{artist.trackCount || (artist.tracks?.length || 0)} 首歌曲</p>
+                    <p className="artist-albums">{artist.albumCount || (artist.albums?.length || 0)} 张专辑</p>
                   </div>
                 </div>
               );
