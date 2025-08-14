@@ -58,6 +58,29 @@ const FavoritesPage = ({ router, player }) => {
     setHasMore(true);
   };
 
+  // 清除搜索
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+    setFavorites([]);
+    setHasMore(true);
+  };
+
+  // 执行搜索
+  const handleSearch = () => {
+    setPage(1);
+    setFavorites([]);
+    setHasMore(true);
+    loadFavorites(1);
+  };
+
+  // 处理回车键搜索
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   // 搜索变化时重新加载
   useEffect(() => {
     loadFavorites(1);
@@ -72,26 +95,35 @@ const FavoritesPage = ({ router, player }) => {
     <div className="page-container favorites-container">
       <div className="fav-toolbar">
         <div className="fav-toolbar-left">
-          <button 
-            className="sidebar-toggle"
-            onClick={() => {
-              const sidebar = document.querySelector('.sidebar');
-              if (sidebar) {
-                sidebar.classList.toggle('open');
-              }
-            }}
-          >
-            ☰
-          </button>
-          <h2>⭐ 我的收藏</h2>
+          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <h2>⭐ 收藏</h2>
         </div>
         <div className="fav-actions">
-          <input
-            className="fav-search"
-            placeholder="搜索收藏..."
-            value={search}
-            onChange={handleSearchChange}
-          />
+          <div className="search-container">
+            <input
+              className="fav-search"
+              placeholder="搜索收藏..."
+              value={search}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
+            />
+            {search && (
+              <button 
+                className="search-clear-btn"
+                onClick={handleClearSearch}
+                title="清除搜索"
+              >
+                ✕
+              </button>
+            )}
+            <button 
+              className="search-btn"
+              onClick={handleSearch}
+              title="搜索"
+            >
+              🔍
+            </button>
+          </div>
         </div>
       </div>
       <div className="favorites-view">

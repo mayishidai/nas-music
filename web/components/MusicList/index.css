@@ -96,6 +96,10 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: #fff;
   vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
 }
 
 .music-row {
@@ -110,7 +114,8 @@
 /* 封面列样式 */
 .col-cover {
   width: 60px;
-  text-align: center;
+  min-width: 60px;
+  text-align: center !important;
 }
 
 .cover-container {
@@ -144,60 +149,85 @@
 /* 标题列样式 */
 .col-title {
   min-width: 200px;
+  max-width: 300px;
 }
 
 .title-cell {
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
 }
 
 .title-text {
   flex: 1;
   font-weight: 500;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .favorite-indicator {
   color: #ffd700;
   font-size: 0.9em;
+  flex-shrink: 0;
 }
 
 /* 其他列样式 */
 .col-artist {
   min-width: 150px;
+  max-width: 200px;
   color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .col-album {
   min-width: 150px;
+  max-width: 200px;
   color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .col-duration {
   width: 80px;
-  text-align: center;
+  text-align: center !important;
   font-family: 'Courier New', monospace;
   color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .col-year {
   width: 80px;
   text-align: center;
   color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .col-filesize {
   width: 100px;
-  text-align: center;
+  text-align: center !important;
   font-size: 0.85em;
   color: rgba(255, 255, 255, 0.7);
   font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .col-actions {
-  width: 120px;
-  text-align: center;
+  width: 150px;
+  min-width: 120px;
+  text-align: center !important;
+  flex-shrink: 0;
 }
 
 /* 操作按钮样式 */
@@ -205,6 +235,8 @@
   display: flex;
   gap: 5px;
   justify-content: center;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .action-btn {
@@ -220,6 +252,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  min-width: 28px;
 }
 
 .action-btn:hover {
@@ -330,13 +364,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-left: auto;
 }
 
 .page-size-select {
   padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
   color: #fff;
   font-size: 0.9em;
   cursor: pointer;
@@ -383,7 +418,59 @@
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+@media (min-width: 1201px) {
+  .pagination-info {
+    display: flex;
+  }
+  
+  .page-size-select {
+    display: block;
+  }
+  
+  .page-buttons {
+    display: flex;
+  }
+  
+  .page-buttons .page-btn:not(:first-child):not(:last-child) {
+    display: inline-block;
+  }
+}
+
+@media (max-width: 1400px) {
+  .col-year {
+    display: none;
+  }
+  .col-duration {
+    display: none;
+  }
+}
+
+@media (max-width: 1200px) {
+  .col-filesize {
+    display: none;
+  }
+  .col-album {
+    display: none;
+  }
+  
+  .pagination-info {
+    display: flex;
+  }
+  
+  .page-size-select {
+    display: none;
+  }
+  
+  .page-buttons {
+    display: flex;
+  }
+  
+  .page-buttons .page-btn:not(:first-child):not(:last-child) {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
   .music-table {
     font-size: 0.9em;
   }
@@ -403,47 +490,53 @@
   }
   
   .action-buttons {
-    flex-direction: column;
+    flex-direction: row;
     gap: 2px;
+    flex-wrap: nowrap;
   }
   
   .action-btn {
     width: 24px;
     height: 24px;
     font-size: 0.8em;
+    min-width: 24px;
   }
   
-  .col-filesize {
-    display: none;
-  }
-  
-  .col-year {
-    display: none;
-  }
-  
-  .pagination {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-  
-  .pagination-info {
-    justify-content: center;
-  }
-  
-  .pagination-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-}
-
-@media (max-width: 480px) {
   .col-album {
     display: none;
   }
   
+  .pagination-info {
+    display: flex;
+  }
+  
+  .page-size-select {
+    display: none;
+  }
+  
+  .page-buttons {
+    display: flex;
+  }
+  
+  .page-buttons .page-btn:not(:first-child):not(:last-child) {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
   .col-duration {
     display: none;
+  }
+  .col-artist {
+    display: none;
+  }
+
+  .col-title {
+    min-width: 150px;
+  }
+  .col-actions {
+    width: 100px;
+    min-width: 100px;
   }
   
   .music-table th,
@@ -451,19 +544,70 @@
     padding: 6px 2px;
   }
   
-  .pagination-info {
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
+  .action-buttons {
+    flex-direction: row;
+    gap: 1px;
+    flex-wrap: nowrap;
   }
   
-  .pagination-controls {
-    flex-direction: column;
-    gap: 8px;
+  .action-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 0.75em;
+    min-width: 22px;
+  }
+  
+  .pagination-info {
+    display: flex;
+  }
+  
+  .page-size-select {
+    display: none;
   }
   
   .page-buttons {
-    justify-content: center;
+    display: flex;
+  }
+  
+  .page-buttons .page-btn:not(:first-child):not(:last-child) {
+    display: none;
   }
 }
+
+@media (max-width: 480px) {
+  .music-table th,
+  .music-table td {
+    padding: 4px 1px;
+  }
+  
+  .action-buttons {
+    flex-direction: row;
+    gap: 1px;
+    flex-wrap: nowrap;
+  }
+  
+  .action-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7em;
+    min-width: 20px;
+  }
+  
+  .pagination-info {
+    display: none;
+  }
+  
+  .page-size-select {
+    display: none;
+  }
+  
+  .page-buttons {
+    display: flex;
+  }
+  
+  .page-buttons .page-btn:not(:first-child):not(:last-child) {
+    display: none;
+  }
+}
+
 

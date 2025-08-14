@@ -32,6 +32,38 @@ const NASMusicPlayer = () => {
   });
   const [isSmallScreen, setIsSmallScreen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false));
 
+  // 监听窗口大小变化
+  useEffect(() => {
+    const handleResize = () => {
+      const smallScreen = window.innerWidth <= 900;
+      setIsSmallScreen(smallScreen);
+      
+      // 如果从小屏幕变为大屏幕，自动打开侧边栏
+      if (!smallScreen && !sidebarOpen) {
+        setSidebarOpen(true);
+      }
+      // 如果从大屏幕变为小屏幕，自动关闭侧边栏
+      if (smallScreen && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sidebarOpen]);
+
+  // 监听键盘事件
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isSmallScreen && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSmallScreen, sidebarOpen]);
+
   /**
    * 路由控制方法
    */
@@ -102,27 +134,17 @@ const NASMusicPlayer = () => {
     }
   };
 
-  // 监听窗口尺寸，控制侧边栏开关可用性
-  useEffect(() => {
-    const onResize = () => {
-      const small = window.innerWidth <= 900;
-      setIsSmallScreen(small);
-      if (!small) {
-        // 大屏：强制展开，禁用关闭
-        setSidebarOpen(true);
-      }
-    };
-    
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', onResize);
+  // 处理点击空白处关闭侧边栏
+  const handleOverlayClick = () => {
+    if (isSmallScreen && sidebarOpen) {
+      setSidebarOpen(false);
     }
+  };
 
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', onResize);
-      }
-    };
-  }, []);
+  // 处理侧边栏点击事件（阻止冒泡）
+  const handleSidebarClick = (e) => {
+    e.stopPropagation();
+  };
 
   // 渲染当前页面
   const renderCurrentPage = () => {
@@ -160,7 +182,12 @@ const NASMusicPlayer = () => {
   return (
     <div className="app-container">
       <div className="main-container">
-        <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        {/* 移动端遮罩层 */}
+        {isSmallScreen && sidebarOpen && (
+          <div className="sidebar-overlay" onClick={handleOverlayClick} />
+        )}
+        
+        <div className={`sidebar ${sidebarOpen ? 'open' : ''}`} onClick={handleSidebarClick}>
           <div className="sidebar-header">
             <h1>🎵 NAS音乐</h1>
           </div>

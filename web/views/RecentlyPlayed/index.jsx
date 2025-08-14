@@ -58,6 +58,29 @@ const RecentlyPlayedPage = ({ router, player }) => {
     setHasMore(true);
   };
 
+  // 清除搜索
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+    setRecentTracks([]);
+    setHasMore(true);
+  };
+
+  // 执行搜索
+  const handleSearch = () => {
+    setPage(1);
+    setRecentTracks([]);
+    setHasMore(true);
+    loadRecentTracks(1);
+  };
+
+  // 处理回车键搜索
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   // 搜索变化时重新加载
   useEffect(() => {
     loadRecentTracks(1);
@@ -76,12 +99,31 @@ const RecentlyPlayedPage = ({ router, player }) => {
           <h2>🕒 最近播放</h2>
         </div>
         <div className="fav-actions">
-          <input
-            className="fav-search"
-            placeholder="搜索最近播放..."
-            value={search}
-            onChange={handleSearchChange}
-          />
+          <div className="search-container">
+            <input
+              className="fav-search"
+              placeholder="搜索最近播放..."
+              value={search}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
+            />
+            {search && (
+              <button 
+                className="search-clear-btn"
+                onClick={handleClearSearch}
+                title="清除搜索"
+              >
+                ✕
+              </button>
+            )}
+            <button 
+              className="search-btn"
+              onClick={handleSearch}
+              title="搜索"
+            >
+              🔍
+            </button>
+          </div>
         </div>
       </div>
       <div className="recently-played-view">

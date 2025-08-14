@@ -4,12 +4,22 @@
   align-items: center; 
   justify-content: space-between; 
   padding: 20px 35px 12px 35px;
+  flex-wrap: nowrap;
+  min-height: 60px;
 }
 
 .settings-container .fav-toolbar-left {
   display: flex;
   align-items: center;
   gap: 15px;
+  flex-shrink: 0;
+}
+
+.settings-container .fav-toolbar-left h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .settings-container .sidebar-toggle {
@@ -26,6 +36,7 @@
   justify-content: center;
   min-width: 36px;
   height: 36px;
+  flex-shrink: 0;
 }
 
 .settings-container .sidebar-toggle:hover {
@@ -36,7 +47,8 @@
 .settings-container .fav-actions { 
   display: flex; 
   gap: 8px; 
-  align-items: center; 
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .settings-container .fav-search { 
@@ -47,6 +59,8 @@
   color: #fff; 
   outline: none; 
   min-width: 200px;
+  max-width: 300px;
+  height: 33px;
 }
 
 .settings-container .fav-search:focus {
@@ -62,6 +76,7 @@
   color: #fff; 
   cursor: pointer; 
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .settings-container .fav-btn:hover {
@@ -354,43 +369,38 @@
   }
   
   .settings-container .fav-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 15px 20px 10px 20px;
     gap: 10px;
   }
   
-  .settings-container .fav-toolbar-left {
-    justify-content: space-between;
+  .settings-container .fav-toolbar-left h2 {
+    max-width: 150px;
   }
   
-  .settings-page {
-    padding: 15px;
+  .settings-container .fav-search {
+    min-width: 150px;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 600px) {
+  .settings-container .fav-toolbar-left h2 {
+    display: none;
   }
   
-  .settings-section {
-    padding: 15px;
+  .settings-container .fav-search {
+    min-width: 120px;
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-container .fav-toolbar {
+    padding: 12px 15px 8px 15px;
   }
   
-  .add-library {
-    flex-direction: column;
-  }
-  
-  .library-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .library-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-  
-  .config-fields {
-    grid-template-columns: 1fr;
-  }
-  
-  .settings-page h2 {
-    font-size: 1.5em;
+  .settings-container .fav-search {
+    min-width: 100px;
+    max-width: 120px;
   }
 }

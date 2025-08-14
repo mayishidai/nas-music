@@ -56,7 +56,7 @@ const AlbumsPage = ({ router, player }) => {
     }
   };
 
-  // 处理搜索变化（带防抖）
+  // 处理搜索变化
   const handleSearchChange = (e) => {
     const newSearch = e.target.value;
     setSearch(newSearch);
@@ -66,6 +66,30 @@ const AlbumsPage = ({ router, player }) => {
     searchTimeoutRef.current = setTimeout(() => {
       loadAlbums(true, newSearch);
     }, 300);
+  };
+
+  // 清除搜索
+  const handleClearSearch = () => {
+    setSearch('');
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    loadAlbums(true, '');
+  };
+
+  // 执行搜索
+  const handleSearch = () => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    loadAlbums(true, search);
+  };
+
+  // 处理回车键搜索
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   // 处理专辑点击
@@ -91,7 +115,31 @@ const AlbumsPage = ({ router, player }) => {
           <h2>💿 专辑库</h2>
         </div>
         <div className="fav-actions">
-          <input className="fav-search" placeholder="搜索专辑..." value={search} onChange={handleSearchChange} />
+          <div className="search-container">
+            <input 
+              className="fav-search" 
+              placeholder="搜索专辑..." 
+              value={search} 
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
+            />
+            {search && (
+              <button 
+                className="search-clear-btn"
+                onClick={handleClearSearch}
+                title="清除搜索"
+              >
+                ✕
+              </button>
+            )}
+            <button 
+              className="search-btn"
+              onClick={handleSearch}
+              title="搜索"
+            >
+              🔍
+            </button>
+          </div>
         </div>
       </div>
       <InfiniteScroll

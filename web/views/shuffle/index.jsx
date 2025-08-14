@@ -58,6 +58,29 @@ const ShufflePage = ({ router, player }) => {
     setHasMore(true);
   };
 
+  // 清除搜索
+  const handleClearSearch = () => {
+    setSearch('');
+    setPage(1);
+    setShuffleTracks([]);
+    setHasMore(true);
+  };
+
+  // 执行搜索
+  const handleSearch = () => {
+    setPage(1);
+    setShuffleTracks([]);
+    setHasMore(true);
+    loadShuffleTracks(1);
+  };
+
+  // 处理回车键搜索
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   // 搜索变化时重新加载
   useEffect(() => {
     loadShuffleTracks(1);
@@ -73,15 +96,34 @@ const ShufflePage = ({ router, player }) => {
       <div className="fav-toolbar">
         <div className="fav-toolbar-left">
           <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
-          <h2>🎲 随机播放</h2>
+          <h2>🔀 随机播放</h2>
         </div>
         <div className="fav-actions">
-          <input
-            className="fav-search"
-            placeholder="搜索音乐..."
-            value={search}
-            onChange={handleSearchChange}
-          />
+          <div className="search-container">
+            <input
+              className="fav-search"
+              placeholder="搜索随机播放..."
+              value={search}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
+            />
+            {search && (
+              <button 
+                className="search-clear-btn"
+                onClick={handleClearSearch}
+                title="清除搜索"
+              >
+                ✕
+              </button>
+            )}
+            <button 
+              className="search-btn"
+              onClick={handleSearch}
+              title="搜索"
+            >
+              🔍
+            </button>
+          </div>
         </div>
       </div>
       <div className="shuffle-view">

@@ -49,6 +49,30 @@ body {
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   transition: transform 0.3s ease;
+  z-index: 1000;
+  position: relative;
+}
+
+/* 移动端遮罩层 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .app-container .main-container .sidebar:not(.open) {
@@ -176,7 +200,13 @@ body {
     top: 0;
     left: 0;
     height: 100vh;
-    z-index: 1000;
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .app-container .main-container .sidebar.open {
+    transform: translateX(0);
   }
   
   .app-container .main-container .sidebar:not(.open) {
@@ -190,6 +220,19 @@ body {
   /* 确保在小屏幕上Player组件也有固定高度 */
   .app-container .bottom-player {
     height: 120px;
+  }
+  
+  /* 移动端遮罩层样式 */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    backdrop-filter: blur(3px);
+    animation: fadeIn 0.3s ease;
   }
 }
 
