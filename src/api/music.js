@@ -14,6 +14,9 @@ import {
   getTracksByAlbum, 
   getTracksByArtist, 
   getRecentlyPlayedTracks,
+  updateArtistInfo,
+  getArtistDetails,
+  mergeAndDeduplicateAlbums
 } from '../client/database.js';
 
 const router = new Router();
@@ -227,6 +230,42 @@ router.get('/artists/:id', async (ctx) => {
     console.error('获取艺术家详情失败:', error);
     ctx.status = 500;
     ctx.body = { success: false, error: '获取艺术家详情失败' };
+  }
+});
+
+// 更新艺术家信息
+router.put('/artists/:id', async (ctx) => {
+  try {
+    const { id } = ctx.params;
+    const artistInfo = ctx.request.body;
+    
+    // 验证艺术家是否存在
+    const existingArtist = await findArtistById(id);
+    if (!existingArtist) {
+      ctx.status = 404;
+      ctx.body = { success: false, error: '艺术家不存在' };
+      return;
+    }
+    
+    // 更新艺术家信息
+    const success = await updateArtistInfo(id, artistInfo);
+    
+    if (success) {
+      // 获取更新后的艺术家信息
+      const updatedArtist = await getArtistDetails(id);
+      ctx.body = { 
+        success: true, 
+        data: updatedArtist,
+        message: '艺术家信息更新成功'
+      };
+    } else {
+      ctx.status = 500;
+      ctx.body = { success: false, error: '更新艺术家信息失败' };
+    }
+  } catch (error) {
+    console.error('更新艺术家信息失败:', error);
+    ctx.status = 500;
+    ctx.body = { success: false, error: '更新艺术家信息失败' };
   }
 });
 

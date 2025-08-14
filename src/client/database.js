@@ -17,51 +17,152 @@ function generateMD5(text) {
 }
 
 // 合并歌手信息
-async function mergeArtistInfo(artistName, normalizedName) {
+async function mergeArtistInfo(artistName, normalizedName, artistInfo = {}) {
   try {
     // 首先尝试查找现有的歌手记录
     let artist = await queryOne('SELECT * FROM artists WHERE normalizedName = ?', [normalizedName]);
     
     if (artist) {
-      // 如果找到现有记录，检查名称是否需要更新
-      if (artist.name !== artistName) {
-        // 更新为更完整的名称
-        await run('UPDATE artists SET name = ?, updated_at = ? WHERE id = ?', [
-          artistName,
-          new Date().toISOString(),
-          artist.id
-        ]);
-        artist.name = artistName;
+      // 如果找到现有记录，检查名称和其他信息是否需要更新
+      const needsUpdate = artist.name !== artistName ||
+                         (artistInfo.photo && artist.photo !== artistInfo.photo) ||
+                         (artistInfo.bio && artist.bio !== artistInfo.bio) ||
+                         (artistInfo.country && artist.country !== artistInfo.country) ||
+                         (artistInfo.genre && artist.genre !== artistInfo.genre) ||
+                         (artistInfo.website && artist.website !== artistInfo.website) ||
+                         (artistInfo.socialMedia && artist.socialMedia !== artistInfo.socialMedia);
+      
+      if (needsUpdate) {
+        const updateFields = [];
+        const updateValues = [];
+        
+        if (artist.name !== artistName) {
+          updateFields.push('name = ?');
+          updateValues.push(artistName);
+        }
+        if (artistInfo.photo && artist.photo !== artistInfo.photo) {
+          updateFields.push('photo = ?');
+          updateValues.push(artistInfo.photo);
+        }
+        if (artistInfo.bio && artist.bio !== artistInfo.bio) {
+          updateFields.push('bio = ?');
+          updateValues.push(artistInfo.bio);
+        }
+        if (artistInfo.country && artist.country !== artistInfo.country) {
+          updateFields.push('country = ?');
+          updateValues.push(artistInfo.country);
+        }
+        if (artistInfo.genre && artist.genre !== artistInfo.genre) {
+          updateFields.push('genre = ?');
+          updateValues.push(artistInfo.genre);
+        }
+        if (artistInfo.website && artist.website !== artistInfo.website) {
+          updateFields.push('website = ?');
+          updateValues.push(artistInfo.website);
+        }
+        if (artistInfo.socialMedia && artist.socialMedia !== artistInfo.socialMedia) {
+          updateFields.push('socialMedia = ?');
+          updateValues.push(artistInfo.socialMedia);
+        }
+        
+        updateFields.push('updated_at = ?');
+        updateValues.push(new Date().toISOString());
+        updateValues.push(artist.id);
+        
+        await run(`UPDATE artists SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
+        
+        // 更新返回的对象
+        artist = { ...artist, ...artistInfo, name: artistName, updated_at: new Date().toISOString() };
       }
       return artist;
     }
     
     // 如果没有找到，创建新记录
     const artistId = generateMD5(artistName);
-    await run('INSERT INTO artists (id, name, normalizedName, trackCount, albumCount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+    const socialMediaJson = artistInfo.socialMedia ? JSON.stringify(artistInfo.socialMedia) : null;
+    
+    await run('INSERT INTO artists (id, name, normalizedName, trackCount, albumCount, photo, bio, country, genre, website, socialMedia, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
       artistId,
       artistName,
       normalizedName,
       0,
       0,
+      artistInfo.photo || null,
+      artistInfo.bio || null,
+      artistInfo.country || null,
+      artistInfo.genre || null,
+      artistInfo.website || null,
+      socialMediaJson,
       new Date().toISOString(),
       new Date().toISOString()
     ]);
     
-    return { id: artistId, name: artistName, normalizedName, trackCount: 0 };
+    return { 
+      id: artistId, 
+      name: artistName, 
+      normalizedName, 
+      trackCount: 0,
+      photo: artistInfo.photo,
+      bio: artistInfo.bio,
+      country: artistInfo.country,
+      genre: artistInfo.genre,
+      website: artistInfo.website,
+      socialMedia: artistInfo.socialMedia
+    };
   } catch (error) {
     // 如果插入失败（可能是并发插入），重新查询
     if (error.message.includes('UNIQUE constraint failed')) {
       const existingArtist = await queryOne('SELECT * FROM artists WHERE normalizedName = ?', [normalizedName]);
       if (existingArtist) {
-        // 更新名称如果需要
-        if (existingArtist.name !== artistName) {
-          await run('UPDATE artists SET name = ?, updated_at = ? WHERE id = ?', [
-            artistName,
-            new Date().toISOString(),
-            existingArtist.id
-          ]);
-          existingArtist.name = artistName;
+        // 更新信息如果需要
+        const needsUpdate = existingArtist.name !== artistName ||
+                           (artistInfo.photo && existingArtist.photo !== artistInfo.photo) ||
+                           (artistInfo.bio && existingArtist.bio !== artistInfo.bio) ||
+                           (artistInfo.country && existingArtist.country !== artistInfo.country) ||
+                           (artistInfo.genre && existingArtist.genre !== artistInfo.genre) ||
+                           (artistInfo.website && existingArtist.website !== artistInfo.website) ||
+                           (artistInfo.socialMedia && existingArtist.socialMedia !== artistInfo.socialMedia);
+        
+        if (needsUpdate) {
+          const updateFields = [];
+          const updateValues = [];
+          
+          if (existingArtist.name !== artistName) {
+            updateFields.push('name = ?');
+            updateValues.push(artistName);
+          }
+          if (artistInfo.photo && existingArtist.photo !== artistInfo.photo) {
+            updateFields.push('photo = ?');
+            updateValues.push(artistInfo.photo);
+          }
+          if (artistInfo.bio && existingArtist.bio !== artistInfo.bio) {
+            updateFields.push('bio = ?');
+            updateValues.push(artistInfo.bio);
+          }
+          if (artistInfo.country && existingArtist.country !== artistInfo.country) {
+            updateFields.push('country = ?');
+            updateValues.push(artistInfo.country);
+          }
+          if (artistInfo.genre && existingArtist.genre !== artistInfo.genre) {
+            updateFields.push('genre = ?');
+            updateValues.push(artistInfo.genre);
+          }
+          if (artistInfo.website && existingArtist.website !== artistInfo.website) {
+            updateFields.push('website = ?');
+            updateValues.push(artistInfo.website);
+          }
+          if (artistInfo.socialMedia && existingArtist.socialMedia !== artistInfo.socialMedia) {
+            updateFields.push('socialMedia = ?');
+            updateValues.push(JSON.stringify(artistInfo.socialMedia));
+          }
+          
+          updateFields.push('updated_at = ?');
+          updateValues.push(new Date().toISOString());
+          updateValues.push(existingArtist.id);
+          
+          await run(`UPDATE artists SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
+          
+          existingArtist = { ...existingArtist, ...artistInfo, name: artistName, updated_at: new Date().toISOString() };
         }
         return existingArtist;
       }
@@ -328,6 +429,12 @@ function initializeTables() {
         normalizedName TEXT UNIQUE NOT NULL,
         trackCount INTEGER DEFAULT 0,
         albumCount INTEGER DEFAULT 0,
+        photo TEXT, -- 艺术家头像URL
+        bio TEXT, -- 艺术家简介/详情
+        country TEXT, -- 艺术家国家/地区
+        genre TEXT, -- 艺术家主要音乐类型
+        website TEXT, -- 艺术家官方网站
+        socialMedia TEXT, -- 社交媒体链接（JSON格式）
         created_at TEXT,
         updated_at TEXT
       )
@@ -610,7 +717,7 @@ export async function upsertTrackByPath(trackDoc) {
     const artistIds = [];
     for (const artistName of artistNames) {
       const normalizedName = normalizeArtistName(artistName);
-      const artist = await mergeArtistInfo(artistName, normalizedName);
+      const artist = await mergeArtistInfo(artistName, normalizedName, trackDoc.artistInfo);
       
       artistIds.push(artist.id);
       
@@ -1164,7 +1271,7 @@ export async function getArtists(options = {}) {
     }
 
     // 添加排序
-    const validSortFields = ['name', 'trackCount', 'albumCount'];
+    const validSortFields = ['name', 'trackCount', 'albumCount', 'country', 'genre'];
     const validOrders = ['asc', 'desc'];
     
     const sortField = validSortFields.includes(sort) ? sort : 'name';
@@ -1184,8 +1291,20 @@ export async function getArtists(options = {}) {
 
     const artists = await query(sql, params);
     
+    // 处理社交媒体字段
+    const processedArtists = artists.map(artist => {
+      if (artist.socialMedia) {
+        try {
+          artist.socialMedia = JSON.parse(artist.socialMedia);
+        } catch (e) {
+          artist.socialMedia = null;
+        }
+      }
+      return artist;
+    });
+    
     return {
-      data: artists,
+      data: processedArtists,
       pagination: {
         page,
         pageSize,
@@ -1204,6 +1323,75 @@ export async function getArtists(options = {}) {
         pages: 0
       }
     };
+  }
+}
+
+// 更新艺术家信息
+export async function updateArtistInfo(artistId, artistInfo) {
+  try {
+    const updateFields = [];
+    const updateValues = [];
+    
+    if (artistInfo.name !== undefined) {
+      updateFields.push('name = ?');
+      updateValues.push(artistInfo.name);
+    }
+    if (artistInfo.photo !== undefined) {
+      updateFields.push('photo = ?');
+      updateValues.push(artistInfo.photo);
+    }
+    if (artistInfo.bio !== undefined) {
+      updateFields.push('bio = ?');
+      updateValues.push(artistInfo.bio);
+    }
+    if (artistInfo.country !== undefined) {
+      updateFields.push('country = ?');
+      updateValues.push(artistInfo.country);
+    }
+    if (artistInfo.genre !== undefined) {
+      updateFields.push('genre = ?');
+      updateValues.push(artistInfo.genre);
+    }
+    if (artistInfo.website !== undefined) {
+      updateFields.push('website = ?');
+      updateValues.push(artistInfo.website);
+    }
+    if (artistInfo.socialMedia !== undefined) {
+      updateFields.push('socialMedia = ?');
+      updateValues.push(JSON.stringify(artistInfo.socialMedia));
+    }
+    
+    if (updateFields.length === 0) {
+      return false; // 没有需要更新的字段
+    }
+    
+    updateFields.push('updated_at = ?');
+    updateValues.push(new Date().toISOString());
+    updateValues.push(artistId);
+    
+    await run(`UPDATE artists SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
+    return true;
+  } catch (error) {
+    console.error('更新艺术家信息失败:', error);
+    return false;
+  }
+}
+
+// 获取艺术家详细信息（包含社交媒体链接的解析）
+export async function getArtistDetails(artistId) {
+  try {
+    const artist = await queryOne('SELECT * FROM artists WHERE id = ?', [artistId]);
+    if (artist && artist.socialMedia) {
+      try {
+        artist.socialMedia = JSON.parse(artist.socialMedia);
+      } catch (e) {
+        artist.socialMedia = null;
+      }
+    }
+    return artist;
+  } catch (error) {
+    console.error('获取艺术家详细信息失败:', error);
+    return null;
   }
 }
 
@@ -1326,5 +1514,7 @@ export default {
   findAlbumByTitleAndArtist,
   findAlbumById,
   getTracksByAlbum,
-  mergeAndDeduplicateAlbums
+  mergeAndDeduplicateAlbums,
+  updateArtistInfo,
+  getArtistDetails
 };
