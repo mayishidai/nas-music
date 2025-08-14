@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { InfiniteScroll } from '../../components/common';
 import '../Pages.css';
 import './Albums.css';
 
+const pageData = {
+  nextPage: 1,
+  hasMore: true,
+  loading: false,
+  data: [],
+}
 /**
  * 专辑页面组件
  */
@@ -10,45 +16,57 @@ const AlbumsPage = ({ router, player }) => {
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  const pageSize = 10;
+  const searchTimeoutRef = useRef(null);
 
   // 加载专辑数据
-  const loadAlbums = useCallback(async (targetPage = 1) => {
+  const loadAlbums = async (clearData = false, searchKeyword = '') => {
+    if (pageData.loading) return;
+    if (clearData)  {
+      pageData.nextPage = 1;
+      pageData.hasMore = true;
+      pageData.data = [];
+    }
     try {
+      pageData.loading = true;
       setLoading(true);
-      const response = await fetch(`/api/music/albums?page=${targetPage}&pageSize=${pageSize}`);
-      const result = await response.json();
-      
-      if (result.success) {
-        const newAlbums = result.data || [];
-        const pagination = result.pagination || {};
-        
-        if (targetPage === 1) {
-          setAlbums(newAlbums);
-        } else {
-          setAlbums(prev => [...prev, ...newAlbums]);
-        }
-        
-        setTotal(pagination.total || 0);
-        setHasMore(pagination.page < pagination.pages);
-        setPage(targetPage);
+      const params = new URLSearchParams();
+      params.set('page', String(pageData.nextPage));
+      params.set('pageSize', String(10));
+      if (searchKeyword) {
+        params.set('query', searchKeyword);
       }
-    } catch (error) {
-      console.error('加载专辑列表失败:', error);
+      const result = await fetch(`/api/music/albums?${params.toString()}`).then(res => res.json())
+      const pagination = result.pagination || {};
+      pageData.nextPage = pageData.nextPage + 1;
+      pageData.hasMore = pagination.page < pagination.pages;
+      pageData.data = [...pageData.data, ...result.data];
     } finally {
+      pageData.loading = false;
+      setAlbums(pageData.data);
+      setHasMore(pageData.hasMore);
       setLoading(false);
     }
-  }, []);
+  };
 
   // 加载下一页
-  const loadNext = useCallback(() => {
-    if (!loading && hasMore) {
-      loadAlbums(page + 1);
+  const loadNext = () => {
+    if (!pageData.loading && pageData.hasMore) {
+      loadAlbums(false, search);
     }
-  }, [loading, hasMore, page, loadAlbums]);
+  };
+
+  // 处理搜索变化（带防抖）
+  const handleSearchChange = (e) => {
+    const newSearch = e.target.value;
+    setSearch(newSearch);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      loadAlbums(true, newSearch);
+    }, 300);
+  };
 
   // 处理专辑点击
   const handleAlbumClick = (album) => {
@@ -57,7 +75,12 @@ const AlbumsPage = ({ router, player }) => {
 
   // 初始加载
   useEffect(() => {
-    loadAlbums(1);
+    loadAlbums(true, '');
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -68,12 +91,7 @@ const AlbumsPage = ({ router, player }) => {
           <h2>💿 专辑库</h2>
         </div>
         <div className="fav-actions">
-          <input
-            className="fav-search"
-            placeholder="搜索专辑..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <input className="fav-search" placeholder="搜索专辑..." value={search} onChange={handleSearchChange} />
         </div>
       </div>
       <InfiniteScroll
@@ -92,33 +110,22 @@ const AlbumsPage = ({ router, player }) => {
                   key={album.id || album._id} 
                   className="album-card"
                   onClick={() => handleAlbumClick(album)}
+                  style={{
+                    backgroundImage: album.coverImage ? `url(${album.coverImage})` : `url(/images/default_albums.png)`
+                  }}
                 >
-                  <div className="album-cover">
-                    {album.coverImage ? (
-                      <img 
-                        src={album.coverImage}
-                        alt={album.name}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div className="album-cover-placeholder">
-                      <span>💿</span>
+                  <div className="album-overlay">
+                    <div className="album-info">
+                      <h3 className="album-name">{album.normalizedTitle}</h3>
+                      <p className="album-artist">{album.artist || album.albumArtist}</p>
                     </div>
-                  </div>
-                  <div className="album-info">
-                    <h3 className="album-name">{album.name}</h3>
-                    <p className="album-artist">{album.artist || album.albumArtist}</p>
-                    <p className="album-tracks">{album.trackCount || (album.tracks?.length || 0)} 首歌曲</p>
                   </div>
                 </div>
               );
             })}
           </div>
           
-          {albums.length === 0 && (
+          {albums.length === 0 && !loading && (
             <div className="empty-state">
               <h3>暂无专辑</h3>
               <p>音乐库中还没有专辑信息</p>

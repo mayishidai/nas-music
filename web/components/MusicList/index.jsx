@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './index.css';
-import { DEFAULT_COVER_IMAGE } from '../../common';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -369,7 +368,7 @@ const MusicList = ({
                 <td className="col-cover">
                   {showCover && (
                     <div className="cover-container">
-                      <img src={track.coverImage || DEFAULT_COVER_IMAGE} alt="封面" className="cover-image" />
+                      <img src={track.coverImage || '/images/default_cover.png'} alt="封面" className="cover-image" />
                       <div className="cover-placeholder">
                         <span>🎵</span>
                       </div>

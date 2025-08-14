@@ -31,7 +31,6 @@ const InfiniteScroll = ({
   // 检查是否滚动到底部
   const isNearBottom = useCallback(() => {
     if (!containerRef.current) return false;
-    
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     return scrollTop + clientHeight >= scrollHeight - threshold;
   }, [threshold]);
@@ -39,7 +38,6 @@ const InfiniteScroll = ({
   // 处理滚动事件
   const handleScroll = useCallback(() => {
     if (!hasMore || loading) return;
-    
     if (isNearBottom()) {
       loadNext();
     }

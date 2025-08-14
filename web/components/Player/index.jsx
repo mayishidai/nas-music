@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import './index.css';
-import { DEFAULT_COVER_IMAGE } from '../../common';
 
 const Player = forwardRef((props, ref) => {
   // 播放器状态 - 完全自管理
@@ -238,7 +237,7 @@ const Player = forwardRef((props, ref) => {
         <div className="player-track-info">
           {currentMusic ? (
             <>
-              <img src={currentMusic.coverImage || DEFAULT_COVER_IMAGE} alt="封面" className="player-cover" />
+              <img src={currentMusic.coverImage || '/images/default_cover.png'} alt="封面" className="player-cover" />
               <div className="player-info">
                 <div className="player-title">{currentMusic.title}</div>
                 <div className="player-artist">{currentMusic.artist}</div>

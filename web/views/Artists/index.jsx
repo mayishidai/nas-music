@@ -1,7 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { InfiniteScroll } from '../../components/common';
 import '../Pages.css';
 import './Artists.css';
+
+const pageData = {
+  nextPage: 1,
+  hasMore: true,
+  loading: false,
+  data: [],
+}
 
 /**
  * 艺术家页面组件
@@ -10,45 +17,59 @@ const ArtistsPage = ({ router, player }) => {
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  const pageSize = 10;
+  const searchTimeoutRef = useRef(null);
 
   // 加载艺术家数据
-  const loadArtists = useCallback(async (targetPage = 1) => {
+  const loadArtists = async (clearData = false, searchKeyword = '') => {
+    if (pageData.loading) return;
+    if (clearData) {
+      pageData.nextPage = 1;
+      pageData.hasMore = true;
+      pageData.data = [];
+    }
     try {
+      pageData.loading = true;
       setLoading(true);
-      const response = await fetch(`/api/music/artists?page=${targetPage}&pageSize=${pageSize}`);
-      const result = await response.json();
-      
-      if (result.success) {
-        const newArtists = result.data || [];
-        const pagination = result.pagination || {};
-        
-        if (targetPage === 1) {
-          setArtists(newArtists);
-        } else {
-          setArtists(prev => [...prev, ...newArtists]);
-        }
-        
-        setTotal(pagination.total || 0);
-        setHasMore(pagination.page < pagination.pages);
-        setPage(targetPage);
+      const params = new URLSearchParams();
+      params.set('page', String(pageData.nextPage));
+      params.set('pageSize', String(10));
+      if (searchKeyword) {
+        params.set('query', searchKeyword);
       }
+      const result = await fetch(`/api/music/artists?${params.toString()}`).then(res => res.json())
+      const pagination = result.pagination || {};
+      pageData.nextPage = pageData.nextPage + 1;
+      pageData.hasMore = pagination.page < pagination.pages;
+      pageData.data = [...pageData.data, ...result.data];
     } catch (error) {
       console.error('加载艺术家列表失败:', error);
     } finally {
+      pageData.loading = false;
+      setArtists(pageData.data);
+      setHasMore(pageData.hasMore);
       setLoading(false);
     }
-  }, []);
+  };
 
   // 加载下一页
-  const loadNext = useCallback(() => {
-    if (!loading && hasMore) {
-      loadArtists(page + 1);
+  const loadNext = () => {
+    if (!pageData.loading && pageData.hasMore) {
+      loadArtists(false, search);
     }
-  }, [loading, hasMore, page, loadArtists]);
+  };
+
+  // 处理搜索变化（带防抖）
+  const handleSearchChange = (e) => {
+    const newSearch = e.target.value;
+    setSearch(newSearch);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      loadArtists(true, newSearch);
+    }, 300);
+  };
 
   // 处理艺术家点击
   const handleArtistClick = (artist) => {
@@ -57,7 +78,12 @@ const ArtistsPage = ({ router, player }) => {
 
   // 初始加载
   useEffect(() => {
-    loadArtists(1);
+    loadArtists(true, '');
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -68,12 +94,7 @@ const ArtistsPage = ({ router, player }) => {
           <h2>👤 艺术家库</h2>
         </div>
         <div className="fav-actions">
-          <input
-            className="fav-search"
-            placeholder="搜索艺术家..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <input className="fav-search" placeholder="搜索艺术家..." value={search} onChange={handleSearchChange} />
         </div>
       </div>
       <InfiniteScroll
@@ -92,33 +113,22 @@ const ArtistsPage = ({ router, player }) => {
                   key={artist.id || artist._id} 
                   className="artist-card"
                   onClick={() => handleArtistClick(artist)}
+                  style={{
+                    backgroundImage: artist.photo ? `url(${artist.photo})` : `url(/images/default_artists.png)`
+                  }}
                 >
-                  <div className="artist-avatar">
-                    {artist.photo ? (
-                      <img 
-                        src={artist.photo}
-                        alt={artist.name}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div className="artist-avatar-placeholder">
-                      <span>👤</span>
+                  <div className="artist-overlay">
+                    <div className="artist-info">
+                      <h3 className="artist-name">{artist.name}</h3>
+                      <p className="artist-stats">{artist.trackCount || 0} 首歌曲 • {artist.albumCount || 0} 张专辑</p>
                     </div>
-                  </div>
-                  <div className="artist-info">
-                    <h3 className="artist-name">{artist.name}</h3>
-                    <p className="artist-tracks">{artist.trackCount || (artist.tracks?.length || 0)} 首歌曲</p>
-                    <p className="artist-albums">{artist.albumCount || (artist.albums?.length || 0)} 张专辑</p>
                   </div>
                 </div>
               );
             })}
           </div>
           
-          {artists.length === 0 && (
+          {artists.length === 0 && !loading && (
             <div className="empty-state">
               <h3>暂无艺术家</h3>
               <p>音乐库中还没有艺术家信息</p>

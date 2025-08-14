@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './TrackDetail.css';
-import { DEFAULT_COVER_IMAGE } from '../../common';
 
 const TrackDetailPage = ({ router, player }) => {
   const [track, setTrack] = useState(null);
@@ -136,7 +135,7 @@ const TrackDetailPage = ({ router, player }) => {
         <div className="td-main">
           <div className="td-cover-section">
             <div className="td-cover-wrap">
-              <img  className="td-cover"  src={coverPreview || track?.coverImage || DEFAULT_COVER_IMAGE}  alt="封面" />
+              <img  className="td-cover"  src={coverPreview || track?.coverImage || '/images/default_cover.png'}  alt="封面" />
               <input 
                 type="file" 
                 accept="image/*" 
