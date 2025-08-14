@@ -9,7 +9,7 @@
 }
 
 /* 头部样式 */
-.td-header { 
+.track-detail .td-header { 
   display: flex; 
   align-items: center; 
   justify-content: space-between; 
@@ -18,7 +18,7 @@
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.td-back { 
+.track-detail .td-back { 
   background: transparent; 
   border: none; 
   color: #ccc; 
@@ -29,24 +29,24 @@
   transition: all 0.2s ease;
 }
 
-.td-back:hover {
+.track-detail .td-back:hover {
   background: rgba(255,255,255,0.1);
   color: #fff;
 }
 
-.td-title { 
+.track-detail .td-title { 
   margin: 0; 
   font-size: 1.4em; 
   line-height: 1.3; 
   color: #fff;
 }
 
-.td-title-actions {
+.track-detail .td-title-actions {
   display: flex;
   gap: 8px;
 }
 
-.td-btn { 
+.track-detail .td-btn { 
   background: rgba(255,255,255,0.1); 
   border: 1px solid rgba(255,255,255,0.2); 
   color: #fff; 
@@ -60,30 +60,30 @@
   font-size: 14px;
 }
 
-.td-btn:hover {
+.track-detail .td-btn:hover {
   background: rgba(255,255,255,0.15);
 }
 
-.td-btn:disabled {
+.track-detail .td-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.td-btn.active {
+.track-detail .td-btn.active {
   background: rgba(78, 205, 196, 0.2);
   border-color: #4ecdc4;
   color: #4ecdc4;
 }
 
 /* 内容区域 */
-.td-content {
+.track-detail .td-content {
   display: flex;
   gap: 20px;
   flex: 1;
   overflow: hidden;
 }
 
-.td-main {
+.track-detail .td-main {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -92,7 +92,7 @@
 }
 
 /* 封面区域 */
-.td-cover-section {
+.track-detail .td-cover-section {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -105,7 +105,7 @@
   padding: 24px;
 }
 
-.td-cover-wrap { 
+.track-detail .td-cover-wrap { 
   position: relative;
   width: 300px; 
   height: 300px; 
@@ -115,22 +115,22 @@
   transition: transform 0.2s ease;
 }
 
-.td-cover-wrap:hover {
+.track-detail .td-cover-wrap:hover {
   transform: scale(1.02);
 }
 
-.td-cover { 
+.track-detail .td-cover { 
   width: 100%; 
   height: 100%; 
   object-fit: cover; 
   display: block;
 }
 
-.td-cover-input {
+.track-detail .td-cover-input {
   display: none;
 }
 
-.td-cover-label {
+.track-detail .td-cover-label {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -144,12 +144,12 @@
   transition: all 0.2s ease;
 }
 
-.td-cover-label:hover {
+.track-detail .td-cover-label:hover {
   background: rgba(0,0,0,0.9);
 }
 
 /* 表单区域 */
-.td-form { 
+.track-detail .td-form { 
   display: grid; 
   grid-template-columns: 1fr 1fr; 
   gap: 16px; 
@@ -159,19 +159,19 @@
   padding: 20px;
 }
 
-.td-form-row { 
+.track-detail .td-form-row { 
   display: flex; 
   flex-direction: column; 
   gap: 8px; 
 }
 
-.td-form-row label { 
+.track-detail .td-form-row label { 
   color: #ccc; 
   font-size: 14px; 
   font-weight: 500;
 }
 
-.td-form-row input { 
+.track-detail .td-form-row input { 
   background: rgba(255,255,255,0.1); 
   border: 1px solid rgba(255,255,255,0.2); 
   border-radius: 6px; 
@@ -181,25 +181,25 @@
   transition: all 0.2s ease;
 }
 
-.td-form-row input:focus {
+.track-detail .td-form-row input:focus {
   outline: none;
   border-color: #4ecdc4;
   background: rgba(255,255,255,0.15);
 }
 
-.td-form-row input::placeholder {
+.track-detail .td-form-row input::placeholder {
   color: rgba(255,255,255,0.5);
 }
 
 /* 歌词区域 */
-.td-lyrics-wrap { 
+.track-detail .td-lyrics-wrap { 
   background: rgba(255,255,255,0.05); 
   border: 1px solid rgba(255,255,255,0.1); 
   border-radius: 12px; 
   padding: 20px;
 }
 
-.td-lyrics { 
+.track-detail .td-lyrics { 
   width: 100%; 
   min-height: 200px; 
   white-space: pre-wrap; 
@@ -214,12 +214,12 @@
   resize: vertical;
 }
 
-.td-lyrics::placeholder {
+.track-detail .td-lyrics::placeholder {
   color: rgba(255,255,255,0.5);
 }
 
 /* 文件信息区域 - 重新设计 */
-.td-file-info {
+.track-detail .td-file-info {
   width: 100%;
   max-width: 400px;
   background: rgba(255,255,255,0.08);
@@ -229,13 +229,13 @@
   overflow: hidden;
 }
 
-.td-file-info-header {
+.track-detail .td-file-info-header {
   background: rgba(78, 205, 196, 0.1);
   border-bottom: 1px solid rgba(78, 205, 196, 0.2);
   padding: 12px 16px;
 }
 
-.td-file-info-header h4 {
+.track-detail .td-file-info-header h4 {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
@@ -245,11 +245,11 @@
   gap: 6px;
 }
 
-.td-file-info-content {
+.track-detail .td-file-info-content {
   padding: 16px;
 }
 
-.td-file-info-item {
+.track-detail .td-file-info-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -257,11 +257,11 @@
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-.td-file-info-item:last-child {
+.track-detail .td-file-info-item:last-child {
   border-bottom: none;
 }
 
-.td-file-info-label {
+.track-detail .td-file-info-label {
   color: #ccc;
   font-size: 13px;
   font-weight: 500;
@@ -271,7 +271,7 @@
   min-width: 80px;
 }
 
-.td-file-info-value {
+.track-detail .td-file-info-value {
   color: #fff;
   font-size: 13px;
   font-weight: 400;
@@ -283,13 +283,13 @@
 }
 
 /* 操作按钮 */
-.td-actions { 
+.track-detail .td-actions { 
   display: flex; 
   justify-content: center; 
   margin-top: 20px;
 }
 
-.td-save-btn { 
+.track-detail .td-save-btn { 
   background: #4ecdc4; 
   border: none; 
   color: #fff; 
@@ -302,19 +302,19 @@
   min-width: 120px;
 }
 
-.td-save-btn:hover {
+.track-detail .td-save-btn:hover {
   background: #45b8b0;
   transform: translateY(-1px);
 }
 
-.td-save-btn:disabled {
+.track-detail .td-save-btn:disabled {
   background: #666;
   cursor: not-allowed;
   transform: none;
 }
 
 /* 在线搜索结果抽屉 */
-.td-drawer { 
+.track-detail .td-drawer { 
   position: fixed; 
   top: 0; 
   right: 0; 
@@ -328,14 +328,14 @@
   flex-direction: column; 
 }
 
-.td-drawer-mask { 
+.track-detail .td-drawer-mask { 
   position: fixed; 
   inset: 0; 
   background: rgba(0,0,0,0.4); 
   z-index: 9999; 
 }
 
-.td-drawer-content {
+.track-detail .td-drawer-content {
   position: relative;
   z-index: 10000;
   height: 100%;
@@ -343,7 +343,7 @@
   flex-direction: column;
 }
 
-.td-drawer-header { 
+.track-detail .td-drawer-header { 
   display: flex; 
   align-items: center; 
   justify-content: space-between; 
@@ -352,13 +352,13 @@
   background: rgba(255,255,255,0.05);
 }
 
-.td-drawer-header h3 {
+.track-detail .td-drawer-header h3 {
   margin: 0;
   color: #fff;
   font-size: 18px;
 }
 
-.td-drawer-header button {
+.track-detail .td-drawer-header button {
   background: transparent;
   border: none;
   color: #ccc;
@@ -369,25 +369,25 @@
   transition: all 0.2s ease;
 }
 
-.td-drawer-header button:hover {
+.track-detail .td-drawer-header button:hover {
   background: rgba(255,255,255,0.1);
   color: #fff;
 }
 
-.td-drawer-body { 
+.track-detail .td-drawer-body { 
   padding: 20px; 
   overflow: auto; 
   flex: 1;
 }
 
-.no-results {
+.track-detail .no-results {
   color: #aaa;
   text-align: center;
   padding: 40px 0;
   font-size: 14px;
 }
 
-.search-result-item {
+.track-detail .search-result-item {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
@@ -397,31 +397,31 @@
   transition: all 0.2s ease;
 }
 
-.search-result-item:hover {
+.track-detail .search-result-item:hover {
   background: rgba(255,255,255,0.1);
   border-color: rgba(255,255,255,0.2);
 }
 
-.result-title {
+.track-detail .result-title {
   font-weight: 600;
   color: #fff;
   font-size: 16px;
   margin-bottom: 4px;
 }
 
-.result-artist {
+.track-detail .result-artist {
   color: #ccc;
   font-size: 14px;
   margin-bottom: 4px;
 }
 
-.result-album {
+.track-detail .result-album {
   color: #aaa;
   font-size: 13px;
   margin-bottom: 4px;
 }
 
-.result-year {
+.track-detail .result-year {
   color: #888;
   font-size: 12px;
   margin-bottom: 4px;
@@ -433,61 +433,61 @@
     padding: 12px;
   }
   
-  .td-header { 
+  .track-detail .td-header { 
     align-items: flex-start;
     gap: 12px;
   }
 
-  .td-title-actions {
+  .track-detail .td-title-actions {
     width: 250px;
     justify-content: flex-end;
     flex-wrap: wrap;
   }
   
-  .td-content {
+  .track-detail .td-content {
     flex-direction: column;
   }
   
-  .td-cover-section {
+  .track-detail .td-cover-section {
     padding: 16px;
     gap: 16px;
     flex-direction: column;
   }
   
-  .td-cover-wrap { 
+  .track-detail .td-cover-wrap { 
     width: 150px; 
     height: 150px; 
   }
   
-  .td-file-info {
+  .track-detail .td-file-info {
     max-width: 100%;
   }
   
-  .td-file-info-content {
+  .track-detail .td-file-info-content {
     padding: 12px;
   }
   
-  .td-file-info-item {
+  .track-detail .td-file-info-item {
     padding: 6px 0;
   }
   
-  .td-file-info-label {
+  .track-detail .td-file-info-label {
     font-size: 12px;
     min-width: 70px;
   }
   
-  .td-file-info-value {
+  .track-detail .td-file-info-value {
     font-size: 12px;
     max-width: 150px;
   }
   
-  .td-form { 
+  .track-detail .td-form { 
     grid-template-columns: 1fr; 
     gap: 12px;
     padding: 16px;
   }
   
-  .td-drawer {
+  .track-detail .td-drawer {
     width: 100%;
   }
 }
@@ -496,60 +496,60 @@
   .track-detail {
     padding: 8px;
   }
-  .td-title{
+  .track-detail .td-title{
     display: none;
   }
   
-  .td-cover-section {
+  .track-detail .td-cover-section {
     padding: 12px;
     gap: 12px;
   }
   
-  .td-cover-wrap { 
+  .track-detail .td-cover-wrap { 
     width: 120px; 
     height: 120px; 
   }
   
-  .td-file-info-header {
+  .track-detail .td-file-info-header {
     padding: 10px 12px;
   }
   
-  .td-file-info-header h4 {
+  .track-detail .td-file-info-header h4 {
     font-size: 13px;
   }
   
-  .td-file-info-content {
+  .track-detail .td-file-info-content {
     padding: 10px;
   }
   
-  .td-file-info-item {
+  .track-detail .td-file-info-item {
     padding: 5px 0;
   }
   
-  .td-file-info-label {
+  .track-detail .td-file-info-label {
     font-size: 11px;
     min-width: 60px;
   }
   
-  .td-file-info-value {
+  .track-detail .td-file-info-value {
     font-size: 11px;
     max-width: 300px;
   }
   
-  .td-form, .td-lyrics-wrap {
+  .track-detail .td-form, .track-detail .td-lyrics-wrap {
     padding: 12px;
   }
   
-  .td-save-btn {
+  .track-detail .td-save-btn {
     width: 100%;
     padding: 14px 20px;
   }
   
-  .td-title-actions {
+  .track-detail .td-title-actions {
     gap: 4px;
   }
   
-  .td-btn {
+  .track-detail .td-btn {
     padding: 6px 8px;
     font-size: 12px;
   }

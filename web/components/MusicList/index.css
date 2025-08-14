@@ -535,8 +535,8 @@
     min-width: 150px;
   }
   .col-actions {
-    width: 100px;
-    min-width: 100px;
+    width: 120px;
+    min-width: 120px;
   }
   
   .music-table th,
@@ -608,6 +608,38 @@
   .page-buttons .page-btn:not(:first-child):not(:last-child) {
     display: none;
   }
+}
+
+/* 移动端点击效果 */
+@media (max-width: 900px) {
+  .music-row {
+    transition: background-color 0.2s ease;
+  }
+  
+  .music-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .music-row:active {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* 禁用排序的列样式 */
+.col-title:not(.sortable),
+.col-artist:not(.sortable),
+.col-album:not(.sortable),
+.col-duration:not(.sortable),
+.col-filesize:not(.sortable) {
+  cursor: default;
+}
+
+.col-title:not(.sortable):hover,
+.col-artist:not(.sortable):hover,
+.col-album:not(.sortable):hover,
+.col-duration:not(.sortable):hover,
+.col-filesize:not(.sortable):hover {
+  background-color: transparent;
 }
 
 

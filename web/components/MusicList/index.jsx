@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import './index.css';
 
 /**
+ * 检测是否为移动端
+ */
+function isMobile() {
+  return window.innerWidth <= 900;
+}
+
+/**
  * 格式化时长显示
  * @param {number} seconds - 秒数
  * @returns {string} 格式化后的时长
@@ -54,6 +61,7 @@ const MusicList = ({
   sortKey = 'title',
   sortOrder = 'asc',
   onSort,
+  disableSort = false,
   // 操作回调
   onPlayMusic,
   onAddToPlaylist,
@@ -172,55 +180,55 @@ const MusicList = ({
                 {showCover && '封面'}
               </th>
               <th 
-                className="col-title sortable"
-                onClick={() => handleSort('title')}
+                className={`col-title ${!disableSort ? 'sortable' : ''}`}
+                onClick={() => !disableSort && handleSort('title')}
               >
                 标题
-                {sortKey === 'title' && (
+                {!disableSort && sortKey === 'title' && (
                   <span className="sort-indicator">
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </th>
               <th 
-                className="col-artist sortable"
-                onClick={() => handleSort('artist')}
+                className={`col-artist ${!disableSort ? 'sortable' : ''}`}
+                onClick={() => !disableSort && handleSort('artist')}
               >
                 艺术家
-                {sortKey === 'artist' && (
+                {!disableSort && sortKey === 'artist' && (
                   <span className="sort-indicator">
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </th>
               <th 
-                className="col-album sortable"
-                onClick={() => handleSort('album')}
+                className={`col-album ${!disableSort ? 'sortable' : ''}`}
+                onClick={() => !disableSort && handleSort('album')}
               >
                 专辑
-                {sortKey === 'album' && (
+                {!disableSort && sortKey === 'album' && (
                   <span className="sort-indicator">
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </th>
               <th 
-                className="col-duration sortable"
-                onClick={() => handleSort('duration')}
+                className={`col-duration ${!disableSort ? 'sortable' : ''}`}
+                onClick={() => !disableSort && handleSort('duration')}
               >
                 时长
-                {sortKey === 'duration' && (
+                {!disableSort && sortKey === 'duration' && (
                   <span className="sort-indicator">
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </th>
               <th 
-                className="col-filesize sortable"
-                onClick={() => handleSort('size')}
+                className={`col-filesize ${!disableSort ? 'sortable' : ''}`}
+                onClick={() => !disableSort && handleSort('filesize')}
               >
                 文件大小
-                {sortKey === 'size' && (
+                {!disableSort && sortKey === 'filesize' && (
                   <span className="sort-indicator">
                     {sortOrder === 'asc' ? '↑' : '↓'}
                   </span>
@@ -235,6 +243,13 @@ const MusicList = ({
                 key={track.id} 
                 className="music-row"
                 onDoubleClick={() => handleDoubleClick(track)}
+                onClick={() => {
+                  // 在移动端，点击行直接播放
+                  if (isMobile()) {
+                    handlePlay(track);
+                  }
+                }}
+                style={{ cursor: isMobile() ? 'pointer' : 'default' }}
               >
                 <td className="col-cover">
                   {showCover && (
@@ -261,7 +276,7 @@ const MusicList = ({
                   {formatDuration(track.duration)}
                 </td>
                 <td className="col-filesize">
-                  {formatFileSize(track.fileSize)}
+                  {formatFileSize(track.size || track.fileSize)}
                 </td>
                 <td className="col-actions">
                   <div className="action-buttons">

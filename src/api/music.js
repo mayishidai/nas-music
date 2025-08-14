@@ -1,5 +1,6 @@
 import Router from 'koa-router';
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import path from 'path';
 import { 
   getAllTracks, 
@@ -267,8 +268,7 @@ router.get('/stream/:id', async (ctx) => {
         'Content-Length': chunksize,
         'Content-Type': 'audio/mpeg'
       });
-      
-      const stream = fs.createReadStream(track.path, { start, end });
+      const stream = createReadStream(track.path, { start, end });
       ctx.body = stream;
     } else {
       ctx.set({
@@ -277,7 +277,7 @@ router.get('/stream/:id', async (ctx) => {
         'Accept-Ranges': 'bytes'
       });
       
-      const stream = fs.createReadStream(track.path);
+      const stream = createReadStream(track.path);
       ctx.body = stream;
     }
   } catch (error) {
@@ -316,7 +316,7 @@ router.post('/recently-played/:id', async (ctx) => {
  // 获取最近播放（按记录顺序返回，支持分页）
  router.get('/recently-played', async (ctx) => {
    try {
-     const { limit = 20, offset = 0 } = ctx.query;
+     const { limit = 20, offset = 0, search = '' } = ctx.query;
      const result = await getRecentlyPlayedTracks({
        limit: parseInt(limit),
        offset: parseInt(offset)
@@ -324,7 +324,13 @@ router.post('/recently-played/:id', async (ctx) => {
      
      ctx.body = {
        success: true,
-       ...result
+       data: result.data,
+       pagination: {
+         total: result.total,
+         limit: parseInt(limit),
+         offset: parseInt(offset),
+         pages: Math.ceil(result.total / parseInt(limit))
+       }
      };
    } catch (error) {
      console.error('获取最近播放失败:', error);
@@ -338,7 +344,6 @@ router.get('/stats', async (ctx) => {
   try {
     const { getMusicStats } = await import('../client/database.js');
     const stats = await getMusicStats();
-    
     ctx.body = { success: true, data: stats };
   } catch (error) {
     console.error('获取统计信息失败:', error);

@@ -84,7 +84,7 @@
   border-color: rgba(255,255,255,0.3);
 }
 
-.settings-view {
+.settings-container .settings-view {
   padding: 10px 35px;
   overflow-y: hidden;
   height: 100%;
@@ -364,7 +364,7 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .settings-view {
+  .settings-container .settings-view {
     padding: 16px;
   }
   

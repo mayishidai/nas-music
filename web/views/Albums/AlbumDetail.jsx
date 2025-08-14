@@ -1,16 +1,80 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './AlbumDetail.css';
 
 /**
  * 专辑详情视图
  */
 const AlbumDetailView = ({ router, player }) => {
-  const [showMoreMenu, setShowMoreMenu] = useState(null);
-  const album = router.getCurrentData().album;
-  const tracks = useMemo(() => (album?.tracks || []).filter(Boolean), [album]);
-  const cover = useMemo(() => {
-    return album?.coverImage || tracks.find(t => t?.coverImage)?.coverImage || null;
-  }, [album, tracks]);
+  const [album, setAlbum] = useState(null);
+  const [tracks, setTracks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // 从路由数据获取专辑ID
+  const albumData = router.getCurrentData().album;
+  const albumId = albumData?.id || albumData?._id;
+  
+  // 如果传递的是完整专辑对象，直接使用
+  const initialAlbum = albumData?.id ? null : albumData;
+
+  // 加载专辑详情和歌曲列表
+  useEffect(() => {
+    const loadAlbumDetail = async () => {
+      // 如果已经有初始专辑数据，直接使用专辑信息，但仍需要加载歌曲列表
+      if (initialAlbum) {
+        setAlbum(initialAlbum);
+        
+        // 如果有专辑ID，加载歌曲列表
+        const id = initialAlbum.id || initialAlbum._id;
+        if (id) {
+          try {
+            const albumResponse = await fetch(`/api/music/albums/${id}`);
+            const albumResult = await albumResponse.json();
+            
+            if (albumResult.success) {
+              setTracks(albumResult.data.tracks || []);
+            }
+          } catch (err) {
+            console.error('加载专辑歌曲列表失败:', err);
+          }
+        }
+        
+        setLoading(false);
+        return;
+      }
+
+      if (!albumId) {
+        setError('专辑ID不存在');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 获取专辑详情
+        const albumResponse = await fetch(`/api/music/albums/${albumId}`);
+        const albumResult = await albumResponse.json();
+
+        if (!albumResult.success) {
+          throw new Error(albumResult.error || '获取专辑信息失败');
+        }
+
+        const albumInfo = albumResult.data;
+        setAlbum(albumInfo);
+        setTracks(albumInfo.tracks || []);
+
+      } catch (err) {
+        console.error('加载专辑详情失败:', err);
+        setError(err.message || '加载专辑详情失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAlbumDetail();
+  }, [albumId, initialAlbum]);
 
   // 格式化时长
   const formatDuration = (seconds) => {
@@ -45,9 +109,13 @@ const AlbumDetailView = ({ router, player }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ favorite })
       });
+      
       if (response.ok) {
         // 更新本地状态
-        track.favorite = favorite;
+        const updatedTracks = tracks.map(t => 
+          t.id === track.id ? { ...t, favorite } : t
+        );
+        setTracks(updatedTracks);
       }
     } catch (error) {
       console.error('更新收藏状态失败:', error);
@@ -59,9 +127,55 @@ const AlbumDetailView = ({ router, player }) => {
     router.navigate('track-detail', { track });
   };
 
-  if (!album) {
-    return <div className="page-container">专辑不存在</div>;
+  // 获取专辑封面
+  const getAlbumCover = () => {
+    if (album?.coverImage) return album.coverImage;
+    if (tracks.length > 0) {
+      const trackWithCover = tracks.find(t => t.coverImage);
+      return trackWithCover?.coverImage;
+    }
+    return null;
+  };
+
+  // 加载状态
+  if (loading) {
+    return (
+      <div className="album-detail">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>正在加载专辑信息...</p>
+        </div>
+      </div>
+    );
   }
+
+  // 错误状态
+  if (error) {
+    return (
+      <div className="album-detail">
+        <div className="error-container">
+          <h3>加载失败</h3>
+          <p>{error}</p>
+          <button className="ad-btn" onClick={router.goBack}>返回</button>
+        </div>
+      </div>
+    );
+  }
+
+  // 专辑不存在
+  if (!album) {
+    return (
+      <div className="album-detail">
+        <div className="error-container">
+          <h3>专辑不存在</h3>
+          <p>该专辑可能已被删除或不存在</p>
+          <button className="ad-btn" onClick={router.goBack}>返回</button>
+        </div>
+      </div>
+    );
+  }
+
+  const cover = getAlbumCover();
 
   return (
     <div className="album-detail">
@@ -69,23 +183,38 @@ const AlbumDetailView = ({ router, player }) => {
         <button className="ad-back" onClick={router.goBack}>← 返回</button>
         <div className="ad-cover-wrap">
           {cover ? (
-            <img className="ad-cover" src={cover} alt={album?.name || '专辑'} />
+            <img className="ad-cover" src={cover} alt={album.title || '专辑'} />
           ) : (
             <div className="ad-cover placeholder">💿</div>
           )}
         </div>
         <div className="ad-meta">
-          <h2 className="ad-title">{album?.name || '未知专辑'}</h2>
-          <div className="ad-sub">{album?.artist || album?.albumArtist || '未知艺术家'} · {tracks.length} 首</div>
+          <h2 className="ad-title">{album.title || '未知专辑'}</h2>
+          <div className="ad-sub">
+            {album.artist || '未知艺术家'} · {tracks.length} 首歌曲
+            {album.year && ` · ${album.year}`}
+          </div>
           <div className="ad-actions">
-            <button className="ad-btn primary" onClick={handlePlayAll}>▶ 播放全部</button>
-            <button className="ad-btn" onClick={() => tracks.forEach(t => handleAddToPlaylist(t))}>➕ 加入播放列表</button>
+            <button 
+              className="ad-btn primary" 
+              onClick={handlePlayAll}
+              disabled={tracks.length === 0}
+            >
+              ▶ 播放全部
+            </button>
+            <button 
+              className="ad-btn" 
+              onClick={() => tracks.forEach(t => handleAddToPlaylist(t))}
+              disabled={tracks.length === 0}
+            >
+              ➕ 加入播放列表
+            </button>
           </div>
         </div>
       </div>
 
       <div className="album-detail-tracks">
-          <div className="ad-tracks-header">
+        <div className="ad-tracks-header">
           <div className="th th-no">#</div>
           <div className="th th-title">标题</div>
           <div className="th th-artist">艺术家</div>
@@ -93,67 +222,74 @@ const AlbumDetailView = ({ router, player }) => {
           <div className="th th-actions">操作</div>
         </div>
         <div className="ad-tracks-body">
-          {tracks.map((t, idx) => (
-            <div
-              key={t._id || t.id}
-              className="tr"
-              onDoubleClick={() => handlePlay(t)}
-            >
-              <div className="td td-no">{idx + 1}</div>
-              <div className="td td-title">
-                <div className="title-wrap">
-                  {t.coverImage && <img className="td-cover" src={t.coverImage} alt="封面" />}
-                  <div className="title-text">
-                    <div className="title" title={t.title}>{t.title}</div>
-                    <div className="sub" title={t.album}>{t.album}</div>
+          {tracks.length === 0 ? (
+            <div className="tr empty">
+              <div>暂无歌曲</div>
+            </div>
+          ) : (
+            tracks.map((track, idx) => (
+              <div
+                key={track.id || track._id}
+                className="tr"
+                onDoubleClick={() => handlePlay(track)}
+              >
+                <div className="td td-no">{idx + 1}</div>
+                <div className="td td-title">
+                  <div className="title-wrap">
+                    {track.coverImage && (
+                      <img className="td-cover" src={track.coverImage} alt="封面" />
+                    )}
+                    <div className="title-text">
+                      <div className="title" title={track.title}>
+                        {track.title || '未知标题'}
+                      </div>
+                      <div className="sub" title={track.album}>
+                        {track.album || album.title}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="td td-artist">
+                  {track.artist || album.artist || '未知艺术家'}
+                </div>
+                <div className="td td-duration">
+                  {formatDuration(track.duration)}
+                </div>
+                <div className="td td-actions">
+                  <div className="action-buttons">
+                    <button 
+                      className="action-btn play-btn"
+                      onClick={() => handlePlay(track)}
+                      title="播放"
+                    >
+                      ▶️
+                    </button>
+                    <button 
+                      className="action-btn add-btn"
+                      onClick={() => handleAddToPlaylist(track)}
+                      title="添加到播放列表"
+                    >
+                      ➕
+                    </button>
+                    <button 
+                      className={`action-btn favorite-btn ${track.favorite ? 'favorited' : ''}`}
+                      onClick={() => handleFavorite(track, !track.favorite)}
+                      title={track.favorite ? '取消收藏' : '收藏'}
+                    >
+                      {track.favorite ? '⭐' : '☆'}
+                    </button>
+                    <button 
+                      className="action-btn details-btn"
+                      onClick={() => handleOpenDetail(track)}
+                      title="详情"
+                    >
+                      ℹ️
+                    </button>
                   </div>
                 </div>
               </div>
-              <div className="td td-artist">{t.artist}</div>
-              <div className="td td-duration">{formatDuration(t.duration)}</div>
-              <div className="td td-actions">
-                <button className="ml-btn play" title="播放" onClick={() => handlePlay(t)}>▶️</button>
-                <button
-                  className="ml-btn"
-                  title="添加到播放列表"
-                  onClick={() => handleAddToPlaylist(t)}
-                >
-                  ➕
-                </button>
-                <div className="ml-more-container">
-                  <button
-                    className="ml-btn more"
-                    title="更多操作"
-                    onClick={() => setShowMoreMenu(showMoreMenu === (t._id || t.id) ? null : (t._id || t.id))}
-                  >
-                    ⋯
-                  </button>
-                  {showMoreMenu === (t._id || t.id) && (
-                    <div className="ml-more-menu">
-                      <button
-                        className="ml-more-item"
-                        onClick={() => {
-                          handleFavorite(t, !t.favorite);
-                          setShowMoreMenu(null);
-                        }}
-                      >
-                        {t.favorite ? '⭐ 取消收藏' : '⭐ 收藏'}
-                      </button>
-                      <button
-                        className="ml-more-item"
-                        onClick={() => {
-                          handleOpenDetail(t);
-                          setShowMoreMenu(null);
-                        }}
-                      >
-                        ℹ️ 详情
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

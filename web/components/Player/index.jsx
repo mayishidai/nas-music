@@ -20,9 +20,8 @@ const Player = forwardRef((props, ref) => {
   const [playMode, setPlayMode] = useState('none'); // none | one | all | shuffle
   
   // 歌词相关状态
-  const [lyrics, setLyrics] = useState('');
   const [parsedLyrics, setParsedLyrics] = useState([]);
-  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [currentLyric, setCurrentLyric] = useState('');
 
   const audioRef = useRef(null);
 
@@ -55,31 +54,7 @@ const Player = forwardRef((props, ref) => {
         }
       }
     });
-    
-    return lyricsArray.sort((a, b) => a.time - b.time);
-  };
-
-  // 加载歌词
-  const loadLyrics = async (trackId) => {
-    try {
-      setLyricsLoading(true);
-      const response = await fetch(`/api/music/lyrics/${trackId}`);
-      const result = await response.json();
-      if (result.success && result.data) {
-        setLyrics(result.data);
-        const parsed = parseLyrics(result.data);
-        setParsedLyrics(parsed);
-      } else {
-        setLyrics('暂无歌词');
-        setParsedLyrics([]);
-      }
-    } catch (error) {
-      console.error('加载歌词失败:', error);
-      setLyrics('暂无歌词');
-      setParsedLyrics([]);
-    } finally {
-      setLyricsLoading(false);
-    }
+    return lyricsArray.sort((a, b) => b.time - a.time);
   };
 
   // 添加到播放列表
@@ -91,20 +66,46 @@ const Player = forwardRef((props, ref) => {
   // 播放音乐
   const playMusic = async (track, playlistTracks = null) => {
     if (!track) return;
-    
     // 如果是新的播放列表，更新播放列表
     if (playlistTracks) {
       setPlaylist(playlistTracks);
       const trackIndex = playlistTracks.findIndex(t => t.id === track.id);
       setCurrentPlaylistIndex(trackIndex);
+    } else {
+      // 检查当前歌曲是否在播放列表中
+      const existingIndex = playlist.findIndex(t => t.id === track.id);
+      if (existingIndex === -1) {
+        // 如果播放列表为空且当前没有播放歌曲，自动播放
+        if (playlist.length === 0 && !currentMusic) {
+          setPlaylist([track]);
+          setCurrentPlaylistIndex(0);
+        } else {
+          // 将歌曲添加到播放列表的第一位
+          setPlaylist(prev => [track, ...prev]);
+          setCurrentPlaylistIndex(0);
+        }
+      } else {
+        // 如果歌曲已在播放列表中，设置当前索引
+        setCurrentPlaylistIndex(existingIndex);
+      }
     }
-    
+    setParsedLyrics(parseLyrics(track.lyrics));
     setCurrentMusic(track);
     setIsPlaying(true);
     
+    // 记录最近播放
+    try {
+      await fetch(`/api/music/recently-played/${track.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      console.error('记录最近播放失败:', error);
+    }
+    
     // 检查收藏状态
     try {
-      const response = await fetch(`/api/music/favorites/${track.id}`);
+      const response = await fetch(`/api/music/tracks/${track.id}`);
       const result = await response.json();
       if (result.success) {
         setFavorite(result.data.favorite || false);
@@ -113,9 +114,6 @@ const Player = forwardRef((props, ref) => {
       console.error('检查收藏状态失败:', error);
       setFavorite(false);
     }
-    
-    // 加载歌词
-    loadLyrics(track.id);
   };
 
   // 播放下一首
@@ -163,16 +161,19 @@ const Player = forwardRef((props, ref) => {
     nextTrack,
     prevTrack,
     addToPlaylist,
-    loadLyrics
   }));
 
   // 音频事件处理
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
+      if(parsedLyrics){
+        const currentLyric = parsedLyrics.find(lyric => lyric.time <= audio.currentTime)?.text || '';
+        setCurrentLyric(currentLyric);
+        console.log(currentLyric);
+      }
     };
 
     const handleLoadedMetadata = () => {
@@ -209,7 +210,7 @@ const Player = forwardRef((props, ref) => {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
     };
-  }, [repeatMode]);
+  }, [repeatMode, parsedLyrics]);
 
   // 音频源更新
   useEffect(() => {
@@ -241,11 +242,6 @@ const Player = forwardRef((props, ref) => {
               <div className="player-info">
                 <div className="player-title">{currentMusic.title}</div>
                 <div className="player-artist">{currentMusic.artist}</div>
-                {parsedLyrics.length > 0 && (
-                  <div className="player-lyrics">
-                    {parsedLyrics.find(lyric => lyric.time <= currentTime)?.text || ''}
-                  </div>
-                )}
               </div>
             </>
           ) : (
@@ -416,18 +412,9 @@ const Player = forwardRef((props, ref) => {
           </div>
 
           <div className="controls-right">
-            {/* 歌词显示 */}
-            {parsedLyrics.length > 0 ? (
-              <div className="controls-lyrics">
-                <div className="lyrics-text">
-                  {parsedLyrics.find(lyric => lyric.time <= currentTime)?.text || ''}
-                </div>
-              </div>
-            ) : (
-              <div className="controls-lyrics">
-                <div className="lyrics-text">暂无歌词</div>
-              </div>
-            )}
+            <div className="controls-lyrics">
+              <div className="lyrics-text"> {currentLyric || ''} </div>
+            </div>
           </div>
         </div>
 
@@ -552,15 +539,6 @@ const Player = forwardRef((props, ref) => {
             </div>
           </div>
         </>
-      )}
-
-      {/* 浮动歌词 */}
-      {parsedLyrics.length > 0 && (
-        <div className="floating-lyrics">
-          <div className="floating-lyrics-line">
-            {parsedLyrics.find(lyric => lyric.time <= currentTime)?.text || ''}
-          </div>
-        </div>
       )}
     </>
   );

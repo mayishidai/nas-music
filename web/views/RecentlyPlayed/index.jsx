@@ -11,8 +11,6 @@ const RecentlyPlayedPage = ({ router, player }) => {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
-  const [sortKey, setSortKey] = useState('lastPlayed');
-  const [sortOrder, setSortOrder] = useState('desc');
 
   // 加载最近播放数据
   const loadRecentTracks = useCallback(async (targetPage = 1, searchKeyword = search) => {
@@ -21,10 +19,8 @@ const RecentlyPlayedPage = ({ router, player }) => {
       setError('');
       
       const params = new URLSearchParams();
-      params.set('page', String(targetPage));
-      params.set('pageSize', String(pageSize));
-      params.set('sort', sortKey);
-      params.set('order', sortOrder);
+      params.set('limit', String(pageSize));
+      params.set('offset', String((targetPage - 1) * pageSize));
       
       if (searchKeyword) {
         params.set('search', searchKeyword);
@@ -68,7 +64,7 @@ const RecentlyPlayedPage = ({ router, player }) => {
     } finally {
       setLoading(false);
     }
-  }, [pageSize, sortKey, sortOrder, search]);
+  }, [pageSize, search]);
 
   // 处理搜索变化
   const handleSearchChange = (e) => {
@@ -107,16 +103,6 @@ const RecentlyPlayedPage = ({ router, player }) => {
     setPageSize(newPageSize);
     setPage(1);
     loadRecentTracks(1);
-  };
-
-  // 处理排序
-  const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortKey(key);
-      setSortOrder('asc');
-    }
   };
 
   // 处理播放音乐
@@ -159,7 +145,7 @@ const RecentlyPlayedPage = ({ router, player }) => {
   // 搜索变化时重新加载
   useEffect(() => {
     loadRecentTracks(1);
-  }, [sortKey, sortOrder]);
+  }, [search]);
 
   // 初始加载
   useEffect(() => {
@@ -202,9 +188,8 @@ const RecentlyPlayedPage = ({ router, player }) => {
         </div>
       </div>
       <div className="recently-played-view">
-        <MusicList 
+        <MusicList
           tracks={recentTracks}
-          showCover={true}
           isLoading={loading}
           error={error}
           currentPage={page}
@@ -213,9 +198,7 @@ const RecentlyPlayedPage = ({ router, player }) => {
           pages={pages}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
-          sortKey={sortKey}
-          sortOrder={sortOrder}
-          onSort={handleSort}
+          disableSort={true}
           onPlayMusic={handlePlayMusic}
           onAddToPlaylist={handleAddToPlaylist}
           onOpenDetail={handleOpenDetail}

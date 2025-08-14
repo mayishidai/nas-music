@@ -803,7 +803,7 @@ export async function getAllTracks(options = {}) {
     let sql = 'SELECT * FROM music WHERE ' + whereConditions.join(' AND ');
 
     // 添加排序
-    const validSortFields = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'lastPlayed', 'favorite', 'size'];
+    const validSortFields = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'lastPlayed', 'favorite', 'lyrics', 'size'];
     const validOrders = ['asc', 'desc'];
     
     const sortField = validSortFields.includes(sort) ? sort : 'title';

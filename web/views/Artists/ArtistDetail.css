@@ -1,17 +1,432 @@
-.artist-detail { display: flex; flex-direction: column; gap: 16px; height: 100%; }
-.ad-header { padding: 10px 20px 0 20px; }
-.ad-back { background: transparent; border: none; color: #ccc; cursor: pointer; margin-bottom: 8px; padding: 20px; font-size: 18px; }
-.ad-banner { position: relative; height: 220px; background: linear-gradient(135deg,#334,#223); background-size: cover; background-position: center; border-radius: 12px; overflow: hidden; }
-.ad-placeholder { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; font-size: 64px; color: rgba(255,255,255,0.8); }
-.ad-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.6)); display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; }
-.ad-name { margin: 0 0 6px 0; }
-.ad-stats { color: #ccc; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.ad-stats .dot { opacity: 0.6; }
-.ad-desc { color: #aaa; font-size: 13px; }
-.ad-list { padding: 0 20px 20px 20px; flex: 1; min-height: 0; }
+.artist-detail { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 16px; 
+  height: 100%; 
+  padding: 16px;
+  background: #1a1a1a;
+  color: #fff;
+}
 
+.artist-detail .ad-header { 
+  padding: 10px 20px 0 20px; 
+}
+
+.artist-detail .ad-back { 
+  background: transparent; 
+  border: none; 
+  color: #ccc; 
+  cursor: pointer; 
+  margin-bottom: 8px; 
+  padding: 20px; 
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.artist-detail .ad-back:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.artist-detail .ad-banner { 
+  position: relative; 
+  height: 220px; 
+  background: linear-gradient(135deg,#334,#223); 
+  background-size: cover; 
+  background-position: center; 
+  border-radius: 12px; 
+  overflow: hidden; 
+}
+
+.artist-detail .ad-placeholder { 
+  position: absolute; 
+  inset: 0; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  font-size: 64px; 
+  color: rgba(255,255,255,0.8); 
+}
+
+.artist-detail .ad-overlay { 
+  position: absolute; 
+  inset: 0; 
+  background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.6)); 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: flex-end; 
+  padding: 16px; 
+}
+
+.artist-detail .ad-name { 
+  margin: 0 0 6px 0; 
+  font-size: 2em;
+  font-weight: 600;
+  color: #fff;
+}
+
+.artist-detail .ad-stats { 
+  color: #ccc; 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  margin-bottom: 6px; 
+  font-size: 14px;
+}
+
+.artist-detail .ad-stats .dot { 
+  opacity: 0.6; 
+}
+
+.artist-detail .ad-desc { 
+  color: #aaa; 
+  font-size: 13px; 
+}
+
+.artist-detail .ad-content {
+  padding: 0 20px 20px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.artist-detail .ad-tracks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.artist-detail .ad-tracks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.artist-detail .ad-tracks-title {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.artist-detail .ad-search-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.artist-detail .ad-search-input {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 14px;
+  min-width: 200px;
+  max-width: 300px;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.artist-detail .ad-search-input:focus {
+  outline: none;
+  border-color: #4ecdc4;
+  background: rgba(255,255,255,0.15);
+}
+
+.artist-detail .ad-search-input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+.artist-detail .ad-search-clear {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+}
+
+.artist-detail .ad-search-clear:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* 加载状态 */
+.artist-detail .loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 40px;
+}
+
+.artist-detail .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top: 3px solid #4ecdc4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.artist-detail .loading-container h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+}
+
+.artist-detail .loading-container p {
+  margin: 0;
+  color: #ccc;
+  font-size: 14px;
+}
+
+/* 错误状态 */
+.artist-detail .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+}
+
+.artist-detail .error-container h3 {
+  margin: 0;
+  color: #ff6b6b;
+  font-size: 18px;
+}
+
+.artist-detail .error-container p {
+  margin: 0;
+  color: #ccc;
+  font-size: 14px;
+  max-width: 300px;
+}
+
+.artist-detail .ad-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.artist-detail .ad-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+  transform: translateY(-1px);
+}
+
+.artist-detail .ad-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
-  .ad-banner { height: 160px; }
+  .artist-detail {
+    padding: 12px;
+  }
+  
+  .artist-detail .ad-header {
+    padding: 10px 12px 0 12px;
+  }
+  
+  .artist-detail .ad-back {
+    padding: 12px 16px;
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+  
+  .artist-detail .ad-banner { 
+    height: 180px; 
+  }
+  
+  .artist-detail .ad-name {
+    font-size: 1.5em;
+  }
+  
+  .artist-detail .ad-content {
+    padding: 0 12px 12px 12px;
+  }
+  
+  .artist-detail .ad-tracks-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .artist-detail .ad-tracks-title {
+    font-size: 1.1em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  .artist-detail .ad-search-container {
+    justify-content: flex-end;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .artist-detail .ad-search-input {
+    min-width: 0;
+    flex: 1;
+    max-width: 200px;
+  }
+  
+  .artist-detail .loading-container,
+  .artist-detail .error-container {
+    padding: 20px;
+  }
+  
+  .artist-detail .loading-spinner {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .artist-detail {
+    padding: 8px;
+  }
+  
+  .artist-detail .ad-header {
+    padding: 8px 8px 0 8px;
+  }
+  
+  .artist-detail .ad-back {
+    padding: 8px 12px;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  
+  .artist-detail .ad-banner {
+    height: 140px;
+  }
+  
+  .artist-detail .ad-name {
+    font-size: 1.2em;
+  }
+  
+  .artist-detail .ad-stats {
+    font-size: 12px;
+  }
+  
+  .artist-detail .ad-content {
+    padding: 0 8px 8px 8px;
+  }
+  
+  .artist-detail .ad-tracks-header {
+    gap: 8px;
+  }
+  
+  .artist-detail .ad-tracks-title {
+    font-size: 1em;
+  }
+  
+  .artist-detail .ad-search-input {
+    font-size: 12px;
+    padding: 6px 8px;
+    max-width: 150px;
+  }
+  
+  .artist-detail .ad-search-clear {
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
+    padding: 2px 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .artist-detail {
+    padding: 6px;
+  }
+  
+  .artist-detail .ad-header {
+    padding: 6px 6px 0 6px;
+  }
+  
+  .artist-detail .ad-back {
+    padding: 6px 8px;
+    font-size: 13px;
+    margin-bottom: 3px;
+  }
+  
+  .artist-detail .ad-banner {
+    height: 120px;
+  }
+  
+  .artist-detail .ad-name {
+    font-size: 1.1em;
+  }
+  
+  .artist-detail .ad-stats {
+    font-size: 11px;
+  }
+  
+  .artist-detail .ad-content {
+    padding: 0 6px 6px 6px;
+  }
+  
+  .artist-detail .ad-tracks-header {
+    gap: 6px;
+  }
+  
+  .artist-detail .ad-tracks-title {
+    font-size: 0.9em;
+  }
+  
+  .artist-detail .ad-search-input {
+    font-size: 11px;
+    padding: 5px 6px;
+    max-width: 120px;
+    min-width: 80px;
+  }
+  
+  .artist-detail .ad-search-clear {
+    font-size: 9px;
+    min-width: 16px;
+    height: 16px;
+    padding: 1px 3px;
+  }
 }
 
 

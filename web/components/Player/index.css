@@ -24,7 +24,8 @@
   align-items: center;
   gap: 15px;
   min-width: 200px;
-  max-width: 25%;
+  max-width: 20%;
+  width: 20%;
 }
 
 .player-cover {
@@ -89,7 +90,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  width: 50%;
+  max-width: 800px;
+  flex: 1;
 }
 
 .controls-left {
@@ -106,7 +108,7 @@
   justify-content: center;
   flex: 1;
   min-width: 200px;
-  max-width: 300px;
+  max-width: 80%;
 }
 
 .control-btn {
@@ -446,7 +448,6 @@
   padding: 8px 14px;
   border-radius: 8px;
   text-shadow: 0 2px 8px rgba(0,0,0,0.6);
-  width: 50%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

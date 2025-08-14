@@ -6,6 +6,56 @@
   padding: 20px;
 }
 
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #ccc;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top: 3px solid #4ecdc4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 错误状态 */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  text-align: center;
+  color: #ccc;
+}
+
+.error-container h3 {
+  margin: 0;
+  color: #ff6b6b;
+  font-size: 1.2em;
+}
+
+.error-container p {
+  margin: 0;
+  color: #aaa;
+  max-width: 300px;
+  line-height: 1.5;
+}
+
 .album-detail .album-detail-header {
   display: grid;
   grid-template-columns: 140px 1fr;
@@ -70,10 +120,25 @@
   border: 1px solid rgba(255,255,255,0.15);
   color: #fff;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
+
+.album-detail .ad-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+}
+
+.album-detail .ad-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .album-detail .ad-btn.primary {
   background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
   border: none;
+}
+
+.album-detail .ad-btn.primary:hover:not(:disabled) {
+  background: linear-gradient(45deg, #ff5252, #45b8b0);
 }
 
 .album-detail .album-detail-tracks {
@@ -97,7 +162,13 @@
 }
 
 .album-detail .tr { border-top: 1px solid rgba(255,255,255,0.06); }
-.album-detail .tr.empty { text-align: center; grid-column: 1 / -1; color: #888; }
+.album-detail .tr.empty { 
+  text-align: center; 
+  grid-column: 1 / -1; 
+  color: #888; 
+  padding: 40px 16px;
+  font-style: italic;
+}
 
 .album-detail .td, .album-detail .th { display: flex; align-items: center; overflow: hidden; font-size: 13px; }
 .album-detail .th-title, .album-detail .td-title { overflow: hidden; }
@@ -117,26 +188,137 @@
 .album-detail .td-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  justify-content: flex-end;
+  justify-content: center;
   overflow: visible; /* 允许弹层 */
 }
-.album-detail .ml-btn { background: rgba(255, 255, 255, 0.1); border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* 操作按钮样式 - 参考MusicList */
+.action-buttons {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.action-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 28px;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.action-btn.play-btn:hover {
+  background: #4ecdc4;
+}
+
+.action-btn.add-btn:hover {
+  background: #ff6b6b;
+}
+
+.action-btn.favorite-btn:hover {
+  background: #ffd700;
+  color: #333;
+}
+
+.action-btn.favorite-btn.favorited {
+  background: #ffd700;
+  color: #333;
+}
+
+.action-btn.details-btn:hover {
+  background: #9b59b6;
+}
+
+/* 保留旧的样式以兼容 */
+.album-detail .ml-btn { 
+  background: rgba(255, 255, 255, 0.1); 
+  border: none; 
+  color: #fff; 
+  width: 28px; 
+  height: 28px; 
+  border-radius: 50%; 
+  cursor: pointer; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.album-detail .ml-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .album-detail .ml-btn.more { font-size: 16px; font-weight: bold; }
 .album-detail .ml-more-container { position: relative; overflow: visible; }
-.album-detail .ml-more-menu { position: absolute; top: 100%; right: 0; background: rgba(0,0,0,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; z-index: 10000; min-width: 140px; }
-.album-detail .ml-more-item { display: block; width: 100%; padding: 8px 12px; background: transparent; border: none; color: #ccc; text-align: left; }
+.album-detail .ml-more-menu { 
+  position: absolute; 
+  top: 100%; 
+  right: 0; 
+  background: rgba(0,0,0,0.95); 
+  border: 1px solid rgba(255,255,255,0.1); 
+  border-radius: 8px; 
+  z-index: 10000; 
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.album-detail .ml-more-item { 
+  display: block; 
+  width: 100%; 
+  padding: 8px 12px; 
+  background: transparent; 
+  border: none; 
+  color: #ccc; 
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 .album-detail .ml-more-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
 @media (max-width: 900px) {
   .album-detail .ad-tracks-header, .album-detail .tr { grid-template-columns: 40px 1fr 100px 120px; }
   .album-detail .th-artist, .album-detail .td-artist { display: none; }
+  
+  .action-buttons {
+    gap: 3px;
+  }
+  
+  .action-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8em;
+  }
 }
 
 @media (max-width: 600px) {
   /* 手机小屏：隐藏时长列，收紧为三列 */
   .album-detail .ad-tracks-header, .album-detail .tr { grid-template-columns: 40px 1fr 120px; }
   .album-detail .th-duration, .album-detail .td-duration { display: none; }
+  
+  .action-buttons {
+    gap: 2px;
+  }
+  
+  .action-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75em;
+  }
 }
 
 @media (max-width: 768px) {
@@ -148,6 +330,107 @@
   .album-detail .td, .album-detail .th { font-size: 12px; }
   .album-detail .title { font-size: 0.9em; }
   .album-detail .sub { font-size: 10px; }
+  
+  .album-detail .ad-back {
+    padding: 12px 16px;
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+  
+  .loading-container, .error-container {
+    padding: 20px;
+  }
+  
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .album-detail { 
+    padding: 8px; 
+    gap: 10px; 
+  }
+  
+  .album-detail .album-detail-header { 
+    grid-template-columns: 80px 1fr; 
+    gap: 10px; 
+  }
+  
+  .album-detail .ad-cover-wrap { 
+    width: 80px; 
+    height: 80px; 
+  }
+  
+  .album-detail .ad-back {
+    padding: 8px 12px;
+    font-size: 14px;
+    margin-bottom: 3px;
+  }
+  
+  .album-detail .ad-title { 
+    font-size: 1.1em; 
+  }
+  
+  .album-detail .ad-sub { 
+    font-size: 0.85em; 
+  }
+  
+  .album-detail .td, .album-detail .th { 
+    font-size: 11px; 
+  }
+  
+  .album-detail .title { 
+    font-size: 0.85em; 
+  }
+  
+  .album-detail .sub { 
+    font-size: 9px; 
+  }
+}
+
+@media (max-width: 360px) {
+  .album-detail { 
+    padding: 6px; 
+    gap: 8px; 
+  }
+  
+  .album-detail .album-detail-header { 
+    grid-template-columns: 70px 1fr; 
+    gap: 8px; 
+  }
+  
+  .album-detail .ad-cover-wrap { 
+    width: 70px; 
+    height: 70px; 
+  }
+  
+  .album-detail .ad-back {
+    padding: 6px 8px;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  
+  .album-detail .ad-title { 
+    font-size: 1em; 
+  }
+  
+  .album-detail .ad-sub { 
+    font-size: 0.8em; 
+  }
+  
+  .album-detail .td, .album-detail .th { 
+    font-size: 10px; 
+  }
+  
+  .album-detail .title { 
+    font-size: 0.8em; 
+  }
+  
+  .album-detail .sub { 
+    font-size: 8px; 
+  }
 }
 
 
