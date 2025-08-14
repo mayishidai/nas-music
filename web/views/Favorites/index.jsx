@@ -1,33 +1,101 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { MusicList } from '../../components/index';
 import '../Pages.css';
 import './Favorites.css';
-import { MusicList } from '../../components';
 
 /**
  * 收藏页面组件
  */
-const FavoritesPage = () => {
+const FavoritesPage = ({ router, player }) => {
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  
+  const pageSize = 10;
+
+  // 加载收藏数据
+  const loadFavorites = useCallback(async (targetPage = 1) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/music/favorites?page=${targetPage}&pageSize=${pageSize}&search=${search}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        const newFavorites = result.data || [];
+        const pagination = result.pagination || {};
+        
+        if (targetPage === 1) {
+          setFavorites(newFavorites);
+        } else {
+          setFavorites(prev => [...prev, ...newFavorites]);
+        }
+        
+        setTotal(pagination.total || 0);
+        setHasMore(pagination.page < pagination.pages);
+        setPage(targetPage);
+      }
+    } catch (error) {
+      console.error('加载收藏列表失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [search]);
+
+  // 加载下一页
+  const loadNext = useCallback(() => {
+    if (!loading && hasMore) {
+      loadFavorites(page + 1);
+    }
+  }, [loading, hasMore, page, loadFavorites]);
+
+  // 处理搜索变化
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPage(1);
+    setFavorites([]);
+    setHasMore(true);
+  };
+
+  // 搜索变化时重新加载
+  useEffect(() => {
+    loadFavorites(1);
+  }, [search]);
+
+  // 初始加载
+  useEffect(() => {
+    loadFavorites(1);
+  }, []);
+
   return (
-    <div className="page-container favorites-view">
-      <div className="page-content">
-        <div className="fav-toolbar">
-          <h2>⭐ 我的收藏</h2>
-          <div className="fav-actions">
-            <input
-              className="fav-search"
-              placeholder="搜索收藏..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+    <div className="page-container favorites-container">
+      <div className="fav-toolbar">
+        <h2>⭐ 我的收藏</h2>
+        <div className="fav-actions">
+          <input
+            className="fav-search"
+            placeholder="搜索收藏..."
+            value={search}
+            onChange={handleSearchChange}
+          />
         </div>
-        <MusicList
-          searchKeyword={search}
-          filters={{ favorite: true }}
-          isFavoriteList
+      </div>
+      <div className="favorites-view">
+        <MusicList 
+          tracks={favorites}
+          showCover={true}
+          onPlayMusic={(track) => player.playMusic(track)}
+          onAddToPlaylist={(track) => player.addToPlaylist(track)}
+          onOpenDetail={(track) => router.navigate('track-detail', { track })}
         />
+        
+        {favorites.length === 0 && !loading && (
+          <div className="empty-state">
+            <h3>暂无收藏</h3>
+            <p>您还没有收藏任何音乐</p>
+          </div>
+        )}
       </div>
     </div>
   );

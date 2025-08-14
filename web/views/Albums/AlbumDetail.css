@@ -21,6 +21,7 @@
   border: none;
   color: #ccc;
   cursor: pointer;
+  padding: 20px; font-size: 18px; 
 }
 
 .album-detail .ad-cover-wrap {

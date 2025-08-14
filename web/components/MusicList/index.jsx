@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './index.css';
+import { DEFAULT_COVER_IMAGE } from '../../common';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -339,17 +340,6 @@ const MusicList = ({
                   </span>
                 )}
               </th>
-              <th 
-                className="col-year sortable"
-                onClick={() => handleSort('year')}
-              >
-                年份
-                {sortKey === 'year' && (
-                  <span className="sort-indicator">
-                    {sortOrder === 'asc' ? '↑' : '↓'}
-                  </span>
-                )}
-              </th>
               <th className="col-quality">品质</th>
               <th className="col-actions">操作</th>
             </tr>
@@ -364,20 +354,7 @@ const MusicList = ({
                 <td className="col-cover">
                   {showCover && (
                     <div className="cover-container">
-                      {track.coverImage ? (
-                        <img 
-                          src={track.coverImage.startsWith('data:') 
-                            ? track.coverImage 
-                            : `/api/music/tracks/${track.id}/cover`
-                          }
-                          alt="封面"
-                          className="cover-image"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
+                      <img src={track.coverImage || DEFAULT_COVER_IMAGE} alt="封面" className="cover-image" />
                       <div className="cover-placeholder">
                         <span>🎵</span>
                       </div>
@@ -387,7 +364,6 @@ const MusicList = ({
                 <td className="col-title">
                   <div className="title-cell">
                     <span className="title-text">{track.title || '未知标题'}</span>
-                    {track.favorite && <span className="favorite-indicator">⭐</span>}
                   </div>
                 </td>
                 <td className="col-artist">
@@ -398,9 +374,6 @@ const MusicList = ({
                 </td>
                 <td className="col-duration">
                   {formatDuration(track.duration)}
-                </td>
-                <td className="col-year">
-                  {track.year || '—'}
                 </td>
                 <td className="col-quality">
                   {formatQuality(track)}

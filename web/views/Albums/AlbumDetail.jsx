@@ -4,17 +4,69 @@ import './AlbumDetail.css';
 /**
  * 专辑详情视图
  */
-const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, onFavorite }) => {
+const AlbumDetailView = ({ router, player }) => {
   const [showMoreMenu, setShowMoreMenu] = useState(null);
+  const album = router.getCurrentData().album;
   const tracks = useMemo(() => (album?.tracks || []).filter(Boolean), [album]);
   const cover = useMemo(() => {
     return album?.coverImage || tracks.find(t => t?.coverImage)?.coverImage || null;
   }, [album, tracks]);
 
+  // 格式化时长
+  const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // 处理播放全部
+  const handlePlayAll = () => {
+    if (tracks.length > 0) {
+      player.playMusic(tracks[0], tracks);
+    }
+  };
+
+  // 处理播放单首
+  const handlePlay = (track) => {
+    player.playMusic(track, tracks);
+  };
+
+  // 处理添加到播放列表
+  const handleAddToPlaylist = (track) => {
+    player.addToPlaylist(track);
+  };
+
+  // 处理收藏
+  const handleFavorite = async (track, favorite) => {
+    try {
+      const response = await fetch(`/api/music/tracks/${track.id}/favorite`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite })
+      });
+      if (response.ok) {
+        // 更新本地状态
+        track.favorite = favorite;
+      }
+    } catch (error) {
+      console.error('更新收藏状态失败:', error);
+    }
+  };
+
+  // 处理打开详情
+  const handleOpenDetail = (track) => {
+    router.navigate('track-detail', { track });
+  };
+
+  if (!album) {
+    return <div className="page-container">专辑不存在</div>;
+  }
+
   return (
     <div className="album-detail">
       <div className="album-detail-header">
-        <button className="ad-back" onClick={onBack}>← 返回</button>
+        <button className="ad-back" onClick={router.goBack}>← 返回</button>
         <div className="ad-cover-wrap">
           {cover ? (
             <img className="ad-cover" src={cover} alt={album?.name || '专辑'} />
@@ -26,8 +78,8 @@ const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, on
           <h2 className="ad-title">{album?.name || '未知专辑'}</h2>
           <div className="ad-sub">{album?.artist || album?.albumArtist || '未知艺术家'} · {tracks.length} 首</div>
           <div className="ad-actions">
-            <button className="ad-btn primary" onClick={onPlayAll}>▶ 播放全部</button>
-            <button className="ad-btn" onClick={() => tracks.forEach(t => onAddToPlaylist && onAddToPlaylist(t))}>➕ 加入播放列表</button>
+            <button className="ad-btn primary" onClick={handlePlayAll}>▶ 播放全部</button>
+            <button className="ad-btn" onClick={() => tracks.forEach(t => handleAddToPlaylist(t))}>➕ 加入播放列表</button>
           </div>
         </div>
       </div>
@@ -45,7 +97,7 @@ const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, on
             <div
               key={t._id || t.id}
               className="tr"
-              onDoubleClick={() => onPlay && onPlay(t)}
+              onDoubleClick={() => handlePlay(t)}
             >
               <div className="td td-no">{idx + 1}</div>
               <div className="td td-title">
@@ -60,11 +112,11 @@ const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, on
               <div className="td td-artist">{t.artist}</div>
               <div className="td td-duration">{formatDuration(t.duration)}</div>
               <div className="td td-actions">
-                <button className="ml-btn play" title="播放" onClick={() => onPlay && onPlay(t)}>▶️</button>
+                <button className="ml-btn play" title="播放" onClick={() => handlePlay(t)}>▶️</button>
                 <button
                   className="ml-btn"
                   title="添加到播放列表"
-                  onClick={() => onAddToPlaylist && onAddToPlaylist(t)}
+                  onClick={() => handleAddToPlaylist(t)}
                 >
                   ➕
                 </button>
@@ -81,7 +133,7 @@ const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, on
                       <button
                         className="ml-more-item"
                         onClick={() => {
-                          onFavorite && onFavorite(t, !t.favorite);
+                          handleFavorite(t, !t.favorite);
                           setShowMoreMenu(null);
                         }}
                       >
@@ -90,10 +142,7 @@ const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, on
                       <button
                         className="ml-more-item"
                         onClick={() => {
-                          if (typeof window !== 'undefined') {
-                            const ev = new CustomEvent('openTrackDetail', { detail: { track: t } });
-                            window.dispatchEvent(ev);
-                          }
+                          handleOpenDetail(t);
                           setShowMoreMenu(null);
                         }}
                       >
@@ -105,22 +154,11 @@ const AlbumDetailView = ({ album, onBack, onPlay, onPlayAll, onAddToPlaylist, on
               </div>
             </div>
           ))}
-          {tracks.length === 0 && (
-            <div className="tr empty">暂无曲目</div>
-          )}
         </div>
       </div>
     </div>
   );
 };
-
-function formatDuration(seconds) {
-  if (!seconds && seconds !== 0) return '--:--';
-  const total = Math.floor(seconds);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 export default AlbumDetailView;
 

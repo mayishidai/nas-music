@@ -1,17 +1,17 @@
-.recently-played-container .fav-toolbar { 
+.shuffle-container .fav-toolbar { 
   display: flex; 
   align-items: center; 
   justify-content: space-between; 
   padding: 20px 35px 12px 35px;
 }
 
-.recently-played-container .fav-actions { 
+.shuffle-container .fav-actions { 
   display: flex; 
   gap: 8px; 
   align-items: center; 
 }
 
-.recently-played-container .fav-search { 
+.shuffle-container .fav-search { 
   padding: 6px 10px; 
   border-radius: 6px; 
   border: 1px solid rgba(255,255,255,0.2); 
@@ -21,12 +21,12 @@
   min-width: 200px;
 }
 
-.recently-played-container .fav-search:focus {
+.shuffle-container .fav-search:focus {
   border-color: rgba(78, 205, 196, 0.5);
   background: rgba(255,255,255,0.12);
 }
 
-.recently-played-container .fav-btn { 
+.shuffle-container .fav-btn { 
   padding: 6px 10px; 
   border-radius: 6px; 
   border: 1px solid rgba(255,255,255,0.2); 
@@ -36,12 +36,12 @@
   transition: all 0.3s ease;
 }
 
-.recently-played-container .fav-btn:hover {
+.shuffle-container .fav-btn:hover {
   background: rgba(255,255,255,0.15);
   border-color: rgba(255,255,255,0.3);
 }
 
-.recently-played-view {
+.shuffle-view {
   padding: 10px 35px;
   overflow-y: hidden;
   height: 100%;
@@ -49,20 +49,18 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .recently-played-view {
+  .shuffle-view {
     padding: 16px;
   }
   
-  .recently-played-container .fav-toolbar {
+  .shuffle-container .fav-toolbar {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
   
-  .recently-played-container .fav-search {
+  .shuffle-container .fav-search {
     min-width: auto;
     width: 100%;
   }
 }
-
-

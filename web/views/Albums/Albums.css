@@ -1,8 +1,49 @@
-/* 专辑视图样式 */
-.albums-view {
-  padding: 20px;
-  height: 100%;
-  overflow-y: auto;
+.albums-container .fav-toolbar { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 20px 35px 12px 35px;
+}
+
+.albums-container .fav-actions { 
+  display: flex; 
+  gap: 8px; 
+  align-items: center; 
+}
+
+.albums-container .fav-search { 
+  padding: 6px 10px; 
+  border-radius: 6px; 
+  border: 1px solid rgba(255,255,255,0.2); 
+  background: rgba(255,255,255,0.08); 
+  color: #fff; 
+  outline: none; 
+  min-width: 200px;
+}
+
+.albums-container .fav-search:focus {
+  border-color: rgba(78, 205, 196, 0.5);
+  background: rgba(255,255,255,0.12);
+}
+
+.albums-container .fav-btn { 
+  padding: 6px 10px; 
+  border-radius: 6px; 
+  border: 1px solid rgba(255,255,255,0.2); 
+  background: rgba(255,255,255,0.1); 
+  color: #fff; 
+  cursor: pointer; 
+  transition: all 0.3s ease;
+}
+
+.albums-container .fav-btn:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.albums-view{
+  padding: 20px 35px;
+  overflow-y: hidden;
 }
 
 .albums-grid {
@@ -146,6 +187,17 @@
 @media (max-width: 768px) {
   .albums-view {
     padding: 16px;
+  }
+  
+  .albums-view .fav-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .albums-view .fav-search {
+    min-width: auto;
+    width: 100%;
   }
   
   .albums-grid {

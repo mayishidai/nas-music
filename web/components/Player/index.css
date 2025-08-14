@@ -1,9 +1,5 @@
 /* 播放器组件样式 */
 .bottom-player {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 100px;
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
@@ -12,8 +8,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  z-index: 1000;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
 }
 
 .control-buttons {
@@ -104,7 +100,14 @@
   min-width: 250px;
 }
 
-
+.controls-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+}
 
 .control-btn {
   background: transparent;
@@ -137,6 +140,12 @@
 .control-btn.active {
   color: #4ecdc4;
   background: rgba(78, 205, 196, 0.1);
+}
+
+/* 收藏按钮特殊样式 */
+.control-btn.active[title*="收藏"] {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
 }
 
 /* 去掉图标方框背景，直接用emoji或文字即可 */
@@ -221,6 +230,7 @@
   align-items: center;
   gap: 10px;
   justify-self: end;
+  min-width: 200px;
 }
 
 .volume-slider {
@@ -625,11 +635,8 @@
 @media (max-width: 900px) {
   .bottom-player {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  .bottom-player {
     grid-template-columns: 1fr;
-    height: auto;
+    height: 120px;
     padding: 10px 12px 12px 12px;
     gap: 10px;
   }
@@ -637,9 +644,19 @@
   /* 保持所有控件可见：同一列内分区排列 */
   .player-controls { flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
   .controls-left { align-items: center; }
+  .controls-right { 
+    justify-content: center; 
+    min-width: auto;
+    max-width: none;
+  }
   .progress-section { width: 100%; gap: 8px; }
-  .controls-lyrics { display: none; }
-  .player-volume { justify-self: center; width: 100%; justify-content: center; display: flex; }
+  .controls-lyrics { 
+    display: none; 
+  }
+  .player-volume { 
+    justify-content: center;
+    min-width: auto;
+  }
   .control-buttons { gap: 10px; flex-wrap: wrap; }
   .control-btn { width: 36px; height: 36px; }
   .play-btn-main { width: 48px; height: 48px; }

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './TrackDetail.css';
+import { DEFAULT_COVER_IMAGE } from '../../common';
 
-const TrackDetailPage = ({ trackId, onBack }) => {
+const TrackDetailPage = ({ router, player }) => {
   const [track, setTrack] = useState(null);
   const [form, setForm] = useState({ title: '', artist: '', album: '', albumArtist: '', year: '', genre: '', track: '' });
   const [coverPreview, setCoverPreview] = useState('');
@@ -10,6 +11,10 @@ const TrackDetailPage = ({ trackId, onBack }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
+
+  // 从路由数据获取track信息
+  const trackData = router.getCurrentData().track;
+  const trackId = trackData?.id || trackData?._id;
 
   useEffect(() => {
     const load = async () => {
@@ -99,127 +104,190 @@ const TrackDetailPage = ({ trackId, onBack }) => {
       const json = await res.json();
       if (json?.success && Array.isArray(json.data)) {
         setSearchResults(json.data);
-      } else {
-        setSearchResults([]);
       }
     } catch (e) {
-      setSearchResults([]);
+      console.error('搜索失败:', e);
     } finally {
       setSearchLoading(false);
     }
   };
 
-  // 字段中文映射
-  const labelMap = useMemo(() => ({
-    title: '歌曲名',
-    artist: '歌手',
-    album: '专辑',
-    albumArtist: '专辑艺人',
-    year: '年份',
-    genre: '流派',
-    track: '曲目号'
-  }), []);
+  if (!trackData) {
+    return <div className="page-container">音乐不存在</div>;
+  }
 
-  const fileInputRef = useRef(null);
+  if (loading) {
+    return <div className="page-container">加载中...</div>;
+  }
 
   return (
     <div className="track-detail">
-      <div className="td-back-row">
-        <button className="td-back" onClick={onBack}>← 返回</button>
-      </div>
       <div className="td-header">
-        <div
-          className="td-cover-wrap"
-          onClick={() => fileInputRef.current && fileInputRef.current.click()}
-          title="点击更换封面"
-          role="button"
-        >
-          {coverPreview ? (
-            <img className="td-cover-img" src={coverPreview} alt="封面" />
-          ) : (
-            <div className="td-cover-ph">🎵</div>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleChooseCover} />
+        <button className="td-back" onClick={router.goBack}>← 返回</button>
+        <h2 className="td-title">音乐详情</h2>
+        <div className="td-title-actions">
+          <button className="td-btn" disabled={searchLoading} onClick={handleOnlineSearch}>
+            {searchLoading ? '搜索中…' : '在线搜索'}
+          </button>
         </div>
-        <div className="td-meta">
-          <div className="td-title-row">
-            <h2 className="td-title">{form.title || track?.title || ''}</h2>
-            <div className="td-title-actions">
-              <button className="td-btn" disabled={searchLoading} onClick={handleOnlineSearch}>{searchLoading ? '搜索中…' : '在线搜索'}</button>
+      </div>
+
+      <div className="td-content">
+        <div className="td-main">
+          <div className="td-cover-section">
+            <div className="td-cover-wrap">
+              <img  className="td-cover"  src={coverPreview || track?.coverImage || DEFAULT_COVER_IMAGE}  alt="封面" />
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleChooseCover} 
+                className="td-cover-input" 
+                id="cover-input"
+              />
+              <label htmlFor="cover-input" className="td-cover-label">选择封面</label>
             </div>
           </div>
-          <div className="td-sub">{form.artist || track?.artist || ''} · {form.album || track?.album || ''}</div>
-          <div className="td-file">{folderPath + '/' || ''}{fileName}</div>
-        </div>
-      </div>
-      <div className="td-body">
-        <div className="td-form">
-          {['title','artist','album','albumArtist','year','genre','track'].map((key) => (
-            <div className="td-form-row" key={key}>
-              <label>{labelMap[key] || key}</label>
-              <input value={form[key] ?? ''} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
+
+          <div className="td-form">
+            <div className="td-form-row">
+              <label>歌曲名</label>
+              <input 
+                type="text" 
+                value={form.title} 
+                onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="歌曲名称"
+              />
             </div>
-          ))}
-        </div>
-        <div className="td-lyrics-wrap">
-          <div className="td-form-row">
-            <label>歌词</label>
-            <textarea className="td-lyrics" value={lyrics} readOnly placeholder="暂无歌词" />
+            <div className="td-form-row">
+              <label>艺术家</label>
+              <input 
+                type="text" 
+                value={form.artist} 
+                onChange={(e) => setForm(prev => ({ ...prev, artist: e.target.value }))}
+                placeholder="艺术家名称"
+              />
+            </div>
+            <div className="td-form-row">
+              <label>专辑</label>
+              <input 
+                type="text" 
+                value={form.album} 
+                onChange={(e) => setForm(prev => ({ ...prev, album: e.target.value }))}
+                placeholder="专辑名称"
+              />
+            </div>
+            <div className="td-form-row">
+              <label>专辑艺术家</label>
+              <input 
+                type="text" 
+                value={form.albumArtist} 
+                onChange={(e) => setForm(prev => ({ ...prev, albumArtist: e.target.value }))}
+                placeholder="专辑艺术家"
+              />
+            </div>
+            <div className="td-form-row">
+              <label>年份</label>
+              <input 
+                type="text" 
+                value={form.year} 
+                onChange={(e) => setForm(prev => ({ ...prev, year: e.target.value }))}
+                placeholder="发行年份"
+              />
+            </div>
+            <div className="td-form-row">
+              <label>流派</label>
+              <input 
+                type="text" 
+                value={form.genre} 
+                onChange={(e) => setForm(prev => ({ ...prev, genre: e.target.value }))}
+                placeholder="音乐流派"
+              />
+            </div>
+            <div className="td-form-row">
+              <label>音轨号</label>
+              <input 
+                type="text" 
+                value={form.track} 
+                onChange={(e) => setForm(prev => ({ ...prev, track: e.target.value }))}
+                placeholder="音轨编号"
+              />
+            </div>
+          </div>
+
+          <div className="td-lyrics-wrap">
+            <div className="td-form-row">
+              <label>歌词</label>
+              <textarea 
+                className="td-lyrics" 
+                value={lyrics} 
+                readOnly 
+                placeholder="暂无歌词" 
+              />
+            </div>
+          </div>
+
+          <div className="td-file-info">
+            <div className="td-form-row">
+              <label>文件名</label>
+              <span className="td-file-name">{fileName}</span>
+            </div>
+            <div className="td-form-row">
+              <label>文件路径</label>
+              <span className="td-file-path">{folderPath}</span>
+            </div>
+          </div>
+
+          <div className="td-actions">
+            <button 
+              className="td-save-btn" 
+              onClick={handleSaveTags}
+              disabled={loading}
+            >
+              {loading ? '保存中...' : '保存'}
+            </button>
           </div>
         </div>
-      </div>
-      {/* 右侧抽屉：在线搜索结果 */}
-      <div className={`td-drawer ${showSearchPanel ? 'open' : ''}`} aria-hidden={!showSearchPanel}>
-        <div className="td-drawer-header">
-          <div className="td-drawer-title">在线搜索结果</div>
-          <button className="td-btn" onClick={() => setShowSearchPanel(false)}>关闭</button>
-        </div>
-        <div className="td-drawer-body">
-          {searchLoading && <div className="td-loading">搜索中…</div>}
-          {!searchLoading && searchResults.length === 0 && <div className="td-empty">暂无结果</div>}
-          {!searchLoading && searchResults.length > 0 && (
-            <div className="td-results">
-              {searchResults.map((r, idx) => (
-                <div
-                  key={idx}
-                  className="td-result"
-                  onClick={async () => {
-                    const nextForm = {
-                      ...form,
-                      title: r.title || form.title,
-                      artist: r.artist || form.artist,
-                      album: r.album || form.album,
-                      year: r.year || form.year
-                    };
-                    setForm(nextForm);
-                    try {
-                      // 优先使用结果自带的封面/歌词，否则调用后端封面与歌词接口
-                      if (r.coverImage) setCoverPreview(r.coverImage);
-                      else {
-                        const coverRes = await fetch(`/api/music/cover-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}${r.source?.includes('musicbrainz') && r.sourceId ? `&releaseId=${encodeURIComponent(r.sourceId)}` : ''}`);
-                        const coverJson = await coverRes.json();
-                        if (coverJson?.success && coverJson.data) setCoverPreview(coverJson.data);
-                      }
-                      if (r.lyrics) setLyrics(r.lyrics);
-                      else {
-                        const lyrRes = await fetch(`/api/music/lyrics-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}`);
-                        const lyrJson = await lyrRes.json();
-                        if (lyrJson?.success) setLyrics(lyrJson.data || '');
-                      }
-                    } catch {}
-                  }}
-                >
-                  <div className="td-r-title">{r.title || '未知歌曲'}</div>
-                  <div className="td-r-sub">{r.artist || '未知艺术家'}{r.album ? ` - ${r.album}` : ''}{r.year ? ` (${r.year})` : ''}</div>
-                </div>
-              ))}
+
+        {/* 在线搜索结果面板 */}
+        {showSearchPanel && (
+          <div className="td-drawer">
+            <div className="td-drawer-mask" onClick={() => setShowSearchPanel(false)} />
+            <div className="td-drawer-content">
+              <div className="td-drawer-header">
+                <h3>在线搜索结果</h3>
+                <button onClick={() => setShowSearchPanel(false)}>✕</button>
+              </div>
+              <div className="td-drawer-body">
+                {searchResults.length === 0 ? (
+                  <div className="no-results">暂无搜索结果</div>
+                ) : (
+                  searchResults.map((r, idx) => (
+                    <div key={idx} className="search-result-item" onClick={async () => {
+                      const nextForm = { ...form, title: r.title, artist: r.artist, album: r.album, year: r.year };
+                      setForm(nextForm);
+                      // 获取封面和歌词
+                      const coverRes = await fetch(`/api/music/cover-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}${r.source?.includes('musicbrainz') && r.sourceId ? `&releaseId=${encodeURIComponent(r.sourceId)}` : ''}`);
+                      const coverJson = await coverRes.json();
+                      if (coverJson?.success && coverJson.data) setCoverPreview(coverJson.data);
+                      
+                      const lyrRes = await fetch(`/api/music/lyrics-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}`);
+                      const lyrJson = await lyrRes.json();
+                      if (lyrJson?.success && lyrJson.data) setLyrics(lyrJson.data);
+                      
+                      setShowSearchPanel(false);
+                    }}>
+                      <div className="result-title">{r.title}</div>
+                      <div className="result-artist">{r.artist}</div>
+                      <div className="result-album">{r.album}</div>
+                      <div className="result-year">{r.year}</div>
+                      <div className="result-source">{r.source}</div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-      {showSearchPanel && <div className="td-drawer-mask" onClick={() => setShowSearchPanel(false)} />}
-      <div className="td-actions td-bottom">
-        <button className="td-btn primary" disabled={loading} onClick={handleSaveTags}>保存</button>
+          </div>
+        )}
       </div>
     </div>
   );

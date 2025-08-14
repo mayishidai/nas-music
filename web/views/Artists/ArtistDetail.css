@@ -1,6 +1,6 @@
 .artist-detail { display: flex; flex-direction: column; gap: 16px; height: 100%; }
 .ad-header { padding: 10px 20px 0 20px; }
-.ad-back { background: transparent; border: none; color: #ccc; cursor: pointer; margin-bottom: 8px; }
+.ad-back { background: transparent; border: none; color: #ccc; cursor: pointer; margin-bottom: 8px; padding: 20px; font-size: 18px; }
 .ad-banner { position: relative; height: 220px; background: linear-gradient(135deg,#334,#223); background-size: cover; background-position: center; border-radius: 12px; overflow: hidden; }
 .ad-placeholder { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; font-size: 64px; color: rgba(255,255,255,0.8); }
 .ad-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.6)); display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; }

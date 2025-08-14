@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { MusicList } from '../../components';
 import './ArtistDetail.css';
 
-const ArtistDetailView = ({ artist, onBack, onPlay, onAddToPlaylist }) => {
+const ArtistDetailView = ({ router, player }) => {
+  const artist = router.getCurrentData().artist;
   const name = artist?.name || '';
   const cover = artist?.photo || artist?.coverImage || null;
   const stats = {
@@ -10,10 +11,14 @@ const ArtistDetailView = ({ artist, onBack, onPlay, onAddToPlaylist }) => {
     tracks: artist?.trackCount || (artist?.tracks?.length || 0)
   };
 
+  if (!artist) {
+    return <div className="page-container">艺术家不存在</div>;
+  }
+
   return (
     <div className="artist-detail">
       <div className="ad-header">
-        <button className="ad-back" onClick={onBack}>← 返回</button>
+        <button className="ad-back" onClick={router.goBack}>← 返回</button>
         <div className="ad-banner" style={{ backgroundImage: cover ? `url(${cover})` : undefined }}>
           {!cover && <div className="ad-placeholder">👤</div>}
           <div className="ad-overlay">
@@ -32,8 +37,8 @@ const ArtistDetailView = ({ artist, onBack, onPlay, onAddToPlaylist }) => {
         <MusicList
           pageSize={10}
           searchKeyword={''}
-          onPlay={onPlay}
-          onAddToPlaylist={onAddToPlaylist}
+          onPlay={(track) => player.playMusic(track)}
+          onAddToPlaylist={(track) => player.addToPlaylist(track)}
           filters={{ artist: name }}
         />
       </div>
