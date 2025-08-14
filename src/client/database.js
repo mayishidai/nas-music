@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
+import crypto from 'crypto';
 import { ensureDir } from '../utils/fileUtils.js';
 
 // 确保数据库目录存在
@@ -9,6 +10,262 @@ ensureDir(dbDir);
 // 初始化 SQLite 数据库
 const dbPath = path.join(dbDir, 'music.db');
 const musicDB = new sqlite3.Database(dbPath);
+
+// 生成MD5哈希
+function generateMD5(text) {
+  return crypto.createHash('md5').update(text).digest('hex');
+}
+
+// 合并歌手信息
+async function mergeArtistInfo(artistName, normalizedName) {
+  try {
+    // 首先尝试查找现有的歌手记录
+    let artist = await queryOne('SELECT * FROM artists WHERE normalizedName = ?', [normalizedName]);
+    
+    if (artist) {
+      // 如果找到现有记录，检查名称是否需要更新
+      if (artist.name !== artistName) {
+        // 更新为更完整的名称
+        await run('UPDATE artists SET name = ?, updated_at = ? WHERE id = ?', [
+          artistName,
+          new Date().toISOString(),
+          artist.id
+        ]);
+        artist.name = artistName;
+      }
+      return artist;
+    }
+    
+    // 如果没有找到，创建新记录
+    const artistId = generateMD5(artistName);
+    await run('INSERT INTO artists (id, name, normalizedName, trackCount, albumCount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+      artistId,
+      artistName,
+      normalizedName,
+      0,
+      0,
+      new Date().toISOString(),
+      new Date().toISOString()
+    ]);
+    
+    return { id: artistId, name: artistName, normalizedName, trackCount: 0 };
+  } catch (error) {
+    // 如果插入失败（可能是并发插入），重新查询
+    if (error.message.includes('UNIQUE constraint failed')) {
+      const existingArtist = await queryOne('SELECT * FROM artists WHERE normalizedName = ?', [normalizedName]);
+      if (existingArtist) {
+        // 更新名称如果需要
+        if (existingArtist.name !== artistName) {
+          await run('UPDATE artists SET name = ?, updated_at = ? WHERE id = ?', [
+            artistName,
+            new Date().toISOString(),
+            existingArtist.id
+          ]);
+          existingArtist.name = artistName;
+        }
+        return existingArtist;
+      }
+    }
+    throw error;
+  }
+}
+
+// 合并专辑信息
+async function mergeAlbumInfo(albumTitle, primaryArtist, artistNames, year, coverImage) {
+  try {
+    const normalizedTitle = normalizeAlbumTitle(albumTitle);
+    
+    // 首先尝试查找现有的专辑记录 - 使用更宽松的匹配条件
+    let album = await queryOne('SELECT * FROM albums WHERE normalizedTitle = ? AND artist = ?', [
+      normalizedTitle,
+      primaryArtist
+    ]);
+    
+    // 如果没有找到，尝试只按标准化标题查找
+    if (!album) {
+      album = await queryOne('SELECT * FROM albums WHERE normalizedTitle = ?', [normalizedTitle]);
+    }
+    
+    // 如果仍然没有找到，尝试按原始标题查找
+    if (!album) {
+      album = await queryOne('SELECT * FROM albums WHERE title = ?', [albumTitle]);
+    }
+    
+    if (album) {
+      // 如果找到现有记录，检查是否需要更新信息
+      const needsUpdate = album.title !== albumTitle || 
+                         album.artists !== serializeArray(artistNames) ||
+                         (year && album.year !== year) ||
+                         (coverImage && album.coverImage !== coverImage) ||
+                         album.artist !== primaryArtist;
+      
+      if (needsUpdate) {
+        // 更新专辑信息
+        await run('UPDATE albums SET title = ?, artist = ?, artists = ?, year = ?, coverImage = ?, updated_at = ? WHERE id = ?', [
+          albumTitle,
+          primaryArtist,
+          serializeArray(artistNames),
+          year || album.year,
+          coverImage || album.coverImage,
+          new Date().toISOString(),
+          album.id
+        ]);
+        
+        // 更新本地对象
+        album.title = albumTitle;
+        album.artist = primaryArtist;
+        album.artists = serializeArray(artistNames);
+        album.year = year || album.year;
+        album.coverImage = coverImage || album.coverImage;
+      }
+      return album;
+    }
+    
+    // 如果没有找到，创建新记录
+    const albumId = generateMD5(albumTitle);
+    try {
+      await run('INSERT INTO albums (id, title, normalizedTitle, artist, artists, trackCount, year, coverImage, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        albumId,
+        albumTitle,
+        normalizedTitle,
+        primaryArtist,
+        serializeArray(artistNames),
+        0,
+        year,
+        coverImage,
+        new Date().toISOString(),
+        new Date().toISOString()
+      ]);
+      
+      return { id: albumId, title: albumTitle, trackCount: 0 };
+    } catch (insertError) {
+      // 如果插入失败（可能是并发插入），重新查询
+      if (insertError.message.includes('UNIQUE constraint failed')) {
+        // 尝试多种方式查找现有记录
+        let existingAlbum = await queryOne('SELECT * FROM albums WHERE normalizedTitle = ? AND artist = ?', [
+          normalizedTitle,
+          primaryArtist
+        ]);
+        
+        if (!existingAlbum) {
+          existingAlbum = await queryOne('SELECT * FROM albums WHERE normalizedTitle = ?', [normalizedTitle]);
+        }
+        
+        if (!existingAlbum) {
+          existingAlbum = await queryOne('SELECT * FROM albums WHERE title = ?', [albumTitle]);
+        }
+        
+        if (existingAlbum) {
+          // 更新信息如果需要
+          const needsUpdate = existingAlbum.title !== albumTitle || 
+                             existingAlbum.artists !== serializeArray(artistNames) ||
+                             (year && existingAlbum.year !== year) ||
+                             (coverImage && existingAlbum.coverImage !== coverImage) ||
+                             existingAlbum.artist !== primaryArtist;
+          
+          if (needsUpdate) {
+            await run('UPDATE albums SET title = ?, artist = ?, artists = ?, year = ?, coverImage = ?, updated_at = ? WHERE id = ?', [
+              albumTitle,
+              primaryArtist,
+              serializeArray(artistNames),
+              year || existingAlbum.year,
+              coverImage || existingAlbum.coverImage,
+              new Date().toISOString(),
+              existingAlbum.id
+            ]);
+            
+            existingAlbum.title = albumTitle;
+            existingAlbum.artist = primaryArtist;
+            existingAlbum.artists = serializeArray(artistNames);
+            existingAlbum.year = year || existingAlbum.year;
+            existingAlbum.coverImage = coverImage || existingAlbum.coverImage;
+          }
+          return existingAlbum;
+        }
+      }
+      throw insertError;
+    }
+  } catch (error) {
+    console.error('合并专辑信息失败:', error);
+    throw error;
+  }
+}
+
+// 高级专辑合并和去重函数
+async function mergeAndDeduplicateAlbums() {
+  try {
+    console.log('开始合并和去重专辑...');
+    
+    // 查找所有重复的专辑（基于标准化标题）
+    const duplicateAlbums = await query(`
+      SELECT normalizedTitle, COUNT(*) as count, GROUP_CONCAT(id) as ids, GROUP_CONCAT(title) as titles
+      FROM albums 
+      GROUP BY normalizedTitle 
+      HAVING COUNT(*) > 1
+    `);
+    
+    console.log(`找到 ${duplicateAlbums.length} 组重复专辑`);
+    
+    for (const duplicate of duplicateAlbums) {
+      const albumIds = duplicate.ids.split(',');
+      const titles = duplicate.titles.split(',');
+      
+      // 选择第一个专辑作为主记录
+      const primaryAlbumId = albumIds[0];
+      const primaryAlbum = await queryOne('SELECT * FROM albums WHERE id = ?', [primaryAlbumId]);
+      
+      if (!primaryAlbum) continue;
+      
+      console.log(`处理重复专辑: ${primaryAlbum.title} (${albumIds.length} 个记录)`);
+      
+      // 合并其他重复记录的信息到主记录
+      for (let i = 1; i < albumIds.length; i++) {
+        const duplicateAlbum = await queryOne('SELECT * FROM albums WHERE id = ?', [albumIds[i]]);
+        if (!duplicateAlbum) continue;
+        
+        // 合并信息（选择更完整的信息）
+        const mergedTitle = primaryAlbum.title.length >= duplicateAlbum.title.length ? 
+                           primaryAlbum.title : duplicateAlbum.title;
+        const mergedArtist = primaryAlbum.artist || duplicateAlbum.artist;
+        const mergedYear = primaryAlbum.year || duplicateAlbum.year;
+        const mergedCoverImage = primaryAlbum.coverImage || duplicateAlbum.coverImage;
+        
+        // 合并艺术家列表
+        const primaryArtists = deserializeArray(primaryAlbum.artists);
+        const duplicateArtists = deserializeArray(duplicateAlbum.artists);
+        const mergedArtists = [...new Set([...primaryArtists, ...duplicateArtists])];
+        
+        // 更新主记录
+        await run('UPDATE albums SET title = ?, artist = ?, artists = ?, year = ?, coverImage = ?, updated_at = ? WHERE id = ?', [
+          mergedTitle,
+          mergedArtist,
+          serializeArray(mergedArtists),
+          mergedYear,
+          mergedCoverImage,
+          new Date().toISOString(),
+          primaryAlbumId
+        ]);
+        
+        // 更新音乐记录中的专辑ID引用
+        await run('UPDATE music SET albumId = ? WHERE albumId = ?', [
+          primaryAlbumId,
+          albumIds[i]
+        ]);
+        
+        // 删除重复记录
+        await run('DELETE FROM albums WHERE id = ?', [albumIds[i]]);
+        
+        console.log(`已合并并删除重复专辑: ${duplicateAlbum.title}`);
+      }
+    }
+    
+    console.log('专辑合并和去重完成');
+    return true;
+  } catch (error) {
+    console.error('专辑合并和去重失败:', error);
+    throw error;
+  }
+}
 
 // 初始化数据库表
 function initializeTables() {
@@ -341,7 +598,7 @@ export async function findTrackByPath(trackPath) {
 
 // 根据路径更新或插入音乐
 export async function upsertTrackByPath(trackDoc) {
-  trackDoc.id = trackDoc.path
+  trackDoc.id = generateMD5(trackDoc.path);
   try {
     const existing = await queryOne('SELECT id FROM music WHERE path = ?', [trackDoc.path]);
     
@@ -353,22 +610,7 @@ export async function upsertTrackByPath(trackDoc) {
     const artistIds = [];
     for (const artistName of artistNames) {
       const normalizedName = normalizeArtistName(artistName);
-      let artist = await queryOne('SELECT * FROM artists WHERE normalizedName = ?', [normalizedName]);
-      
-      if (!artist) {
-        // 创建新歌手记录
-        const artistId = `artist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await run('INSERT INTO artists (id, name, normalizedName, trackCount, albumCount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [
-          artistId,
-          artistName,
-          normalizedName,
-          0,
-          0,
-          new Date().toISOString(),
-          new Date().toISOString()
-        ]);
-        artist = { id: artistId, name: artistName, normalizedName, trackCount: 0 };
-      }
+      const artist = await mergeArtistInfo(artistName, normalizedName);
       
       artistIds.push(artist.id);
       
@@ -384,31 +626,9 @@ export async function upsertTrackByPath(trackDoc) {
     // 处理专辑数据
     let albumId = null;
     if (albumTitle && artistNames.length > 0) {
-      const normalizedTitle = normalizeAlbumTitle(albumTitle);
       const primaryArtist = artistNames[0]; // 使用第一个歌手作为专辑的主要歌手
       
-      let album = await queryOne('SELECT * FROM albums WHERE normalizedTitle = ? AND artist = ?', [
-        normalizedTitle,
-        primaryArtist
-      ]);
-      
-      if (!album) {
-        // 创建新专辑记录
-        const albumIdNew = `album_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await run('INSERT INTO albums (id, title, normalizedTitle, artist, artists, trackCount, year, coverImage, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-          albumIdNew,
-          albumTitle,
-          normalizedTitle,
-          primaryArtist,
-          serializeArray(artistNames),
-          0,
-          trackDoc.year,
-          trackDoc.coverImage,
-          new Date().toISOString(),
-          new Date().toISOString()
-        ]);
-        album = { id: albumIdNew, title: albumTitle, trackCount: 0 };
-      }
+      let album = await mergeAlbumInfo(albumTitle, primaryArtist, artistNames, trackDoc.year, trackDoc.coverImage);
       
       albumId = album.id;
       
@@ -1106,4 +1326,5 @@ export default {
   findAlbumByTitleAndArtist,
   findAlbumById,
   getTracksByAlbum,
+  mergeAndDeduplicateAlbums
 };

@@ -229,39 +229,6 @@ router.get('/artists/:id', async (ctx) => {
   }
 });
 
-// 获取推荐音乐
-router.get('/recommendations/:trackId', async (ctx) => {
-  try {
-    const { trackId } = ctx.params;
-    const { limit = 10 } = ctx.query;
-    
-    const track = await findTrackById(trackId);
-    if (!track) {
-      ctx.status = 404;
-      ctx.body = { success: false, error: '音乐不存在' };
-      return;
-    }
-    
-    // 简单的推荐算法：基于相同艺术家和专辑
-    const allTracksResult = await getAllTracks({ pageSize: 1000 }); // 获取足够多的音乐用于推荐
-    const allTracks = allTracksResult.data || [];
-    const recommendations = allTracks
-      .filter(t => t.id !== trackId)
-      .filter(t => 
-        t.artist === track.artist || 
-        t.album === track.album ||
-        (t.artists && track.artists && t.artists.some(a => track.artists.includes(a)))
-      )
-      .slice(0, parseInt(limit));
-    
-    ctx.body = { success: true, data: recommendations };
-  } catch (error) {
-    console.error('获取推荐音乐失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '获取推荐音乐失败' };
-  }
-});
-
 // 流式播放音乐
 router.get('/stream/:id', async (ctx) => {
   try {

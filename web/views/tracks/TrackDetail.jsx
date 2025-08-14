@@ -3,16 +3,22 @@ import './TrackDetail.css';
 
 const TrackDetailPage = ({ router, player }) => {
   const [track, setTrack] = useState(null);
-  const [form, setForm] = useState({ title: '', artist: '', album: '', albumArtist: '', year: '', genre: '', track: '' });
+  const [form, setForm] = useState({ 
+    title: '', 
+    artist: '', 
+    album: '', 
+    year: '', 
+    lyrics: ''
+  });
   const [coverPreview, setCoverPreview] = useState('');
   const [loading, setLoading] = useState(false);
-  const [lyrics, setLyrics] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
 
   // 从路由数据获取track信息
   const trackData = router.getCurrentData().track;
+  console.log(trackData);
   const trackId = trackData?.id || trackData?._id;
 
   useEffect(() => {
@@ -21,7 +27,11 @@ const TrackDetailPage = ({ router, player }) => {
         setLoading(true);
         const res = await fetch(`/api/music/tracks/${trackId}`);
         const json = await res.json();
-        if (json?.success) setTrack(json.data);
+        if (json?.success) {
+          setTrack(json.data);
+        }
+      } catch (error) {
+        console.error('加载音乐详情失败:', error);
       } finally {
         setLoading(false);
       }
@@ -35,13 +45,10 @@ const TrackDetailPage = ({ router, player }) => {
         title: track.title || '',
         artist: track.artist || '',
         album: track.album || '',
-        albumArtist: track.albumArtist || '',
         year: track.year || '',
-        genre: track.genre || '',
-        track: track.track || ''
+        lyrics: track.lyrics || ''
       });
       setCoverPreview(track.coverImage || '');
-      setLyrics(track.lyrics || '');
     }
   }, [track]);
 
@@ -67,18 +74,29 @@ const TrackDetailPage = ({ router, player }) => {
     if (!track) return;
     setLoading(true);
     try {
-      await fetch(`/api/music/tracks/${track._id || track.id}/tags`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-          title: form.title, artist: form.artist, album: form.album, albumArtist: form.albumArtist, year: form.year, genre: form.genre, track: form.track
+      // 使用music.js API的PUT /tracks/:id接口
+      const response = await fetch(`/api/music/tracks/${trackId}`, {
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({
+          title: form.title, 
+          artist: form.artist, 
+          album: form.album, 
+          year: form.year, 
+          lyrics: form.lyrics
         })
       });
-      if (coverPreview && coverPreview !== track.coverImage) {
-        await fetch(`/api/music/tracks/${track._id || track.id}/cover`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ coverImage: coverPreview })
-        });
+      
+      const result = await response.json();
+      if (result.success) {
+        // 更新本地track数据
+        setTrack(prev => ({ ...prev, ...form }));
+        alert('保存成功');
+      } else {
+        alert('保存失败: ' + (result.error || '未知错误'));
       }
-      alert('保存成功');
-    } catch (e) {
+    } catch (error) {
+      console.error('保存失败:', error);
       alert('保存失败');
     } finally {
       setLoading(false);
@@ -91,23 +109,55 @@ const TrackDetailPage = ({ router, player }) => {
       setSearchLoading(true);
       setSearchResults([]);
       setShowSearchPanel(true);
+      
+      // 使用music.js API的GET /search接口
       const params = new URLSearchParams();
       const q = `${form.title || track?.title || ''} ${form.artist || track?.artist || ''}`.trim();
-      if (q) params.set('query', q);
-      if (form.title || track?.title) params.set('title', form.title || track?.title || '');
-      if (form.artist || track?.artist) params.set('artist', form.artist || track?.artist || '');
-      if (form.album || track?.album) params.set('album', form.album || track?.album || '');
-      if (fileName) params.set('filename', fileName);
-      if (trackId) params.set('trackId', trackId);
-      const res = await fetch(`/api/music/search-tags?${params.toString()}`);
+      if (q) {
+        params.set('q', q);
+        params.set('type', 'tracks');
+        params.set('pageSize', '10');
+      }
+      
+      const res = await fetch(`/api/music/search?${params.toString()}`);
       const json = await res.json();
       if (json?.success && Array.isArray(json.data)) {
         setSearchResults(json.data);
       }
-    } catch (e) {
-      console.error('搜索失败:', e);
+    } catch (error) {
+      console.error('搜索失败:', error);
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const handlePlayMusic = () => {
+    if (track) {
+      player.playMusic(track);
+    }
+  };
+
+  const handleAddToPlaylist = () => {
+    if (track) {
+      player.addToPlaylist(track);
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (!track) return;
+    try {
+      const response = await fetch(`/api/music/tracks/${trackId}/favorite`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite: !track.favorite })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        setTrack(prev => ({ ...prev, favorite: !prev.favorite }));
+      }
+    } catch (error) {
+      console.error('收藏操作失败:', error);
     }
   };
 
@@ -125,6 +175,19 @@ const TrackDetailPage = ({ router, player }) => {
         <button className="td-back" onClick={router.goBack}>← 返回</button>
         <h2 className="td-title">音乐详情</h2>
         <div className="td-title-actions">
+          <button className="td-btn" onClick={handlePlayMusic} title="播放">
+            ▶️
+          </button>
+          <button className="td-btn" onClick={handleAddToPlaylist} title="添加到播放列表">
+            📋
+          </button>
+          <button 
+            className={`td-btn ${track?.favorite ? 'active' : ''}`} 
+            onClick={handleFavorite} 
+            title={track?.favorite ? '取消收藏' : '收藏'}
+          >
+            {track?.favorite ? '❤️' : '🤍'}
+          </button>
           <button className="td-btn" disabled={searchLoading} onClick={handleOnlineSearch}>
             {searchLoading ? '搜索中…' : '在线搜索'}
           </button>
@@ -135,7 +198,11 @@ const TrackDetailPage = ({ router, player }) => {
         <div className="td-main">
           <div className="td-cover-section">
             <div className="td-cover-wrap">
-              <img  className="td-cover"  src={coverPreview || track?.coverImage || '/images/default_cover.png'}  alt="封面" />
+              <img 
+                className="td-cover" 
+                src={coverPreview || track?.coverImage || '/images/default_cover.png'} 
+                alt="封面" 
+              />
               <input 
                 type="file" 
                 accept="image/*" 
@@ -144,6 +211,51 @@ const TrackDetailPage = ({ router, player }) => {
                 id="cover-input"
               />
               <label htmlFor="cover-input" className="td-cover-label">选择封面</label>
+            </div>
+            
+            {/* 文件信息移动到封面区域 */}
+            <div className="td-file-info">
+              <div className="td-file-info-header">
+                <h4>📁 文件信息</h4>
+              </div>
+              <div className="td-file-info-content">
+                <div className="td-file-info-item">
+                  <span className="td-file-info-label">📄 文件名</span>
+                  <span className="td-file-info-value">{fileName}</span>
+                </div>
+                <div className="td-file-info-item">
+                  <span className="td-file-info-label">📂 文件路径</span>
+                  <span className="td-file-info-value">{folderPath}</span>
+                </div>
+                {track && (
+                  <>
+                    <div className="td-file-info-item">
+                      <span className="td-file-info-label">💾 文件大小</span>
+                      <span className="td-file-info-value">
+                        {track.size ? `${(track.size / 1024 / 1024).toFixed(2)} MB` : '未知'}
+                      </span>
+                    </div>
+                    <div className="td-file-info-item">
+                      <span className="td-file-info-label">⏱️ 时长</span>
+                      <span className="td-file-info-value">
+                        {track.duration ? `${Math.floor(track.duration / 60)}:${String(Math.floor(track.duration % 60)).padStart(2, '0')}` : '未知'}
+                      </span>
+                    </div>
+                    <div className="td-file-info-item">
+                      <span className="td-file-info-label">🎵 比特率</span>
+                      <span className="td-file-info-value">
+                        {track.bitrate ? `${Math.round(track.bitrate / 1000)} kbps` : '未知'}
+                      </span>
+                    </div>
+                    <div className="td-file-info-item">
+                      <span className="td-file-info-label">▶️ 播放次数</span>
+                      <span className="td-file-info-value">
+                        {track.playCount || 0}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -176,39 +288,12 @@ const TrackDetailPage = ({ router, player }) => {
               />
             </div>
             <div className="td-form-row">
-              <label>专辑艺术家</label>
-              <input 
-                type="text" 
-                value={form.albumArtist} 
-                onChange={(e) => setForm(prev => ({ ...prev, albumArtist: e.target.value }))}
-                placeholder="专辑艺术家"
-              />
-            </div>
-            <div className="td-form-row">
               <label>年份</label>
               <input 
                 type="text" 
                 value={form.year} 
                 onChange={(e) => setForm(prev => ({ ...prev, year: e.target.value }))}
                 placeholder="发行年份"
-              />
-            </div>
-            <div className="td-form-row">
-              <label>流派</label>
-              <input 
-                type="text" 
-                value={form.genre} 
-                onChange={(e) => setForm(prev => ({ ...prev, genre: e.target.value }))}
-                placeholder="音乐流派"
-              />
-            </div>
-            <div className="td-form-row">
-              <label>音轨号</label>
-              <input 
-                type="text" 
-                value={form.track} 
-                onChange={(e) => setForm(prev => ({ ...prev, track: e.target.value }))}
-                placeholder="音轨编号"
               />
             </div>
           </div>
@@ -218,21 +303,10 @@ const TrackDetailPage = ({ router, player }) => {
               <label>歌词</label>
               <textarea 
                 className="td-lyrics" 
-                value={lyrics} 
-                readOnly 
-                placeholder="暂无歌词" 
+                value={form.lyrics} 
+                onChange={(e) => setForm(prev => ({ ...prev, lyrics: e.target.value }))}
+                placeholder="歌词内容" 
               />
-            </div>
-          </div>
-
-          <div className="td-file-info">
-            <div className="td-form-row">
-              <label>文件名</label>
-              <span className="td-file-name">{fileName}</span>
-            </div>
-            <div className="td-form-row">
-              <label>文件路径</label>
-              <span className="td-file-path">{folderPath}</span>
             </div>
           </div>
 
@@ -260,26 +334,21 @@ const TrackDetailPage = ({ router, player }) => {
                 {searchResults.length === 0 ? (
                   <div className="no-results">暂无搜索结果</div>
                 ) : (
-                  searchResults.map((r, idx) => (
-                    <div key={idx} className="search-result-item" onClick={async () => {
-                      const nextForm = { ...form, title: r.title, artist: r.artist, album: r.album, year: r.year };
-                      setForm(nextForm);
-                      // 获取封面和歌词
-                      const coverRes = await fetch(`/api/music/cover-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}${r.source?.includes('musicbrainz') && r.sourceId ? `&releaseId=${encodeURIComponent(r.sourceId)}` : ''}`);
-                      const coverJson = await coverRes.json();
-                      if (coverJson?.success && coverJson.data) setCoverPreview(coverJson.data);
-                      
-                      const lyrRes = await fetch(`/api/music/lyrics-by-info?title=${encodeURIComponent(nextForm.title || '')}&artist=${encodeURIComponent(nextForm.artist || '')}`);
-                      const lyrJson = await lyrRes.json();
-                      if (lyrJson?.success && lyrJson.data) setLyrics(lyrJson.data);
-                      
+                  searchResults.map((result, idx) => (
+                    <div key={idx} className="search-result-item" onClick={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        title: result.title || prev.title,
+                        artist: result.artist || prev.artist,
+                        album: result.album || prev.album,
+                        year: result.year || prev.year,
+                      }));
                       setShowSearchPanel(false);
                     }}>
-                      <div className="result-title">{r.title}</div>
-                      <div className="result-artist">{r.artist}</div>
-                      <div className="result-album">{r.album}</div>
-                      <div className="result-year">{r.year}</div>
-                      <div className="result-source">{r.source}</div>
+                      <div className="result-title">{result.title}</div>
+                      <div className="result-artist">{result.artist}</div>
+                      <div className="result-album">{result.album}</div>
+                      <div className="result-year">{result.year}</div>
                     </div>
                   ))
                 )}
