@@ -199,7 +199,7 @@ const ArtistDetailView = ({ router, player }) => {
   }
 
   const name = artist?.name || '未知艺术家';
-  const cover = artist?.photo || artist?.coverImage || null;
+  const cover = artist?.photo || artist?.coverImage || '/images/default_artists.png';
   const stats = {
     albums: artist?.albumCount || (artist?.albums?.length || 0),
     tracks: total || artist?.trackCount || (artist?.tracks?.length || 0)
@@ -207,12 +207,24 @@ const ArtistDetailView = ({ router, player }) => {
 
   return (
     <div className="artist-detail">
-      <div className="ad-header">
+      {/* 背景图片区域 */}
+      <div className="ad-background-section">
+        <div 
+          className="ad-background-image" 
+          style={{ backgroundImage: `url(${cover})` }}
+        />
+        <div className="ad-background-overlay" />
+        
+        {/* 返回按钮 */}
         <button className="ad-back" onClick={router.goBack}>← 返回</button>
-        <div className="ad-banner" style={{ backgroundImage: cover ? `url(${cover})` : undefined }}>
-          {!cover && <div className="ad-placeholder">👤</div>}
-          <div className="ad-overlay">
-            <h2 className="ad-name">{name}</h2>
+        
+        {/* 艺术家信息 */}
+        <div className="ad-artist-info">
+          <div className="ad-artist-photo">
+            <img src={cover} alt={name} className="ad-photo-image" />
+          </div>
+          <div className="ad-artist-details">
+            <h1 className="ad-name">{name}</h1>
             <div className="ad-stats">
               <span>{stats.albums} 张专辑</span>
               <span className="dot">•</span>
@@ -223,6 +235,7 @@ const ArtistDetailView = ({ router, player }) => {
         </div>
       </div>
 
+      {/* 内容区域 */}
       <div className="ad-content">
         <div className="ad-tracks">
           <div className="ad-tracks-header">

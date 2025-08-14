@@ -1,77 +1,120 @@
 .artist-detail { 
   display: flex; 
   flex-direction: column; 
-  gap: 16px; 
   height: 100%; 
-  padding: 16px;
   background: #1a1a1a;
   color: #fff;
+  position: relative;
 }
 
-.artist-detail .ad-header { 
-  padding: 10px 20px 0 20px; 
+/* 背景图片区域 */
+.artist-detail .ad-background-section {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
+.artist-detail .ad-background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(2px);
+  transform: scale(1.1);
+}
+
+.artist-detail .ad-background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(26, 26, 26, 0.3) 0%,
+    rgba(26, 26, 26, 0.6) 50%,
+    rgba(26, 26, 26, 0.9) 80%,
+    #1a1a1a 100%
+  );
+  z-index: 1;
+}
+
+/* 返回按钮 */
 .artist-detail .ad-back { 
-  background: transparent; 
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: transparent;
   border: none; 
-  color: #ccc; 
+  color: #fff; 
   cursor: pointer; 
-  margin-bottom: 8px; 
-  padding: 20px; 
-  font-size: 18px;
+  padding: 12px 16px; 
+  font-size: 16px;
+  border-radius: 8px;
   transition: all 0.2s ease;
+  z-index: 2;
+  backdrop-filter: blur(10px);
 }
 
 .artist-detail .ad-back:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.2);
   color: #fff;
 }
 
-.artist-detail .ad-banner { 
-  position: relative; 
-  height: 220px; 
-  background: linear-gradient(135deg,#334,#223); 
-  background-size: cover; 
-  background-position: center; 
-  border-radius: 12px; 
-  overflow: hidden; 
+/* 艺术家信息区域 */
+.artist-detail .ad-artist-info {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  padding: 0 20px 20px 20px;
 }
 
-.artist-detail .ad-placeholder { 
-  position: absolute; 
-  inset: 0; 
-  display:flex; 
-  align-items:center; 
-  justify-content:center; 
-  font-size: 64px; 
-  color: rgba(255,255,255,0.8); 
+.artist-detail .ad-artist-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
-.artist-detail .ad-overlay { 
-  position: absolute; 
-  inset: 0; 
-  background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.6)); 
-  display: flex; 
-  flex-direction: column; 
-  justify-content: flex-end; 
-  padding: 16px; 
+.artist-detail .ad-photo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artist-detail .ad-artist-details {
+  flex: 1;
+  padding-bottom: 10px;
 }
 
 .artist-detail .ad-name { 
-  margin: 0 0 6px 0; 
-  font-size: 2em;
-  font-weight: 600;
+  margin: 0 0 8px 0; 
+  font-size: 2.2em;
+  font-weight: 700;
   color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .artist-detail .ad-stats { 
-  color: #ccc; 
+  color: rgba(255, 255, 255, 0.9); 
   display: flex; 
   align-items: center; 
   gap: 8px; 
-  margin-bottom: 6px; 
-  font-size: 14px;
+  margin-bottom: 8px; 
+  font-size: 16px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .artist-detail .ad-stats .dot { 
@@ -79,17 +122,19 @@
 }
 
 .artist-detail .ad-desc { 
-  color: #aaa; 
-  font-size: 13px; 
+  color: rgba(255, 255, 255, 0.7); 
+  font-size: 14px; 
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+/* 内容区域 */
 .artist-detail .ad-content {
-  padding: 0 20px 20px 20px;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  overflow-y: auto;
+  overflow: hidden;
+  padding: 20px;
 }
 
 .artist-detail .ad-tracks {
@@ -97,6 +142,20 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* MusicList组件在艺术家详情页面中的样式 */
+.artist-detail .ad-tracks .music-list-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.artist-detail .ad-tracks .music-list {
+  height: 100%;
+  min-height: 0;
 }
 
 .artist-detail .ad-tracks-header {
@@ -261,36 +320,44 @@
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .artist-detail {
-    padding: 12px;
-  }
-  
-  .artist-detail .ad-header {
-    padding: 10px 12px 0 12px;
+  .artist-detail .ad-background-section {
+    height: 250px;
   }
   
   .artist-detail .ad-back {
-    padding: 12px 16px;
-    font-size: 16px;
-    margin-bottom: 6px;
+    top: 16px;
+    left: 16px;
+    padding: 10px 14px;
+    font-size: 15px;
   }
   
-  .artist-detail .ad-banner { 
-    height: 180px; 
+  .artist-detail .ad-artist-info {
+    gap: 16px;
+    padding: 0 16px 16px 16px;
+  }
+  
+  .artist-detail .ad-artist-photo {
+    width: 100px;
+    height: 100px;
   }
   
   .artist-detail .ad-name {
-    font-size: 1.5em;
+    font-size: 1.8em;
+  }
+  
+  .artist-detail .ad-stats {
+    font-size: 14px;
   }
   
   .artist-detail .ad-content {
-    padding: 0 12px 12px 12px;
+    padding: 16px;
   }
   
   .artist-detail .ad-tracks-header {
     flex-direction: row;
     align-items: center;
     gap: 12px;
+    min-height: 40px;
   }
   
   .artist-detail .ad-tracks-title {
@@ -323,26 +390,29 @@
 }
 
 @media (max-width: 480px) {
-  .artist-detail {
-    padding: 8px;
-  }
-  
-  .artist-detail .ad-header {
-    padding: 8px 8px 0 8px;
+  .artist-detail .ad-background-section {
+    height: 200px;
   }
   
   .artist-detail .ad-back {
+    top: 12px;
+    left: 12px;
     padding: 8px 12px;
     font-size: 14px;
-    margin-bottom: 4px;
   }
   
-  .artist-detail .ad-banner {
-    height: 140px;
+  .artist-detail .ad-artist-info {
+    gap: 12px;
+    padding: 0 12px 12px 12px;
+  }
+  
+  .artist-detail .ad-artist-photo {
+    width: 80px;
+    height: 80px;
   }
   
   .artist-detail .ad-name {
-    font-size: 1.2em;
+    font-size: 1.5em;
   }
   
   .artist-detail .ad-stats {
@@ -350,7 +420,7 @@
   }
   
   .artist-detail .ad-content {
-    padding: 0 8px 8px 8px;
+    padding: 12px;
   }
   
   .artist-detail .ad-tracks-header {
@@ -376,26 +446,29 @@
 }
 
 @media (max-width: 360px) {
-  .artist-detail {
-    padding: 6px;
-  }
-  
-  .artist-detail .ad-header {
-    padding: 6px 6px 0 6px;
+  .artist-detail .ad-background-section {
+    height: 180px;
   }
   
   .artist-detail .ad-back {
-    padding: 6px 8px;
+    top: 8px;
+    left: 8px;
+    padding: 6px 10px;
     font-size: 13px;
-    margin-bottom: 3px;
   }
   
-  .artist-detail .ad-banner {
-    height: 120px;
+  .artist-detail .ad-artist-info {
+    gap: 10px;
+    padding: 0 8px 8px 8px;
+  }
+  
+  .artist-detail .ad-artist-photo {
+    width: 70px;
+    height: 70px;
   }
   
   .artist-detail .ad-name {
-    font-size: 1.1em;
+    font-size: 1.3em;
   }
   
   .artist-detail .ad-stats {
@@ -403,11 +476,12 @@
   }
   
   .artist-detail .ad-content {
-    padding: 0 6px 6px 6px;
+    padding: 8px;
   }
   
   .artist-detail .ad-tracks-header {
     gap: 6px;
+    min-height: 36px;
   }
   
   .artist-detail .ad-tracks-title {

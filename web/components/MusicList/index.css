@@ -49,6 +49,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .music-table {
@@ -187,9 +188,9 @@
 
 /* 标题列样式 */
 .col-title {
-  min-width: 200px;
-  max-width: 300px;
-  width: 25%;
+  min-width: 250px;
+  max-width: 400px;
+  width: 35%;
 }
 
 .title-cell {
@@ -216,9 +217,9 @@
 
 /* 其他列样式 */
 .col-artist {
-  min-width: 150px;
-  max-width: 200px;
-  width: 20%;
+  min-width: 120px;
+  max-width: 180px;
+  width: 18%;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
   overflow: hidden;
@@ -226,9 +227,9 @@
 }
 
 .col-album {
-  min-width: 150px;
-  max-width: 200px;
-  width: 20%;
+  min-width: 120px;
+  max-width: 180px;
+  width: 18%;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap;
   overflow: hidden;
@@ -272,9 +273,9 @@
 }
 
 .col-actions {
-  width: 150px;
+  width: 140px;
   min-width: 120px;
-  max-width: 150px;
+  max-width: 140px;
   text-align: center !important;
   flex-shrink: 0;
 }
@@ -581,7 +582,8 @@
   }
 
   .col-title {
-    min-width: 150px;
+    min-width: 180px;
+    width: 60%;
   }
   .col-actions {
     width: 120px;
@@ -627,6 +629,11 @@
   .music-table th,
   .music-table td {
     padding: 4px 1px;
+  }
+  
+  .col-title {
+    min-width: 150px;
+    width: 65%;
   }
   
   .action-buttons {
