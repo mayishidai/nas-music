@@ -65,7 +65,7 @@ export async function getMetadata(filePath) {
       bitrate,
       sampleRate,
       channels,
-      fileSize: stats.size,
+      size: stats.size,
       year: metadata.common.year || null,
       trackNumber: metadata.common.track?.no || null,
       totalTracks: metadata.common.track?.of || null,

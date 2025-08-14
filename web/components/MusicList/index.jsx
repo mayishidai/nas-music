@@ -18,19 +18,23 @@ function formatDuration(seconds) {
 }
 
 /**
- * 格式化音乐品质信息
- * @param {Object} track - 音乐信息
- * @returns {string} 格式化后的品质信息
+ * 格式化文件大小
+ * @param {number} bytes - 字节数
+ * @returns {string} 格式化后的文件大小
  */
-function formatQuality(track) {
-  const ext = (track?.filename?.split('.').pop() || '').toUpperCase();
-  const kbps = track?.bitrate ? Math.round(track.bitrate / 1000) : null;
-  const khz = track?.sampleRate ? Math.round(track.sampleRate / 1000) : null;
-  const parts = [];
-  if (ext) parts.push(ext);
-  if (kbps) parts.push(`${kbps}kbps`);
-  if (khz) parts.push(`${khz}kHz`);
-  return parts.join(' ') || '—';
+function formatFileSize(bytes) {
+  if (!bytes && bytes !== 0) return '—';
+  
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
 /**
@@ -194,6 +198,7 @@ const MusicList = ({
           duration: t.duration,
           year: t.year,
           filename: t.filename,
+          fileSize: t.size, // 映射数据库中的size字段
           bitrate: t.bitrate,
           sampleRate: t.sampleRate,
           coverImage: t.coverImage,
@@ -340,7 +345,17 @@ const MusicList = ({
                   </span>
                 )}
               </th>
-              <th className="col-quality">品质</th>
+              <th 
+                className="col-filesize sortable"
+                onClick={() => handleSort('size')}
+              >
+                文件大小
+                {sortKey === 'size' && (
+                  <span className="sort-indicator">
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </th>
               <th className="col-actions">操作</th>
             </tr>
           </thead>
@@ -375,8 +390,8 @@ const MusicList = ({
                 <td className="col-duration">
                   {formatDuration(track.duration)}
                 </td>
-                <td className="col-quality">
-                  {formatQuality(track)}
+                <td className="col-filesize">
+                  {formatFileSize(track.fileSize)}
                 </td>
                 <td className="col-actions">
                   <div className="action-buttons">

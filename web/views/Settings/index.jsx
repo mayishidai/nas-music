@@ -5,7 +5,7 @@ import './Settings.css';
 /**
  * 设置页面组件
  */
-const SettingsPage = () => {
+const SettingsPage = ({ router }) => {
   // 媒体库管理状态
   const [mediaLibraries, setMediaLibraries] = useState([]);
   const [newLibraryPath, setNewLibraryPath] = useState('');
@@ -220,11 +220,18 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-content">
-        <div className="settings-page">
+    <div className="page-container settings-container">
+      <div className="fav-toolbar">
+        <div className="fav-toolbar-left">
+          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
           <h2>⚙️ 设置</h2>
-          
+        </div>
+        <div className="fav-actions">
+          {/* 可以在这里添加设置相关的操作按钮 */}
+        </div>
+      </div>
+      <div className="settings-view">
+        <div className="settings-page">
           {/* 媒体库管理 */}
           <div className="settings-section">
             <h3>📁 媒体库管理</h3>
@@ -335,8 +342,6 @@ const SettingsPage = () => {
                 </div>
               </div>
             </div>
-            
-            {/* 已移除：AcoustID、腾讯云音乐、网易云音乐 配置 */}
             
             {/* 保存按钮 */}
             <div className="save-config">
