@@ -206,8 +206,15 @@ export const updateTrack = (trackId, updates) => {
 
 // 获取收藏的音乐（支持排序、分页）
 export const getFavoriteTracks = (options = {}) => {
-  const { sort = 'title', order = 'asc', page = 1, pageSize = 10 } = options;
+  const { sort = 'title', order = 'asc', page = 1, pageSize = 10, search = '' } = options;
   const conditions = { type: 'track', favorite: 1 };
+  if (search) {
+    conditions.search = { 
+      operator: 'SQL', 
+      condition: `title LIKE @search OR artist LIKE @search OR album LIKE @search OR filename LIKE @search`, 
+      params: { search: `%${search}%` }
+    };
+  }
   const sortField = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'lastPlayed'].includes(sort) ? sort : 'title';
   const sortOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
   return client.page('music', page, pageSize, `${sortField} ${sortOrder}`, conditions);
@@ -215,13 +222,13 @@ export const getFavoriteTracks = (options = {}) => {
 
 // 获取最近播放的音乐（支持分页）
 export const getRecentlyPlayedTracks = (options = {}) => {
-  const { query, sort = 'title', order = 'asc', page = 1, pageSize = 10 } = options;
+  const { search, sort = 'title', order = 'asc', page = 1, pageSize = 10 } = options;
   const conditions = {
     type: 'track',
     lastPlayed: { operator: 'IS NOT', data: null }
   };
-  if (query) {
-    conditions.query = { operator: 'SQL', condition: `title LIKE @query OR artist LIKE @query`, params: { query: `%${query}%` }};
+  if (search) {
+    conditions.search = { operator: 'SQL', condition: `title LIKE @search OR artist LIKE @search`, params: { search: `%${search}%` }};
   }
   const sortField = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'lastPlayed'].includes(sort) ? sort : 'title';
   const sortOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
