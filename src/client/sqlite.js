@@ -6,11 +6,36 @@ import { ensureDir } from '../utils/fileUtils.js';
 // 确保数据库目录存在
 const dbDir = './db';
 ensureDir(dbDir);
-const musicDB = new Database(path.join(dbDir, 'music.db'));
+const musicDB = new Database(path.join(dbDir, 'music.db'), { verbose: null });
+// 歌手名称分隔符
+const ARTIST_SEPARATORS = ['/', '、', ',', '，', '&', '&amp;', 'feat.', 'feat', 'ft.', 'ft', 'featuring', 'vs', 'VS'];
 
 const util = {
+  merge: (a={}, b={}) => {
+    const fields = Object.keys(a).concat(Object.keys(b));
+    const result = {};
+    for (const field of fields) {
+      result[field] = a[field] || b[field];
+    }
+    return result;
+  },
   md5: (str) => {
     return crypto.createHash('md5').update(str).digest('hex');
+  },
+  formatArtistNames: (artistString) => {
+    if (!artistString || typeof artistString !== 'string') { return []; }
+    let names = [artistString];
+    for (const separator of ARTIST_SEPARATORS) {
+      const newNames = [];
+      for (const name of names) {
+        newNames.push(...name.split(separator).map(n => n.trim()).filter(n => n));
+      }
+      names = newNames;
+    }
+    return [...new Set(names)].filter(name => name.length > 0);
+  },
+  normalize: (str) => {
+    return str.toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, '').replace(/ /g, '').trim();
   },
   serialize: (json) => {
     return json ? JSON.stringify(json) : null;
@@ -33,6 +58,10 @@ const util = {
     for (const [key, value] of Object.entries(filter)) {
       if(typeof value === 'object' && value.operator){
         switch (value.operator) {
+          case 'SQL':
+            conditions.push(`(${value.condition})`);
+            Object.assign(params, value.params);
+            break;
           case 'IN':
             conditions.push(`${key} IN (${value.data.map((v,i) => `@${prefix}${key}_${i}`).join(',')})`);
             value.data.forEach((v,i)=>{
@@ -148,10 +177,11 @@ const util = {
 }
 
 const db = {
+  ...musicDB,
   close: () => musicDB.close(),
   transaction: (fn, data) => {
     const func = musicDB.transaction((data)=>{
-      fn(client)
+      fn(client, data)
     })
     return func(data)
   },
@@ -191,6 +221,17 @@ const db = {
 const client = {
   db: db,
   util: util,
+  transaction: (fn, data) => {
+    const func = musicDB.transaction((data)=>{
+      fn(client, data)
+    })
+    return func(data)
+  },
+  iterate: (table, filter={}, callback=(data)=>{}) => {
+    const { conditions, params } = util.selectFormatOperator('', filter);
+    const sql = conditions.length > 0 ? `SELECT * FROM ${table} WHERE ${conditions.join(' AND ')}` : `SELECT * FROM ${table}`;
+    return db.iterate(sql, params, callback);
+  },
   queryOne: (table, filter={}) => {
     const { conditions, params } = util.selectFormatOperator('', filter);
     const sql = conditions.length > 0 ? `SELECT * FROM ${table} WHERE ${conditions.join(' AND ')}` : `SELECT * FROM ${table}`;
@@ -218,11 +259,14 @@ const client = {
   page: (table, page=1, pageSize=10, sort='id ASC', filter={}) => {
     const { conditions, params } = util.selectFormatOperator('', filter);
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const pagesql = db.prepare(`SELECT * FROM ${table} ${whereClause} ORDER BY ${sort} LIMIT ${pageSize} OFFSET ${(page-1)*pageSize}`);
+    const pagesql = db.prepare(`SELECT * FROM ${table} ${whereClause} ORDER BY ${sort} LIMIT @_limit OFFSET @_offset`);
     const countsql = db.prepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
-    const totalCount = countsql.get(params);
+    params['_limit'] = pageSize;
+    params['_offset'] = (page-1)*pageSize;
+
+    const { count } = countsql.get(params);
     const pageData = pagesql.all(params);
-    return { data: pageData, totalCount: totalCount.count, totalPage: Math.ceil(totalCount.count / pageSize), page, pageSize, sort };
+    return { data: pageData, pagination: { total: count, pages: Math.ceil(count / pageSize), page, pageSize }, sort };
   },
   count: (table, filter={}) => {
     const { conditions, params } = util.selectFormatOperator('', filter);

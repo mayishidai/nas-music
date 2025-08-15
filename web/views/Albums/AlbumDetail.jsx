@@ -236,9 +236,7 @@ const AlbumDetailView = ({ router, player }) => {
                 <div className="td td-no">{idx + 1}</div>
                 <div className="td td-title">
                   <div className="title-wrap">
-                    {track.coverImage && (
-                      <img className="td-cover" src={track.coverImage} alt="封面" />
-                    )}
+                    <img className="td-cover" src={track.coverImage || '/images/default_albums.png'} alt="封面" />
                     <div className="title-text">
                       <div className="title" title={track.title}>
                         {track.title || '未知标题'}

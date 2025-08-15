@@ -322,8 +322,7 @@ export async function scanMediaLibrary(libraryId) {
           favorite: false,
           playCount: 0
         };
-        
-        await upsertTrackByPath(trackDoc);
+        upsertTrackByPath(trackDoc);
         processedTracks.push(trackDoc);
         processedFiles++;
         
@@ -338,12 +337,7 @@ export async function scanMediaLibrary(libraryId) {
     
     // 开始扫描后处理
     console.log('开始扫描后处理...');
-    try {
-      const postProcessResult = await postScanProcessing();
-      console.log('扫描后处理完成:', postProcessResult);
-    } catch (error) {
-      console.error('扫描后处理失败:', error);
-    }
+    postScanProcessing();
     
     scanProgress.set(libraryId, { 
       status: 'completed', 
