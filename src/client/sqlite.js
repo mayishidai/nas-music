@@ -6,7 +6,7 @@ import { ensureDir } from '../utils/fileUtils.js';
 // 确保数据库目录存在
 const dbDir = './db';
 ensureDir(dbDir);
-const musicDB = new Database(path.join(dbDir, 'music.db'), { verbose: console.log });
+const musicDB = new Database(path.join(dbDir, 'music.db'));
 
 const util = {
   md5: (str) => {
@@ -27,10 +27,10 @@ const util = {
    * { field1: { operator: 'LIKE', data: '123' } }
    * { field1: [{ operator: 'IN', data: [1,2,3] }, { operator: 'BETWEEN', data: [1,2] }] }
    */
-  selectFormatOperator: (prefix='', options) => {
+  selectFormatOperator: (prefix='', filter) => {
     const conditions = [];
     const params = {};
-    for (const [key, value] of Object.entries(options)) {
+    for (const [key, value] of Object.entries(filter)) {
       if(typeof value === 'object' && value.operator){
         switch (value.operator) {
           case 'IN':
@@ -113,8 +113,8 @@ const util = {
       return data
     })
   },
-  updateFormatOperator: (data={}, options={}) => {
-    const select = util.selectFormatOperator('s_', options);
+  updateFormatOperator: (data={}, filter={}) => {
+    const select = util.selectFormatOperator('s_', filter);
     const update = util.selectFormatOperator('u_', data);
     return { update_conditions: update.conditions, update_params: update.params, select_conditions: select.conditions, select_params: select.params };
   },
@@ -172,18 +172,32 @@ const db = {
 const client = {
   db: db,
   util: util,
-  queryOne: (table, options={}) => {
-    const { conditions, params } = util.selectFormatOperator('', options);
+  queryOne: (table, filter={}) => {
+    const { conditions, params } = util.selectFormatOperator('', filter);
     const sql = conditions.length > 0 ? `SELECT * FROM ${table} WHERE ${conditions.join(' AND ')}` : `SELECT * FROM ${table}`;
     return db.queryOne(sql, params);
   },
-  queryAll: (table, options={}) => {
-    const { conditions, params } = util.selectFormatOperator('', options);
+  queryList: (table, filter={}, limit=100, offset=0) => {
+    const { conditions, params } = util.selectFormatOperator('', filter);
+    if(conditions.length > 0){  
+      params['_limit'] = limit;
+      params['_offset'] = offset;
+      const sql = `SELECT * FROM ${table} WHERE ${conditions.join(' AND ')} LIMIT @_limit OFFSET @_offset`;
+      return db.queryAll(sql, params);
+    }else{
+      params['_limit'] = limit;
+      params['_offset'] = offset;
+      const sql = `SELECT * FROM ${table} LIMIT @_limit OFFSET @_offset`;
+      return db.queryAll(sql, params);
+    }
+  },
+  queryAll: (table, filter={}) => {
+    const { conditions, params } = util.selectFormatOperator('', filter);
     const sql = conditions.length > 0 ? `SELECT * FROM ${table} WHERE ${conditions.join(' AND ')}` : `SELECT * FROM ${table}`;
     return db.queryAll(sql, params);
   },
-  page: (table, page=1, pageSize=10, sort='id ASC', options={}) => {
-    const { conditions, params } = util.selectFormatOperator('', options);
+  page: (table, page=1, pageSize=10, sort='id ASC', filter={}) => {
+    const { conditions, params } = util.selectFormatOperator('', filter);
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const pagesql = db.prepare(`SELECT * FROM ${table} ${whereClause} ORDER BY ${sort} LIMIT ${pageSize} OFFSET ${(page-1)*pageSize}`);
     const countsql = db.prepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
@@ -191,8 +205,8 @@ const client = {
     const pageData = pagesql.all(params);
     return { data: pageData, totalCount: totalCount.count, totalPage: Math.ceil(totalCount.count / pageSize), page, pageSize, sort };
   },
-  count: (table, options={}) => {
-    const { conditions, params } = util.selectFormatOperator('', options);
+  count: (table, filter={}) => {
+    const { conditions, params } = util.selectFormatOperator('', filter);
     const sql = conditions.length > 0 ? `SELECT COUNT(*) as count FROM ${table} WHERE ${conditions.join(' AND ')}` : `SELECT COUNT(*) as count FROM ${table}`;
     return db.queryOne(sql, params).count;
   },
@@ -215,13 +229,13 @@ const client = {
     const sql = `INSERT INTO ${table} (${fields.join(',')}) VALUES (${placeholder.join(',')}) ON CONFLICT(id) DO UPDATE SET ${update_conditions.join(',')}`;
     return db.execute(sql, { ...params, ...update_params });
   },
-  update: (table, data={}, options={}) => {
-    const { update_conditions, update_params, select_conditions, select_params } = util.updateFormatOperator(data, options);
+  update: (table, data={}, filter={}) => {
+    const { update_conditions, update_params, select_conditions, select_params } = util.updateFormatOperator(data, filter);
     const sql = `UPDATE ${table} SET ${update_conditions.join(',')} WHERE ${select_conditions.join(' AND ')}`;
     return db.execute(sql, { ...update_params, ...select_params });
   },
-  delete: (table, options={}) => {
-    const { conditions, params } = util.deleteFormatOperator(options);
+  delete: (table, filter={}) => {
+    const { conditions, params } = util.deleteFormatOperator(filter);
     const sql = `DELETE FROM ${table} WHERE ${conditions.join(' AND ')}`;
     console.log(sql, params)
     return db.execute(sql, params);

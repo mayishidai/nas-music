@@ -1,7 +1,6 @@
 import Router from 'koa-router';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
-import path from 'path';
 import { 
   getAllTracks, 
   findTrackById, 
@@ -11,12 +10,10 @@ import {
   getArtists, 
   findAlbumById, 
   findArtistById, 
-  getTracksByAlbum, 
-  getTracksByArtist, 
+  getTracksByAlbum,
   getRecentlyPlayedTracks,
   updateArtistInfo,
   getArtistDetails,
-  mergeAndDeduplicateAlbums
 } from '../client/database.js';
 
 const router = new Router();
@@ -186,17 +183,8 @@ router.get('/albums/:id', async (ctx) => {
       ctx.body = { success: false, error: '专辑不存在' };
       return;
     }
-    
-    // 获取专辑下的音乐
     const tracks = await getTracksByAlbum(id);
-    
-    ctx.body = { 
-      success: true, 
-      data: { 
-        ...album, 
-        tracks 
-      } 
-    };
+    ctx.body = { success: true, data: { ...album, tracks } };
   } catch (error) {
     console.error('获取专辑详情失败:', error);
     ctx.status = 500;
@@ -209,23 +197,12 @@ router.get('/artists/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
     const artist = await findArtistById(id);
-    
     if (!artist) {
       ctx.status = 404;
       ctx.body = { success: false, error: '艺术家不存在' };
       return;
     }
-    
-    // 获取艺术家的音乐
-    const tracks = await getTracksByArtist(id);
-    
-    ctx.body = { 
-      success: true, 
-      data: { 
-        ...artist, 
-        tracks 
-      } 
-    };
+    ctx.body = {  success: true, data:artist };
   } catch (error) {
     console.error('获取艺术家详情失败:', error);
     ctx.status = 500;
