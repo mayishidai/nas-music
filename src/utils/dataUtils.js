@@ -75,3 +75,13 @@ export function deduplicateResults(results) {
   
   return unique;
 }
+
+
+export const merge = (a={}, b={}) => {
+  const fields = Object.keys(a).concat(Object.keys(b));
+  const result = {};
+  for (const field of fields) {
+    result[field] = a[field] || b[field];
+  }
+  return result;
+}

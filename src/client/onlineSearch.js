@@ -414,7 +414,6 @@ function mergeArtistInfo(results) {
 async function saveArtistInfo(artistInfo) {
   try {
     const artistId = `artist_${artistInfo.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    
     // 构建歌手文档
     const artistDoc = {
       id: artistId,
@@ -460,7 +459,6 @@ async function saveArtistInfo(artistInfo) {
       artistDoc.path = `artist://${artistInfo.name}`;
       await upsertTrackByPath(artistDoc);
     }
-    
     console.log(`歌手信息已保存: ${artistInfo.name}`);
   } catch (error) {
     console.error('保存歌手信息失败:', error);

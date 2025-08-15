@@ -1,6 +1,6 @@
 import Router from 'koa-router';
 import axios from 'axios';
-import { getConfig, saveConfig, getMusicStats } from '../client/database.js';
+import { getConfig, saveConfig, getMusicStats, postScanProcessing } from '../client/database.js';
 import { getMediaLibraries, addMediaLibrary, deleteMediaLibrary, scanMediaLibrary, getScanProgress } from '../client/metadata.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -295,6 +295,30 @@ router.get('/music-stats', async (ctx) => {
     ctx.body = {
       success: false,
       error: '获取音乐统计失败'
+    };
+  }
+});
+
+/**
+ * 手动触发扫描后处理
+ * POST /api/settings/post-scan-processing
+ */
+router.post('/post-scan-processing', async (ctx) => {
+  try {
+    console.log('手动触发扫描后处理...');
+    const result = await postScanProcessing();
+    
+    ctx.body = {
+      success: true,
+      message: '扫描后处理完成',
+      data: result
+    };
+  } catch (error) {
+    console.error('扫描后处理失败:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: '扫描后处理失败: ' + error.message
     };
   }
 });

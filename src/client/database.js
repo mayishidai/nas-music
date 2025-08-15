@@ -1,299 +1,6 @@
 import client from './sqlite.js'
 import './initDatabase.js'
-
-// 合并歌手信息
-async function mergeArtistInfo(artistName, normalizedName, artistInfo = {}) {
-  try {
-    // 首先尝试查找现有的歌手记录
-    let artist = client.queryOne('artists', { normalizedName });
-    
-    if (artist) {
-      // 如果找到现有记录，检查名称和其他信息是否需要更新
-      const needsUpdate = artist.name !== artistName ||
-                         (artistInfo.photo && artist.photo !== artistInfo.photo) ||
-                         (artistInfo.bio && artist.bio !== artistInfo.bio) ||
-                         (artistInfo.country && artist.country !== artistInfo.country) ||
-                         (artistInfo.genre && artist.genre !== artistInfo.genre) ||
-                         (artistInfo.website && artist.website !== artistInfo.website) ||
-                         (artistInfo.socialMedia && artist.socialMedia !== artistInfo.socialMedia);
-      
-      if (needsUpdate) {
-        const updateData = {};
-        
-        if (artist.name !== artistName) updateData.name = artistName;
-        if (artistInfo.photo && artist.photo !== artistInfo.photo) updateData.photo = artistInfo.photo;
-        if (artistInfo.bio && artist.bio !== artistInfo.bio) updateData.bio = artistInfo.bio;
-        if (artistInfo.country && artist.country !== artistInfo.country) updateData.country = artistInfo.country;
-        if (artistInfo.genre && artist.genre !== artistInfo.genre) updateData.genre = artistInfo.genre;
-        if (artistInfo.website && artist.website !== artistInfo.website) updateData.website = artistInfo.website;
-        if (artistInfo.socialMedia && artist.socialMedia !== artistInfo.socialMedia) updateData.socialMedia = artistInfo.socialMedia;
-        
-        client.update('artists', updateData, { id: artist.id });
-        
-        // 更新返回的对象
-        artist = { ...artist, ...artistInfo, name: artistName, updated_at: new Date().toISOString() };
-      }
-      return artist;
-    }
-    
-    // 如果没有找到，创建新记录
-    const artistId = generateMD5(artistName);
-    const socialMediaJson = artistInfo.socialMedia ? JSON.stringify(artistInfo.socialMedia) : null;
-    
-    client.insert('artists', {
-      id: artistId,
-      name: artistName,
-      normalizedName,
-      trackCount: 0,
-      albumCount: 0,
-      photo: artistInfo.photo || null,
-      bio: artistInfo.bio || null,
-      country: artistInfo.country || null,
-      genre: artistInfo.genre || null,
-      website: artistInfo.website || null,
-      socialMedia: socialMediaJson,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-    
-    return { 
-      id: artistId, 
-      name: artistName, 
-      normalizedName, 
-      trackCount: 0,
-      photo: artistInfo.photo,
-      bio: artistInfo.bio,
-      country: artistInfo.country,
-      genre: artistInfo.genre,
-      website: artistInfo.website,
-      socialMedia: artistInfo.socialMedia
-    };
-  } catch (error) {
-    // 如果插入失败（可能是并发插入），重新查询
-    if (error.message.includes('UNIQUE constraint failed')) {
-      const existingArtist = client.queryOne('artists', { normalizedName });
-      if (existingArtist) {
-        // 更新信息如果需要
-        const needsUpdate = existingArtist.name !== artistName ||
-                           (artistInfo.photo && existingArtist.photo !== artistInfo.photo) ||
-                           (artistInfo.bio && existingArtist.bio !== artistInfo.bio) ||
-                           (artistInfo.country && existingArtist.country !== artistInfo.country) ||
-                           (artistInfo.genre && existingArtist.genre !== artistInfo.genre) ||
-                           (artistInfo.website && existingArtist.website !== artistInfo.website) ||
-                           (artistInfo.socialMedia && existingArtist.socialMedia !== artistInfo.socialMedia);
-        
-        if (needsUpdate) {
-          const updateData = {};
-          
-          if (existingArtist.name !== artistName) updateData.name = artistName;
-          if (artistInfo.photo && existingArtist.photo !== artistInfo.photo) updateData.photo = artistInfo.photo;
-          if (artistInfo.bio && existingArtist.bio !== artistInfo.bio) updateData.bio = artistInfo.bio;
-          if (artistInfo.country && existingArtist.country !== artistInfo.country) updateData.country = artistInfo.country;
-          if (artistInfo.genre && existingArtist.genre !== artistInfo.genre) updateData.genre = artistInfo.genre;
-          if (artistInfo.website && existingArtist.website !== artistInfo.website) updateData.website = artistInfo.website;
-          if (artistInfo.socialMedia && existingArtist.socialMedia !== artistInfo.socialMedia) updateData.socialMedia = JSON.stringify(artistInfo.socialMedia);
-          
-          client.update('artists', updateData, { id: existingArtist.id });
-          
-          existingArtist = { ...existingArtist, ...artistInfo, name: artistName, updated_at: new Date().toISOString() };
-        }
-        return existingArtist;
-      }
-    }
-    throw error;
-  }
-}
-
-// 合并专辑信息
-async function mergeAlbumInfo(albumTitle, primaryArtist, artistNames, year, coverImage) {
-  try {
-    const normalizedTitle = normalizeAlbumTitle(albumTitle);
-    
-    // 首先尝试查找现有的专辑记录 - 使用更宽松的匹配条件
-    let album = client.queryOne('albums', { 
-      normalizedTitle,
-      artist: primaryArtist
-    });
-    
-    // 如果没有找到，尝试只按标准化标题查找
-    if (!album) {
-      album = client.queryOne('albums', { normalizedTitle });
-    }
-    
-    // 如果仍然没有找到，尝试按原始标题查找
-    if (!album) {
-      album = client.queryOne('albums', { title: albumTitle });
-    }
-    
-    if (album) {
-      // 如果找到现有记录，检查是否需要更新信息
-      const needsUpdate = album.title !== albumTitle || 
-                         album.artists !== serializeArray(artistNames) ||
-                         (year && album.year !== year) ||
-                         (coverImage && album.coverImage !== coverImage) ||
-                         album.artist !== primaryArtist;
-      
-      if (needsUpdate) {
-        // 更新专辑信息
-        client.update('albums', {
-          title: albumTitle,
-          artist: primaryArtist,
-          artists: serializeArray(artistNames),
-          year: year || album.year,
-          coverImage: coverImage || album.coverImage,
-          updated_at: new Date().toISOString()
-        }, { id: album.id });
-        
-        // 更新本地对象
-        album.title = albumTitle;
-        album.artist = primaryArtist;
-        album.artists = serializeArray(artistNames);
-        album.year = year || album.year;
-        album.coverImage = coverImage || album.coverImage;
-      }
-      return album;
-    }
-    
-    // 如果没有找到，创建新记录
-    const albumId = generateMD5(albumTitle);
-    try {
-      client.insert('albums', {
-        id: albumId,
-        title: albumTitle,
-        normalizedTitle,
-        artist: primaryArtist,
-        artists: serializeArray(artistNames),
-        trackCount: 0,
-        year,
-        coverImage,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-      
-      return { id: albumId, title: albumTitle, trackCount: 0 };
-    } catch (insertError) {
-      // 如果插入失败（可能是并发插入），重新查询
-      if (insertError.message.includes('UNIQUE constraint failed')) {
-        // 尝试多种方式查找现有记录
-        let existingAlbum = client.queryOne('albums', { 
-          normalizedTitle,
-          artist: primaryArtist
-        });
-        
-        if (!existingAlbum) {
-          existingAlbum = client.queryOne('albums', { normalizedTitle });
-        }
-        
-        if (!existingAlbum) {
-          existingAlbum = client.queryOne('albums', { title: albumTitle });
-        }
-        
-        if (existingAlbum) {
-          // 更新信息如果需要
-          const needsUpdate = existingAlbum.title !== albumTitle || 
-                             existingAlbum.artists !== serializeArray(artistNames) ||
-                             (year && existingAlbum.year !== year) ||
-                             (coverImage && existingAlbum.coverImage !== coverImage) ||
-                             existingAlbum.artist !== primaryArtist;
-          
-          if (needsUpdate) {
-            client.update('albums', {
-              title: albumTitle,
-              artist: primaryArtist,
-              artists: serializeArray(artistNames),
-              year: year || existingAlbum.year,
-              coverImage: coverImage || existingAlbum.coverImage,
-              updated_at: new Date().toISOString()
-            }, { id: existingAlbum.id });
-            
-            existingAlbum.title = albumTitle;
-            existingAlbum.artist = primaryArtist;
-            existingAlbum.artists = serializeArray(artistNames);
-            existingAlbum.year = year || existingAlbum.year;
-            existingAlbum.coverImage = coverImage || existingAlbum.coverImage;
-          }
-          return existingAlbum;
-        }
-      }
-      throw insertError;
-    }
-  } catch (error) {
-    console.error('合并专辑信息失败:', error);
-    throw error;
-  }
-}
-
-// 高级专辑合并和去重函数
-async function mergeAndDeduplicateAlbums() {
-  try {
-    console.log('开始合并和去重专辑...');
-    
-    // 查找所有重复的专辑（基于标准化标题）
-    const duplicateAlbums = client.queryAll(`
-      SELECT normalizedTitle, COUNT(*) as count, GROUP_CONCAT(id) as ids, GROUP_CONCAT(title) as titles
-      FROM albums 
-      GROUP BY normalizedTitle 
-      HAVING COUNT(*) > 1
-    `);
-    
-    console.log(`找到 ${duplicateAlbums.length} 组重复专辑`);
-    
-    for (const duplicate of duplicateAlbums) {
-      const albumIds = duplicate.ids.split(',');
-      const titles = duplicate.titles.split(',');
-      
-      // 选择第一个专辑作为主记录
-      const primaryAlbumId = albumIds[0];
-      const primaryAlbum = client.queryOne('albums', { id: primaryAlbumId });
-      
-      if (!primaryAlbum) continue;
-      
-      console.log(`处理重复专辑: ${primaryAlbum.title} (${albumIds.length} 个记录)`);
-      
-      // 合并其他重复记录的信息到主记录
-      for (let i = 1; i < albumIds.length; i++) {
-        const duplicateAlbum = client.queryOne('albums', { id: albumIds[i] });
-        if (!duplicateAlbum) continue;
-        
-        // 合并信息（选择更完整的信息）
-        const mergedTitle = primaryAlbum.title.length >= duplicateAlbum.title.length ? 
-                           primaryAlbum.title : duplicateAlbum.title;
-        const mergedArtist = primaryAlbum.artist || duplicateAlbum.artist;
-        const mergedYear = primaryAlbum.year || duplicateAlbum.year;
-        const mergedCoverImage = primaryAlbum.coverImage || duplicateAlbum.coverImage;
-        
-        // 合并艺术家列表
-        const primaryArtists = deserializeArray(primaryAlbum.artists);
-        const duplicateArtists = deserializeArray(duplicateAlbum.artists);
-        const mergedArtists = [...new Set([...primaryArtists, ...duplicateArtists])];
-        
-        // 更新主记录
-        client.update('albums', {
-          title: mergedTitle,
-          artist: mergedArtist,
-          artists: serializeArray(mergedArtists),
-          year: mergedYear,
-          coverImage: mergedCoverImage,
-          updated_at: new Date().toISOString()
-        }, { id: primaryAlbumId });
-        
-        // 更新音乐记录中的专辑ID引用
-        client.update('music', { albumId: primaryAlbumId }, { albumId: albumIds[i] });
-        
-        // 删除重复记录
-        client.delete('albums', { id: albumIds[i] });
-        
-        console.log(`已合并并删除重复专辑: ${duplicateAlbum.title}`);
-      }
-    }
-    
-    console.log('专辑合并和去重完成');
-    return true;
-  } catch (error) {
-    console.error('专辑合并和去重失败:', error);
-    throw error;
-  }
-}
+import { merge } from '../utils/dataUtils.js'
 
 // 歌手名称分隔符
 const ARTIST_SEPARATORS = ['/', '、', ',', '，', '&', '&amp;', 'feat.', 'feat', 'ft.', 'ft', 'featuring', 'vs', 'VS'];
@@ -452,34 +159,15 @@ export async function upsertTrackByPath(trackDoc) {
     for (const artistName of artistNames) {
       const normalizedName = normalizeArtistName(artistName);
       const artist = await mergeArtistInfo(artistName, normalizedName, trackDoc.artistInfo);
-      
       artistIds.push(artist.id);
-      
-      // 更新歌手统计（只在新增记录时增加计数）
-      if (!existing) {
-        client.update('artists', { 
-          trackCount: artist.trackCount + 1, 
-          updated_at: new Date().toISOString() 
-        }, { id: artist.id });
-      }
     }
     
     // 处理专辑数据
     let albumId = null;
     if (albumTitle && artistNames.length > 0) {
       const primaryArtist = artistNames[0]; // 使用第一个歌手作为专辑的主要歌手
-      
       let album = await mergeAlbumInfo(albumTitle, primaryArtist, artistNames, trackDoc.year, trackDoc.coverImage);
-      
       albumId = album.id;
-      
-      // 更新专辑统计（只在新增记录时增加计数）
-      if (!existing) {
-        client.update('albums', { 
-          trackCount: album.trackCount + 1, 
-          updated_at: new Date().toISOString() 
-        }, { id: album.id });
-      }
     }
     
     // 更新或插入音乐记录
@@ -525,7 +213,6 @@ export async function upsertTrackByPath(trackDoc) {
         created_at: now
       });
     }
-    
     return true;
   } catch (error) {
     console.error('更新或插入音乐失败:', error);
@@ -536,7 +223,7 @@ export async function upsertTrackByPath(trackDoc) {
 // 根据ID删除音乐
 export async function removeTrackById(trackId) {
   try {
-    return await deleteRecordById('music', 'id', trackId);
+    return client.delete('music', { id: trackId });
   } catch (error) {
     console.error('删除音乐失败:', error);
     throw error;
@@ -547,7 +234,7 @@ export async function removeTrackById(trackId) {
 export async function removeTracksByLibraryPathPrefix(libraryPath) {
   try {
     const normalizedPath = libraryPath.replace(/\\/g, '/');
-    return await deleteRecordsByConditions('music', {
+    return client.delete('music', {
       type: 'track',
       path: { operator: 'LIKE', value: `${normalizedPath}%` }
     });
@@ -560,7 +247,7 @@ export async function removeTracksByLibraryPathPrefix(libraryPath) {
 // 删除所有音乐
 export async function deleteAllTracks() {
   try {
-    return await deleteRecordsByConditions('music', { type: 'track' });
+    return client.delete('music', { type: 'track' });
   } catch (error) {
     console.error('删除所有音乐失败:', error);
     throw error;
@@ -768,8 +455,7 @@ export async function updateTrack(trackId, updates) {
         processedUpdates[key] = value;
       }
     }
-
-    return await updateRecord('music', 'id', trackId, processedUpdates);
+    return client.update('music', processedUpdates, { id: trackId });
   } catch (error) {
     console.error('更新音乐失败:', error);
     throw error;
@@ -996,8 +682,7 @@ export async function updateArtistInfo(artistId, artistInfo) {
         processedUpdates[key] = value;
       }
     }
-
-    return await updateRecord('artists', 'id', artistId, processedUpdates);
+    return client.update('artists', processedUpdates, { id: artistId });
   } catch (error) {
     console.error('更新艺术家信息失败:', error);
     return false;
@@ -1008,7 +693,6 @@ export async function updateArtistInfo(artistId, artistInfo) {
 export async function getArtistDetails(artistId) {
   try {
     const artist = client.queryOne('artists', { id: artistId });
-    
     if (artist && artist.socialMedia) {
       try {
         artist.socialMedia = JSON.parse(artist.socialMedia);
@@ -1096,6 +780,302 @@ export async function getTracksByAlbum(albumId) {
   }
 }
 
+// 获取歌手的音乐列表
+export async function getTracksByArtist(artistId, limit = 10) {
+  try {
+    const tracks = client.queryAll('music', {
+      conditions: { 
+        type: 'track',
+        artistIds: { operator: 'LIKE', data: artistId }
+      },
+      limit
+    });
+    
+    return tracks.map(track => {
+      track.artists = deserializeArray(track.artists);
+      track.artistIds = deserializeArray(track.artistIds);
+      return track;
+    });
+  } catch (error) {
+    console.error('获取歌手音乐列表失败:', error);
+    return [];
+  }
+}
+
+// 为没有封面的专辑自动获取封面
+export async function updateAlbumsWithoutCover() {
+  try {
+    console.log('开始为没有封面的专辑获取封面...');
+    const albumsWithoutCover = client.queryAll('albums', { coverImage: { operator: 'IS', data: null } });
+    console.log(`找到 ${albumsWithoutCover.length} 个没有封面的专辑`);
+    let updatedCount = 0;
+    for (const album of albumsWithoutCover) {
+      try {
+        // 获取该专辑的所有歌曲
+        const tracks = client.queryOne('music', {
+          type: 'track',
+          albumId: album.id,
+          coverImage: { operator: 'IS NOT', data: null }
+        });
+        
+        if (tracks && tracks.coverImage) {
+          // 更新专辑封面
+          client.update('albums', { coverImage: tracks.coverImage, updated_at: new Date().toISOString() }, { id: album.id });
+          console.log(`已为专辑 "${album.title}" 设置封面: ${tracks.coverImage}`);
+          updatedCount++;
+        }
+      } catch (error) {
+        console.error(`为专辑 "${album.title}" 获取封面失败:`, error);
+      }
+    }
+    console.log(`专辑封面更新完成，共更新了 ${updatedCount} 个专辑`);
+    return updatedCount;
+  } catch (error) {
+    console.error('更新专辑封面失败:', error);
+    throw error;
+  }
+}
+
+// 为没有图片的歌手自动获取图片
+export async function updateArtistsWithoutPhoto() {
+  try {
+    console.log('开始为没有图片的歌手获取图片...');
+    // 查找所有没有图片的歌手
+    const artistsWithoutPhoto = client.queryAll('artists', { photo: { operator: 'IS', data: null } });
+    console.log(`找到 ${artistsWithoutPhoto.length} 个没有图片的歌手`);
+    let updatedCount = 0;
+    for (const artist of artistsWithoutPhoto) {
+      try {
+        // 获取该歌手的歌曲，优先选择有封面的歌曲
+        const tracksWithCover = client.queryOne('music', {
+          type: 'track',
+          artistIds: { operator: 'LIKE', data: artist.id },
+          coverImage: { operator: 'IS NOT', data: null }
+        });
+        if (tracksWithCover && tracksWithCover.coverImage) {
+          // 更新歌手图片
+          client.update('artists', {
+            photo: tracksWithCover.coverImage,
+            updated_at: new Date().toISOString()
+          }, { id: artist.id });
+          console.log(`已为歌手 "${artist.name}" 设置图片: ${tracksWithCover.coverImage}`);
+          updatedCount++;
+        } else {
+          // 如果没有找到有封面的歌曲，尝试获取任何歌曲的封面
+          const anyTracks = client.queryOne('music', {
+            type: 'track',
+            artistIds: { operator: 'LIKE', data: artist.id }
+          });
+          
+          if (anyTracks && anyTracks.coverImage) {
+            // 更新歌手图片
+            client.update('artists', {
+              photo: anyTracks.coverImage,
+              updated_at: new Date().toISOString()
+            }, { id: artist.id });
+            
+            console.log(`已为歌手 "${artist.name}" 设置图片: ${anyTracks.coverImage}`);
+            updatedCount++;
+          }
+        }
+      } catch (error) {
+        console.error(`为歌手 "${artist.name}" 获取图片失败:`, error);
+      }
+    }
+    console.log(`歌手图片更新完成，共更新了 ${updatedCount} 个歌手`);
+    return updatedCount;
+  } catch (error) {
+    console.error('更新歌手图片失败:', error);
+    throw error;
+  }
+}
+
+// 扫描音乐库后的完整处理流程
+export async function postScanProcessing() {
+  try {
+    console.log('开始扫描后处理...');
+    
+    // 1. 合并和去重专辑
+    await mergeAndDeduplicateAlbums();
+    
+    // 2. 为没有封面的专辑获取封面
+    const albumUpdateCount = await updateAlbumsWithoutCover();
+    
+    // 3. 为没有图片的歌手获取图片
+    const artistUpdateCount = await updateArtistsWithoutPhoto();
+    
+    console.log(`扫描后处理完成:`);
+    console.log(`- 专辑封面更新: ${albumUpdateCount} 个`);
+    console.log(`- 歌手图片更新: ${artistUpdateCount} 个`);
+    
+    return {
+      albumCoverUpdates: albumUpdateCount,
+      artistPhotoUpdates: artistUpdateCount
+    };
+  } catch (error) {
+    console.error('扫描后处理失败:', error);
+    throw error;
+  }
+}
+
+
+// 高级专辑合并和去重函数
+async function mergeAndDeduplicateAlbums() {
+  try {
+    console.log('开始合并和去重专辑...');
+    
+    // 查找所有重复的专辑（基于标准化标题）
+    const duplicateAlbums = client.db.queryAll(`
+      SELECT normalizedTitle, COUNT(*) as count, GROUP_CONCAT(id) as ids, GROUP_CONCAT(title) as titles
+      FROM albums 
+      GROUP BY normalizedTitle 
+      HAVING COUNT(*) > 1
+    `);
+    
+    console.log(`找到 ${duplicateAlbums.length} 组重复专辑`);
+    
+    for (const duplicate of duplicateAlbums) {
+      const albumIds = duplicate.ids.split(',');
+      const titles = duplicate.titles.split(',');
+      
+      // 选择第一个专辑作为主记录
+      const primaryAlbumId = albumIds[0];
+      const primaryAlbum = client.queryOne('albums', { id: primaryAlbumId });
+      
+      if (!primaryAlbum) continue;
+      
+      console.log(`处理重复专辑: ${primaryAlbum.title} (${albumIds.length} 个记录)`);
+      
+      // 合并其他重复记录的信息到主记录
+      for (let i = 1; i < albumIds.length; i++) {
+        const duplicateAlbum = client.queryOne('albums', { id: albumIds[i] });
+        if (!duplicateAlbum) continue;
+        
+        // 合并信息（选择更完整的信息）
+        const mergedTitle = primaryAlbum.title.length >= duplicateAlbum.title.length ? 
+                           primaryAlbum.title : duplicateAlbum.title;
+        const mergedArtist = primaryAlbum.artist || duplicateAlbum.artist;
+        const mergedYear = primaryAlbum.year || duplicateAlbum.year;
+        const mergedCoverImage = primaryAlbum.coverImage || duplicateAlbum.coverImage;
+        
+        // 合并艺术家列表
+        const primaryArtists = deserializeArray(primaryAlbum.artists);
+        const duplicateArtists = deserializeArray(duplicateAlbum.artists);
+        const mergedArtists = [...new Set([...primaryArtists, ...duplicateArtists])];
+        
+        // 更新主记录
+        client.update('albums', {
+          title: mergedTitle,
+          artist: mergedArtist,
+          artists: serializeArray(mergedArtists),
+          year: mergedYear,
+          coverImage: mergedCoverImage,
+          updated_at: new Date().toISOString()
+        }, { id: primaryAlbumId });
+        
+        // 更新音乐记录中的专辑ID引用
+        client.update('music', { albumId: primaryAlbumId }, { albumId: albumIds[i] });
+        
+        // 删除重复记录
+        client.delete('albums', { id: albumIds[i] });
+        
+        console.log(`已合并并删除重复专辑: ${duplicateAlbum.title}`);
+      }
+    }
+    
+    console.log('专辑合并和去重完成');
+    return true;
+  } catch (error) {
+    console.error('专辑合并和去重失败:', error);
+    throw error;
+  }
+}
+
+// 合并歌手信息
+async function mergeArtistInfo(artistName, normalizedName, artistInfo = {}) {
+  try {
+    artistInfo.normalizedName = normalizedName;
+    // 首先尝试查找现有的歌手记录
+    let artist = client.queryOne('artists', { normalizedName });
+    if (!artist){
+      artist = client.queryOne('artists', { name: artistName });
+    }
+    if (artist) {
+      artist = merge(artist, artistInfo);
+      artist.updated_at = new Date().toISOString();
+      client.update('artists', artist, { id: artist.id });
+      return artist;
+    }
+    // 如果没有找到，创建新记录
+    const artistId = generateMD5(artistName);
+    const socialMediaJson = artistInfo.socialMedia ? JSON.stringify(artistInfo.socialMedia) : null;
+    const data = {
+      id: artistId,
+      name: artistName,
+      normalizedName,
+      trackCount: 0,
+      albumCount: 0,
+      photo: artistInfo.photo || null,
+      bio: artistInfo.bio || null,
+      country: artistInfo.country || null,
+      genre: artistInfo.genre || null,
+      website: artistInfo.website || null,
+      socialMedia: socialMediaJson,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    client.insert('artists', data);
+    return data;
+  } catch (error) {
+    console.error('合并歌手信息失败:', error);
+    throw error;
+  }
+}
+
+// 合并专辑信息
+async function mergeAlbumInfo(albumTitle, primaryArtist, artistNames, year, coverImage) {
+  try {
+    const normalizedTitle = normalizeAlbumTitle(albumTitle);
+    
+    // 首先尝试查找现有的专辑记录 - 使用更宽松的匹配条件
+    let album = client.queryOne('albums', { normalizedTitle, artist: primaryArtist });
+    // 如果没有找到，尝试只按标准化标题查找
+    if (!album) {
+      album = client.queryOne('albums', { normalizedTitle });
+    }
+    if (album) {
+      album = merge(album, {
+        title: albumTitle,
+        artist: primaryArtist,
+        artists: serializeArray(artistNames),
+        year: year || album.year,
+        coverImage: coverImage || album.coverImage,
+        updated_at: new Date().toISOString()
+      }); 
+      client.update('albums', album, { id: album.id });
+      return album;
+    }
+    const albumId = generateMD5(albumTitle);
+    const data = {
+      id: albumId,
+      title: albumTitle,
+      normalizedTitle,
+      artist: primaryArtist,
+      artists: serializeArray(artistNames),
+      trackCount: 0,
+      year,
+      coverImage,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    client.insert('albums', data);
+    return data;
+  } catch (error) {
+    console.error('合并专辑信息失败:', error);
+    throw error;
+  }
+}
+
 export default {
   // 配置相关
   getConfig, // 获取配置
@@ -1128,13 +1108,19 @@ export default {
   getArtists, // 获取艺术家列表
   findArtistByName, // 根据歌手名称查找歌手
   findArtistById, // 根据歌手ID查找歌手
+  getTracksByArtist, // 获取歌手的音乐列表
   updateArtistInfo, // 更新艺术家信息
   getArtistDetails, // 获取艺术家详细信息
+  updateArtistsWithoutPhoto, // 为没有图片的歌手获取图片
   
   // 专辑相关
   getAlbums, // 获取专辑列表
   findAlbumByTitleAndArtist, // 根据专辑标题和歌手查找专辑
   findAlbumById, // 根据专辑ID查找专辑
   getTracksByAlbum, // 获取专辑的音乐列表
-  mergeAndDeduplicateAlbums // 合并和去重专辑
+  mergeAndDeduplicateAlbums, // 合并和去重专辑
+  updateAlbumsWithoutCover, // 为没有封面的专辑获取封面
+  
+  // 扫描后处理
+  postScanProcessing // 扫描音乐库后的完整处理流程
 };

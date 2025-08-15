@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { parseFile } from 'music-metadata';
-import { upsertTrackByPath, getConfig, saveConfig, removeTracksByLibraryPathPrefix, removeMediaLibraryStats, updateMediaLibraryStats } from './database.js';
+import { upsertTrackByPath, getConfig, saveConfig, removeTracksByLibraryPathPrefix, removeMediaLibraryStats, updateMediaLibraryStats, postScanProcessing } from './database.js';
 import { normalizeText, extractArtistTitleFromFilename } from '../utils/textUtils.js';
 import { extractLyrics, extractCoverImage } from '../utils/musicUtil.js';
 
@@ -336,13 +336,25 @@ export async function scanMediaLibrary(libraryId) {
     // 更新媒体库统计
     await updateMediaLibraryStats(libraryId, processedTracks);
     
+    // 开始扫描后处理
+    console.log('开始扫描后处理...');
+    try {
+      const postProcessResult = await postScanProcessing();
+      console.log('扫描后处理完成:', postProcessResult);
+    } catch (error) {
+      console.error('扫描后处理失败:', error);
+    }
+    
     scanProgress.set(libraryId, { 
       status: 'completed', 
       progress: 100, 
       currentFile: '', 
       totalFiles, 
       processedFiles, 
-      result: { tracks: processedTracks.length } 
+      result: { 
+        tracks: processedTracks.length,
+        postProcess: true
+      } 
     });
     
     console.log(`媒体库扫描完成: ${libraryPath}, 处理了 ${processedTracks.length} 个文件`);

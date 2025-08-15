@@ -74,6 +74,9 @@ const util = {
           conditions.push(...result.conditions);
           Object.assign(params, result.params);
         })
+      }else if(typeof value === 'boolean'){
+        conditions.push(`${key} = @${prefix}${key}`);
+        params[`${prefix}${key}`] = value ? 1 : 0;
       }else{
         conditions.push(`${key} = @${prefix}${key}`);
         params[`${prefix}${key}`] = value;
@@ -95,6 +98,8 @@ const util = {
       placeholder.push('@' + prefix + key);
       if (typeof value === 'object') {
         params[`${prefix}${key}`] = util.serialize(value);
+      }else if(typeof value === 'boolean'){
+        params[`${prefix}${key}`] = value ? 1 : 0;
       }else{
         params[`${prefix}${key}`] = value
       }
@@ -106,6 +111,8 @@ const util = {
       for (const [key, value] of Object.entries(data)) {
         if (typeof value === 'object') {
           data[`${prefix}${key}`] = util.serialize(value);
+        }else if(typeof value === 'boolean'){
+          data[`${prefix}${key}`] = value ? 1 : 0;
         }else{
           data[`${prefix}${key}`] = value
         }
@@ -115,8 +122,20 @@ const util = {
   },
   updateFormatOperator: (data={}, filter={}) => {
     const select = util.selectFormatOperator('s_', filter);
-    const update = util.selectFormatOperator('u_', data);
-    return { update_conditions: update.conditions, update_params: update.params, select_conditions: select.conditions, select_params: select.params };
+    const prefix = 'u_';
+    const params = {};
+    const conditions = [];
+    for (const [key, value] of Object.entries(data)) {
+      conditions.push(`${key} = @${prefix}${key}`);
+      if (typeof value === 'object') {
+        params[`${prefix}${key}`] = util.serialize(value);
+      }else if(typeof value === 'boolean'){
+        params[`${prefix}${key}`] = value ? 1 : 0;
+      }else{
+        params[`${prefix}${key}`] = value
+      }
+    }
+    return { update_conditions: conditions, update_params: params, select_conditions: select.conditions, select_params: select.params };
   },
   /**
    * 删除数据格式化
@@ -213,7 +232,6 @@ const client = {
   insert: (table, data={}) => {
     const { fields, params, placeholder } = util.insertFormatOperator('', data);
     const sql = `INSERT INTO ${table} (${fields.join(',')}) VALUES (${placeholder.join(',')})`;
-    console.log(data, sql, params)
     return db.execute(sql, params);
   },
   batchInsert: (table, datas=[]) => {
