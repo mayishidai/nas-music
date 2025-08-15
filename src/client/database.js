@@ -16,6 +16,425 @@ function generateMD5(text) {
   return crypto.createHash('md5').update(text).digest('hex');
 }
 
+// ==================== 通用数据库操作函数 ====================
+
+/**
+ * 通用更新函数
+ * @param {string} tableName - 表名
+ * @param {string} idField - ID字段名
+ * @param {string|number} id - ID值
+ * @param {object} data - 要更新的数据对象
+ * @returns {Promise<boolean>} 更新是否成功
+ */
+export async function updateRecord(tableName, idField, id, data) {
+  try {
+    if (!data || Object.keys(data).length === 0) {
+      return false;
+    }
+
+    const updateFields = [];
+    const updateValues = [];
+
+    // 处理数据字段
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        updateFields.push(`${key} = ?`);
+        updateValues.push(value);
+      }
+    }
+
+    if (updateFields.length === 0) {
+      return false;
+    }
+
+    // 添加更新时间
+    updateFields.push('updated_at = ?');
+    updateValues.push(new Date().toISOString());
+
+    // 添加WHERE条件
+    updateValues.push(id);
+
+    const sql = `UPDATE ${tableName} SET ${updateFields.join(', ')} WHERE ${idField} = ?`;
+    await run(sql, updateValues);
+    return true;
+  } catch (error) {
+    console.error(`更新${tableName}记录失败:`, error);
+    return false;
+  }
+}
+
+/**
+ * 通用删除函数（按ID）
+ * @param {string} tableName - 表名
+ * @param {string} idField - ID字段名
+ * @param {string|number} id - ID值
+ * @returns {Promise<boolean>} 删除是否成功
+ */
+export async function deleteRecordById(tableName, idField, id) {
+  try {
+    const sql = `DELETE FROM ${tableName} WHERE ${idField} = ?`;
+    const result = await run(sql, [id]);
+    return result.changes > 0;
+  } catch (error) {
+    console.error(`删除${tableName}记录失败:`, error);
+    return false;
+  }
+}
+
+/**
+ * 通用删除函数（按条件）
+ * @param {string} tableName - 表名
+ * @param {object} conditions - 查询条件对象
+ * @returns {Promise<number>} 删除的记录数
+ */
+export async function deleteRecordsByConditions(tableName, conditions) {
+  try {
+    if (!conditions || Object.keys(conditions).length === 0) {
+      throw new Error('删除条件不能为空');
+    }
+
+    const whereConditions = [];
+    const params = [];
+
+    for (const [key, value] of Object.entries(conditions)) {
+      if (value !== undefined && value !== null) {
+        whereConditions.push(`${key} = ?`);
+        params.push(value);
+      }
+    }
+
+    if (whereConditions.length === 0) {
+      throw new Error('有效的删除条件不能为空');
+    }
+
+    const sql = `DELETE FROM ${tableName} WHERE ${whereConditions.join(' AND ')}`;
+    const result = await run(sql, params);
+    return result.changes;
+  } catch (error) {
+    console.error(`按条件删除${tableName}记录失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 通用新增函数
+ * @param {string} tableName - 表名
+ * @param {object} data - 要插入的数据对象
+ * @returns {Promise<object>} 插入结果，包含lastID
+ */
+export async function insertRecord(tableName, data) {
+  try {
+    if (!data || Object.keys(data).length === 0) {
+      throw new Error('插入数据不能为空');
+    }
+
+    const fields = [];
+    const placeholders = [];
+    const values = [];
+
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        fields.push(key);
+        placeholders.push('?');
+        values.push(value);
+      }
+    }
+
+    if (fields.length === 0) {
+      throw new Error('有效的插入字段不能为空');
+    }
+
+    const sql = `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (${placeholders.join(', ')})`;
+    const result = await run(sql, values);
+    return { success: true, lastID: result.lastID, changes: result.changes };
+  } catch (error) {
+    console.error(`插入${tableName}记录失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 通用新增或修改函数（upsert）
+ * @param {string} tableName - 表名
+ * @param {string} idField - ID字段名
+ * @param {object} data - 数据对象
+ * @param {boolean} useReplace - 是否使用REPLACE INTO（默认false，使用INSERT OR REPLACE）
+ * @returns {Promise<object>} 操作结果
+ */
+export async function upsertRecord(tableName, idField, data, useReplace = false) {
+  try {
+    if (!data || Object.keys(data).length === 0) {
+      throw new Error('数据不能为空');
+    }
+
+    const fields = [];
+    const placeholders = [];
+    const values = [];
+
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        fields.push(key);
+        placeholders.push('?');
+        values.push(value);
+      }
+    }
+
+    if (fields.length === 0) {
+      throw new Error('有效的字段不能为空');
+    }
+
+    const sql = useReplace 
+      ? `REPLACE INTO ${tableName} (${fields.join(', ')}) VALUES (${placeholders.join(', ')})`
+      : `INSERT OR REPLACE INTO ${tableName} (${fields.join(', ')}) VALUES (${placeholders.join(', ')})`;
+    
+    const result = await run(sql, values);
+    return { success: true, lastID: result.lastID, changes: result.changes };
+  } catch (error) {
+    console.error(`upsert${tableName}记录失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 通用查询函数
+ * @param {string} tableName - 表名
+ * @param {object} options - 查询选项
+ * @param {object} options.conditions - 查询条件对象
+ * @param {array} options.fields - 要查询的字段数组（默认所有字段）
+ * @param {string} options.orderBy - 排序字段
+ * @param {string} options.order - 排序方向（ASC/DESC）
+ * @param {number} options.limit - 限制返回数量
+ * @param {number} options.offset - 偏移量
+ * @param {boolean} options.single - 是否只返回单条记录
+ * @returns {Promise<object|array>} 查询结果
+ */
+export async function queryRecords(tableName, options = {}) {
+  try {
+    const {
+      conditions = {},
+      fields = ['*'],
+      orderBy,
+      order = 'ASC',
+      limit,
+      offset,
+      single = false
+    } = options;
+
+    let sql = `SELECT ${fields.join(', ')} FROM ${tableName}`;
+    const params = [];
+
+    // 构建WHERE条件
+    if (conditions && Object.keys(conditions).length > 0) {
+      const whereConditions = [];
+      for (const [key, value] of Object.entries(conditions)) {
+        if (value !== undefined && value !== null) {
+          if (typeof value === 'object' && value.operator) {
+            // 支持自定义操作符
+            whereConditions.push(`${key} ${value.operator} ?`);
+            params.push(value.value);
+          } else {
+            whereConditions.push(`${key} = ?`);
+            params.push(value);
+          }
+        }
+      }
+      if (whereConditions.length > 0) {
+        sql += ` WHERE ${whereConditions.join(' AND ')}`;
+      }
+    }
+
+    // 添加排序
+    if (orderBy) {
+      sql += ` ORDER BY ${orderBy} ${order.toUpperCase()}`;
+    }
+
+    // 添加分页
+    if (limit) {
+      sql += ` LIMIT ?`;
+      params.push(limit);
+    }
+    if (offset) {
+      sql += ` OFFSET ?`;
+      params.push(offset);
+    }
+
+    if (single) {
+      const result = await queryOne(sql, params);
+      return result;
+    } else {
+      const results = await query(sql, params);
+      return results;
+    }
+  } catch (error) {
+    console.error(`查询${tableName}记录失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 通用计数函数
+ * @param {string} tableName - 表名
+ * @param {object} conditions - 查询条件对象
+ * @returns {Promise<number>} 记录数量
+ */
+export async function countRecords(tableName, conditions = {}) {
+  try {
+    let sql = `SELECT COUNT(*) as count FROM ${tableName}`;
+    const params = [];
+
+    // 构建WHERE条件
+    if (conditions && Object.keys(conditions).length > 0) {
+      const whereConditions = [];
+      for (const [key, value] of Object.entries(conditions)) {
+        if (value !== undefined && value !== null) {
+          whereConditions.push(`${key} = ?`);
+          params.push(value);
+        }
+      }
+      if (whereConditions.length > 0) {
+        sql += ` WHERE ${whereConditions.join(' AND ')}`;
+      }
+    }
+
+    const result = await queryOne(sql, params);
+    return result ? result.count : 0;
+  } catch (error) {
+    console.error(`统计${tableName}记录失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 通用分页查询函数
+ * @param {string} tableName - 表名
+ * @param {object} options - 查询选项
+ * @param {object} options.conditions - 查询条件
+ * @param {array} options.fields - 查询字段
+ * @param {string} options.orderBy - 排序字段
+ * @param {string} options.order - 排序方向
+ * @param {number} options.page - 页码（从1开始）
+ * @param {number} options.pageSize - 每页数量
+ * @returns {Promise<object>} 分页结果
+ */
+export async function queryRecordsWithPagination(tableName, options = {}) {
+  try {
+    const {
+      conditions = {},
+      fields = ['*'],
+      orderBy,
+      order = 'ASC',
+      page = 1,
+      pageSize = 10
+    } = options;
+
+    // 获取总数
+    const total = await countRecords(tableName, conditions);
+
+    // 计算偏移量
+    const offset = (page - 1) * pageSize;
+
+    // 查询数据
+    const data = await queryRecords(tableName, {
+      conditions,
+      fields,
+      orderBy,
+      order,
+      limit: pageSize,
+      offset
+    });
+
+    return {
+      data,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        pages: Math.ceil(total / pageSize)
+      }
+    };
+  } catch (error) {
+    console.error(`分页查询${tableName}记录失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 通用批量插入函数
+ * @param {string} tableName - 表名
+ * @param {array} records - 记录数组
+ * @param {array} fields - 字段数组
+ * @returns {Promise<object>} 插入结果
+ */
+export async function batchInsertRecords(tableName, records, fields) {
+  try {
+    if (!records || records.length === 0) {
+      throw new Error('记录数组不能为空');
+    }
+
+    if (!fields || fields.length === 0) {
+      throw new Error('字段数组不能为空');
+    }
+
+    const placeholders = fields.map(() => '?').join(', ');
+    const sql = `INSERT INTO ${tableName} (${fields.join(', ')}) VALUES (${placeholders})`;
+
+    let totalChanges = 0;
+    for (const record of records) {
+      const values = fields.map(field => record[field]);
+      const result = await run(sql, values);
+      totalChanges += result.changes;
+    }
+
+    return { success: true, totalChanges };
+  } catch (error) {
+    console.error(`批量插入${tableName}记录失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 通用事务执行函数
+ * @param {function} operations - 要执行的操作函数数组
+ * @returns {Promise<object>} 事务结果
+ */
+export async function executeTransaction(operations) {
+  return new Promise((resolve, reject) => {
+    musicDB.serialize(() => {
+      musicDB.run('BEGIN TRANSACTION', (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        let completed = 0;
+        const results = [];
+
+        operations.forEach((operation, index) => {
+          operation()
+            .then(result => {
+              results[index] = result;
+              completed++;
+              if (completed === operations.length) {
+                musicDB.run('COMMIT', (err) => {
+                  if (err) {
+                    musicDB.run('ROLLBACK');
+                    reject(err);
+                  } else {
+                    resolve({ success: true, results });
+                  }
+                });
+              }
+            })
+            .catch(error => {
+              musicDB.run('ROLLBACK');
+              reject(error);
+            });
+        });
+      });
+    });
+  });
+}
+
 // 合并歌手信息
 async function mergeArtistInfo(artistName, normalizedName, artistInfo = {}) {
   try {
@@ -690,7 +1109,11 @@ export async function getMusicStats() {
 // 根据路径查找音乐
 export async function findTrackByPath(trackPath) {
   try {
-    const track = await queryOne('SELECT * FROM music WHERE path = ?', [trackPath]);
+    const track = await queryRecords('music', {
+      conditions: { path: trackPath },
+      single: true
+    });
+    
     if (track) {
       // 反序列化数组字段
       track.artists = deserializeArray(track.artists);
@@ -794,8 +1217,7 @@ export async function upsertTrackByPath(trackDoc) {
 // 根据ID删除音乐
 export async function removeTrackById(trackId) {
   try {
-    const result = await run('DELETE FROM music WHERE id = ?', [trackId]);
-    return result.changes > 0;
+    return await deleteRecordById('music', 'id', trackId);
   } catch (error) {
     console.error('删除音乐失败:', error);
     throw error;
@@ -806,11 +1228,10 @@ export async function removeTrackById(trackId) {
 export async function removeTracksByLibraryPathPrefix(libraryPath) {
   try {
     const normalizedPath = libraryPath.replace(/\\/g, '/');
-    const result = await run('DELETE FROM music WHERE type = ? AND path LIKE ?', [
-      'track',
-      `${normalizedPath}%`
-    ]);
-    return result.changes;
+    return await deleteRecordsByConditions('music', {
+      type: 'track',
+      path: { operator: 'LIKE', value: `${normalizedPath}%` }
+    });
   } catch (error) {
     console.error('根据库路径删除音乐失败:', error);
     throw error;
@@ -820,8 +1241,7 @@ export async function removeTracksByLibraryPathPrefix(libraryPath) {
 // 删除所有音乐
 export async function deleteAllTracks() {
   try {
-    const result = await run('DELETE FROM music WHERE type = ?', ['track']);
-    return result.changes;
+    return await deleteRecordsByConditions('music', { type: 'track' });
   } catch (error) {
     console.error('删除所有音乐失败:', error);
     throw error;
@@ -1026,7 +1446,11 @@ export async function rebuildIndexes() {
 // 根据ID查找音乐
 export async function findTrackById(trackId) {
   try {
-    const track = await queryOne('SELECT * FROM music WHERE id = ?', [trackId]);
+    const track = await queryRecords('music', {
+      conditions: { id: trackId },
+      single: true
+    });
+    
     if (track) {
       track.artists = deserializeArray(track.artists);
       track.artistIds = deserializeArray(track.artistIds);
@@ -1042,28 +1466,21 @@ export async function findTrackById(trackId) {
 export async function updateTrack(trackId, updates) {
   try {
     const track = await queryOne('SELECT id FROM music WHERE id = ?', [trackId]);
-    if (track) {
-      const updateFields = [];
-      const updateValues = [];
-      
-      for (const [key, value] of Object.entries(updates)) {
-        if (key === 'artists' || key === 'artistIds') {
-          updateFields.push(`${key} = ?`);
-          updateValues.push(serializeArray(value));
-        } else {
-          updateFields.push(`${key} = ?`);
-          updateValues.push(value);
-        }
-      }
-      
-      updateFields.push('updated_at = ?');
-      updateValues.push(new Date().toISOString());
-      updateValues.push(trackId);
-      
-      await run(`UPDATE music SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
-      return true;
+    if (!track) {
+      return false;
     }
-    return false;
+
+    // 处理特殊字段（数组字段需要序列化）
+    const processedUpdates = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'artists' || key === 'artistIds') {
+        processedUpdates[key] = serializeArray(value);
+      } else {
+        processedUpdates[key] = value;
+      }
+    }
+
+    return await updateRecord('music', 'id', trackId, processedUpdates);
   } catch (error) {
     console.error('更新音乐失败:', error);
     throw error;
@@ -1329,48 +1746,17 @@ export async function getArtists(options = {}) {
 // 更新艺术家信息
 export async function updateArtistInfo(artistId, artistInfo) {
   try {
-    const updateFields = [];
-    const updateValues = [];
-    
-    if (artistInfo.name !== undefined) {
-      updateFields.push('name = ?');
-      updateValues.push(artistInfo.name);
+    // 处理特殊字段（社交媒体需要序列化）
+    const processedUpdates = {};
+    for (const [key, value] of Object.entries(artistInfo)) {
+      if (key === 'socialMedia') {
+        processedUpdates[key] = JSON.stringify(value);
+      } else {
+        processedUpdates[key] = value;
+      }
     }
-    if (artistInfo.photo !== undefined) {
-      updateFields.push('photo = ?');
-      updateValues.push(artistInfo.photo);
-    }
-    if (artistInfo.bio !== undefined) {
-      updateFields.push('bio = ?');
-      updateValues.push(artistInfo.bio);
-    }
-    if (artistInfo.country !== undefined) {
-      updateFields.push('country = ?');
-      updateValues.push(artistInfo.country);
-    }
-    if (artistInfo.genre !== undefined) {
-      updateFields.push('genre = ?');
-      updateValues.push(artistInfo.genre);
-    }
-    if (artistInfo.website !== undefined) {
-      updateFields.push('website = ?');
-      updateValues.push(artistInfo.website);
-    }
-    if (artistInfo.socialMedia !== undefined) {
-      updateFields.push('socialMedia = ?');
-      updateValues.push(JSON.stringify(artistInfo.socialMedia));
-    }
-    
-    if (updateFields.length === 0) {
-      return false; // 没有需要更新的字段
-    }
-    
-    updateFields.push('updated_at = ?');
-    updateValues.push(new Date().toISOString());
-    updateValues.push(artistId);
-    
-    await run(`UPDATE artists SET ${updateFields.join(', ')} WHERE id = ?`, updateValues);
-    return true;
+
+    return await updateRecord('artists', 'id', artistId, processedUpdates);
   } catch (error) {
     console.error('更新艺术家信息失败:', error);
     return false;
@@ -1380,7 +1766,11 @@ export async function updateArtistInfo(artistId, artistInfo) {
 // 获取艺术家详细信息（包含社交媒体链接的解析）
 export async function getArtistDetails(artistId) {
   try {
-    const artist = await queryOne('SELECT * FROM artists WHERE id = ?', [artistId]);
+    const artist = await queryRecords('artists', {
+      conditions: { id: artistId },
+      single: true
+    });
+    
     if (artist && artist.socialMedia) {
       try {
         artist.socialMedia = JSON.parse(artist.socialMedia);
@@ -1399,7 +1789,10 @@ export async function getArtistDetails(artistId) {
 export async function findArtistByName(artistName) {
   try {
     const normalizedName = normalizeArtistName(artistName);
-    return await queryOne('SELECT * FROM artists WHERE normalizedName = ?', [normalizedName]);
+    return await queryRecords('artists', {
+      conditions: { normalizedName },
+      single: true
+    });
   } catch (error) {
     console.error('根据歌手名称查找失败:', error);
     return null;
@@ -1409,7 +1802,10 @@ export async function findArtistByName(artistName) {
 // 根据歌手ID查找歌手
 export async function findArtistById(artistId) {
   try {
-    return await queryOne('SELECT * FROM artists WHERE id = ?', [artistId]);
+    return await queryRecords('artists', {
+      conditions: { id: artistId },
+      single: true
+    });
   } catch (error) {
     console.error('根据歌手ID查找失败:', error);
     return null;
@@ -1420,10 +1816,14 @@ export async function findArtistById(artistId) {
 export async function findAlbumByTitleAndArtist(albumTitle, artistName) {
   try {
     const normalizedTitle = normalizeAlbumTitle(albumTitle);
-    const album = await queryOne('SELECT * FROM albums WHERE normalizedTitle = ? AND artist = ?', [
-      normalizedTitle,
-      artistName
-    ]);
+    const album = await queryRecords('albums', {
+      conditions: { 
+        normalizedTitle,
+        artist: artistName
+      },
+      single: true
+    });
+    
     if (album) {
       album.artists = deserializeArray(album.artists);
     }
@@ -1437,7 +1837,11 @@ export async function findAlbumByTitleAndArtist(albumTitle, artistName) {
 // 根据专辑ID查找专辑
 export async function findAlbumById(albumId) {
   try {
-    const album = await queryOne('SELECT * FROM albums WHERE id = ?', [albumId]);
+    const album = await queryRecords('albums', {
+      conditions: { id: albumId },
+      single: true
+    });
+    
     if (album) {
       album.artists = deserializeArray(album.artists);
     }
@@ -1489,32 +1893,57 @@ export async function getTracksByAlbum(albumId, limit = 10) {
 }
 
 export default {
+  // 通用数据库操作函数
+  updateRecord,
+  deleteRecordById,
+  deleteRecordsByConditions,
+  insertRecord,
+  upsertRecord,
+  queryRecords,
+  countRecords,
+  queryRecordsWithPagination,
+  batchInsertRecords,
+  executeTransaction,
+  
+  // 配置相关
   getConfig,
   saveConfig,
+  
+  // 统计相关
   getMusicStats,
+  
+  // 音乐相关
   findTrackByPath,
   upsertTrackByPath,
   removeTrackById,
   removeTracksByLibraryPathPrefix,
   deleteAllTracks,
   getAllTracks,
-  getMediaLibraryStats,
-  removeMediaLibraryStats,
-  updateMediaLibraryStats,
-  rebuildIndexes,
   findTrackById,
   updateTrack,
   getFavoriteTracks,
   getRecentlyPlayedTracks,
-  getAlbums,
+  
+  // 媒体库相关
+  getMediaLibraryStats,
+  removeMediaLibraryStats,
+  updateMediaLibraryStats,
+  
+  // 索引相关
+  rebuildIndexes,
+  
+  // 艺术家相关
   getArtists,
   findArtistByName,
   findArtistById,
   getTracksByArtist,
+  updateArtistInfo,
+  getArtistDetails,
+  
+  // 专辑相关
+  getAlbums,
   findAlbumByTitleAndArtist,
   findAlbumById,
   getTracksByAlbum,
-  mergeAndDeduplicateAlbums,
-  updateArtistInfo,
-  getArtistDetails
+  mergeAndDeduplicateAlbums
 };
