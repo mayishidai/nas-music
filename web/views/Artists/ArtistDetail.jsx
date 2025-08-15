@@ -76,7 +76,6 @@ const ArtistDetailView = ({ router, player }) => {
       const res = await fetch(`/api/music/tracks?${params}`).then(res => res.json()); 
       const data = res.data || []; 
       const pagination = res.pagination || {};
-      console.log(data);
       if (res?.success) {
         setTracks(data);
         setTotal(pagination.total || 0);
