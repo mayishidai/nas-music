@@ -100,7 +100,7 @@ export function durationSimilarity(a, b) {
   return Math.max(0, 1 - ratio);
 }
 
-// 简化的年份相似度计算（用于 onlineSearch）
+// 简化的年份相似度计算
 export function yearSimilaritySimple(a, b) {
   const ya = parseInt(a, 10);
   const yb = parseInt(b, 10);
@@ -110,7 +110,7 @@ export function yearSimilaritySimple(a, b) {
   return 0;
 }
 
-// 简化的时长相似度计算（用于 onlineSearch）
+// 简化的时长相似度计算
 export function durationSimilaritySimple(a, b) {
   const da = Number(a);
   const db = Number(b);
@@ -123,7 +123,7 @@ export function durationSimilaritySimple(a, b) {
   return 0;
 }
 
-// 简化的相似度计算（用于 onlineSearch）
+// 简化的相似度计算
 export function similarity(a, b) {
   const na = normalizeTextBasic(a);
   const nb = normalizeTextBasic(b);

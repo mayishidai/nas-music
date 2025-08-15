@@ -104,31 +104,8 @@ const TrackDetailPage = ({ router, player }) => {
   };
 
   const handleOnlineSearch = async () => {
-    if (!track && !form.title && !form.artist) return;
-    try {
-      setSearchLoading(true);
-      setSearchResults([]);
-      setShowSearchPanel(true);
-      
-      // 使用music.js API的GET /search接口
-      const params = new URLSearchParams();
-      const q = `${form.title || track?.title || ''} ${form.artist || track?.artist || ''}`.trim();
-      if (q) {
-        params.set('q', q);
-        params.set('type', 'tracks');
-        params.set('pageSize', '10');
-      }
-      
-      const res = await fetch(`/api/music/search?${params.toString()}`);
-      const json = await res.json();
-      if (json?.success && Array.isArray(json.data)) {
-        setSearchResults(json.data);
-      }
-    } catch (error) {
-      console.error('搜索失败:', error);
-    } finally {
-      setSearchLoading(false);
-    }
+    if (!track && !form.title) return;
+    
   };
 
   const handlePlayMusic = () => {

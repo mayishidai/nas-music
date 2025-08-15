@@ -275,17 +275,4 @@ router.post('/recently-played/:id', async (ctx) => {
    }
  });
 
-// 获取音乐统计信息
-router.get('/stats', async (ctx) => {
-  try {
-    const { getMusicStats } = await import('../client/database.js');
-    const stats = await getMusicStats();
-    ctx.body = { success: true, data: stats };
-  } catch (error) {
-    console.error('获取统计信息失败:', error);
-    ctx.status = 500;
-    ctx.body = { success: false, error: '获取统计信息失败' };
-  }
-});
-
 export default router;
