@@ -1,21 +1,5 @@
-import sqlite3 from 'sqlite3';
-import path from 'path';
-import crypto from 'crypto';
-import { ensureDir } from '../utils/fileUtils.js';
-
-// 确保数据库目录存在
-const dbDir = './db';
-ensureDir(dbDir);
-
-// 初始化 SQLite 数据库
-const dbPath = path.join(dbDir, 'music.db');
-const musicDB = new sqlite3.Database(dbPath);
-
-// 生成MD5哈希
-function generateMD5(text) {
-  return crypto.createHash('md5').update(text).digest('hex');
-}
-
+import db from './sqlite.js'
+import initDatabase from './initDatabase.js'
 // ==================== 通用数据库操作函数 ====================
 
 /**
