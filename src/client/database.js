@@ -132,13 +132,13 @@ export const upsertTrackByPath = (trackDoc) => {
 
 // 获取所有音乐（支持搜索、排序、分页）
 export const getAllTracks = (options = {}) => {
-  const { query = '', sort = 'title', order = 'asc', page = 1, pageSize = 10, } = options;
-  const conditions = { type: 'track' };
-  if (query) {
-    conditions.query = { 
+  const { search = '', sort = 'title', order = 'asc', page = 1, pageSize = 10, filter = {} } = options;
+  const conditions = { type: 'track', ...filter };
+  if (search) {
+    conditions.search = { 
       operator: 'SQL', 
-      condition: `title LIKE @query OR artist LIKE @query OR album LIKE @query OR filename LIKE @query`, 
-      params: { query: `%${query}%` }
+      condition: `title LIKE @search OR artist LIKE @search OR album LIKE @search OR filename LIKE @search`, 
+      params: { search: `%${search}%` }
     };
   }
   const sortField = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'favorite', 'size'].includes(sort) ? sort : 'title';

@@ -21,36 +21,10 @@ const router = new Router();
  // 获取所有音乐
  router.get('/tracks', async (ctx) => {
    try {
-     const { 
-       page = 1, 
-       pageSize = 10, 
-       sort = 'title', 
-       order = 'asc', 
-       search = '',
-       genre, artist, album, yearFrom, yearTo, decade, minBitrate, maxBitrate, favorite
-     } = ctx.query;
-     
-     const result = await getAllTracks({
-       page: parseInt(page),
-       pageSize: parseInt(pageSize),
-       sort,
-       order,
-       search,
-       genre,
-       artist,
-       album,
-       yearFrom,
-       yearTo,
-       decade,
-       minBitrate,
-       maxBitrate,
-       favorite
-     });
-     
-     ctx.body = {
-       success: true,
-       ...result
-     };
+     const { page = 1, pageSize = 10, sort = 'title', order = 'asc', search = '', filter } = ctx.query;
+     const filterObj = filter ? JSON.parse(filter) : {};
+     const data = getAllTracks({ page: parseInt(page), pageSize: parseInt(pageSize), sort, order, search, filter: filterObj });
+     ctx.body = { success: true, ...data }
    } catch (error) {
      console.error('获取音乐列表失败:', error);
      ctx.status = 500;
@@ -63,13 +37,11 @@ router.get('/tracks/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
     const track = await findTrackById(id);
-    
     if (!track) {
       ctx.status = 404;
       ctx.body = { success: false, error: '音乐不存在' };
       return;
     }
-    
     ctx.body = { success: true, data: track };
   } catch (error) {
     console.error('获取音乐详情失败:', error);
@@ -83,16 +55,13 @@ router.put('/tracks/:id/favorite', async (ctx) => {
   try {
     const { id } = ctx.params;
     const { favorite } = ctx.request.body;
-    
     const track = await findTrackById(id);
     if (!track) {
       ctx.status = 404;
       ctx.body = { success: false, error: '音乐不存在' };
       return;
     }
-    
     await updateTrack(id, { favorite: favorite ? 1 : 0 });
-    
     ctx.body = { success: true, data: { favorite: favorite ? 1 : 0 } };
   } catch (error) {
     console.error('更新收藏状态失败:', error);

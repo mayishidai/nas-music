@@ -63,7 +63,9 @@ const ArtistDetailView = ({ router, player }) => {
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: size.toString(),
-        artist: artist.name
+        filter: JSON.stringify({
+          artist: artist.name
+        })
       });
       
       // 添加搜索关键词
@@ -71,16 +73,17 @@ const ArtistDetailView = ({ router, player }) => {
         params.set('search', searchKeyword);
       }
       
-      const res = await fetch(`/api/music/tracks?${params}`);
-      const json = await res.json();
-      
-      if (json?.success) {
-        setTracks(json.data || []);
-        setTotal(json.pagination?.total || 0);
-        setPages(json.pagination?.pages || 0);
+      const res = await fetch(`/api/music/tracks?${params}`).then(res => res.json()); 
+      const data = res.data || []; 
+      const pagination = res.pagination || {};
+      console.log(data);
+      if (res?.success) {
+        setTracks(data);
+        setTotal(pagination.total || 0);
+        setPages(pagination.pages || 0);
         setCurrentPage(page);
       } else {
-        setError(json?.error || '获取音乐列表失败');
+        setError(res?.error || '获取音乐列表失败');
       }
     } catch (error) {
       console.error('加载音乐列表失败:', error);
