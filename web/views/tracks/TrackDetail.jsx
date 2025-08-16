@@ -163,7 +163,7 @@ const TrackDetailPage = ({ router, player }) => {
         setCoverPreview(base64);
       };
       img.src = reader.result;
-    };
+    }; 
     reader.readAsDataURL(file);
   };
 
