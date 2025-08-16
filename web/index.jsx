@@ -14,6 +14,7 @@ import {
 } from './views';
 import './index.css';
 
+const routeHistory = [];
 /**
  * NAS音乐播放器主组件
  * 提供完整的音乐播放、管理功能
@@ -70,6 +71,10 @@ const NASMusicPlayer = () => {
   const router = {
     // 导航到指定页面
     navigate: (view, data = {}) => {
+      routeHistory.push({ view, data });
+      if(routeHistory.length > 30){
+        routeHistory.shift();
+      }
       setCurrentView(view);
       setViewData(data);
       // 小屏：切换视图后关闭侧边抽屉；大屏保持展开
@@ -78,16 +83,14 @@ const NASMusicPlayer = () => {
     
     // 返回上一页
     goBack: () => {
-      const backMap = {
-        'album-detail': 'albums',
-        'artist-detail': 'artists',
-        'track-detail': 'music'
-      };
-      const backView = backMap[currentView];
-      if (backView) {
-        setCurrentView(backView);
+      if (routeHistory.length > 1) {
+        routeHistory.pop();
+        const { view, data } = routeHistory[routeHistory.length - 1];
+        setCurrentView(view);
+        setViewData(data);
+      }else{
+        setCurrentView('music');
         setViewData({});
-        if (isSmallScreen) setSidebarOpen(false);
       }
     },
     
