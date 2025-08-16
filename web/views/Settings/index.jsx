@@ -16,7 +16,6 @@ const SettingsPage = ({ router }) => {
   // API配置状态
   const [apiConfigs, setApiConfigs] = useState({
     musicbrainz: { baseUrl: 'https://musicbrainz.org/ws/2/', userAgent: 'NAS-Music-Server/1.0.0' },
-    lastfm: { apiKey: '', baseUrl: 'https://ws.audioscrobbler.com/2.0/', enabled: false },
   });
 
   // 加载媒体库列表
@@ -303,38 +302,6 @@ const SettingsPage = ({ router }) => {
                 <div className="config-field">
                   <button 
                     onClick={() => testApiConfig('musicbrainz')}
-                    className="test-btn"
-                  >
-                    测试连接
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Last.fm API */}
-            <div className="api-config">
-              <h4>🎧 Last.fm API</h4>
-              <div className="config-fields">
-                <div className="config-field">
-                  <label>API Key:</label>
-                  <input
-                    type="password"
-                    value={apiConfigs.lastfm.apiKey}
-                    onChange={(e) => updateApiConfig('lastfm', 'apiKey', e.target.value)}
-                    placeholder="输入 Last.fm API Key"
-                  />
-                </div>
-                <div className="config-field">
-                  <label>启用:</label>
-                  <input
-                    type="checkbox"
-                    checked={apiConfigs.lastfm.enabled}
-                    onChange={(e) => updateApiConfig('lastfm', 'enabled', e.target.checked)}
-                  />
-                </div>
-                <div className="config-field">
-                  <button 
-                    onClick={() => testApiConfig('lastfm')}
                     className="test-btn"
                   >
                     测试连接

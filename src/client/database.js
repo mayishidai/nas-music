@@ -4,9 +4,7 @@ import './initDatabase.js'
 export const defaultConfig = {
   id: 'app_config',
   musicLibraryPaths: ['./music'],
-  lastfmApiKey: '',
   musicbrainzUserAgent: 'NAS-Music-Server/1.0.0',
-  enableLastfm: true,
   enableMusicbrainz: true,
   scanInterval: 3600000, // 1小时
   supportedFormats: ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'],
@@ -132,6 +130,25 @@ export const getAllTracks = (options = {}) => {
   const sortField = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'favorite', 'size'].includes(sort) ? sort : 'title';
   const sortOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
   const result = client.page('music', page, pageSize, `${sortField} ${sortOrder}`, conditions);
+  result.data = result.data.map(track => ({
+    ...track,
+    artists: client.util.deserialize(track.artists)
+  }));
+  return result;
+}
+
+// 获取所有音乐（支持搜索、排序、分页）
+export const getRandomTracks = (options = {}) => {
+  const { search = '', sort = 'title', order = 'asc', page = 1, pageSize = 10, filter = {} } = options;
+  const conditions = { type: 'track', ...filter };
+  if (search) {
+    conditions.search = { 
+      operator: 'SQL', 
+      condition: `title LIKE @search OR artist LIKE @search OR album LIKE @search OR filename LIKE @search`, 
+      params: { search: `%${search}%` }
+    };
+  }
+  const result = client.randomPage('music', page, pageSize, conditions);
   result.data = result.data.map(track => ({
     ...track,
     artists: client.util.deserialize(track.artists)

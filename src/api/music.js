@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import {
   getAllTracks,
+  getRandomTracks,
   findTrackById,
   updateTrack,
   getFavoriteTracks,
@@ -23,8 +24,8 @@ import { writeMusicTags, formatArtistNames } from '../utils/musicUtil.js';
 
 const router = new Router();
 
- // 获取所有音乐
- router.get('/tracks', async (ctx) => {
+// 获取所有音乐
+router.get('/tracks', async (ctx) => {
    try {
      const { page = 1, pageSize = 10, sort = 'title', order = 'asc', search = '', filter } = ctx.query;
      const filterObj = filter ? JSON.parse(filter) : {};
@@ -35,7 +36,21 @@ const router = new Router();
      ctx.status = 500;
      ctx.body = { success: false, error: '获取音乐列表失败' };
    }
- });
+});
+
+// 获取所有音乐
+router.get('/random', async (ctx) => {
+  try {
+    const { page = 1, pageSize = 10, sort = 'title', order = 'asc', search = '', filter } = ctx.query;
+    const filterObj = filter ? JSON.parse(filter) : {};
+    const data = getRandomTracks({ page: parseInt(page), pageSize: parseInt(pageSize), sort, search, filter: filterObj });
+    ctx.body = { success: true, ...data }
+  } catch (error) {
+    console.error('获取音乐列表失败:', error);
+    ctx.status = 500;
+    ctx.body = { success: false, error: '获取音乐列表失败' };
+  }
+});
 
 // 获取单条音乐详情
 router.get('/tracks/:id', async (ctx) => {

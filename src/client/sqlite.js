@@ -268,6 +268,17 @@ const client = {
     const pageData = pagesql.all(params);
     return { data: pageData, pagination: { total: count, pages: Math.ceil(count / pageSize), page, pageSize }, sort };
   },
+  randomPage: (table, page=1, pageSize=10, filter={}) => {
+    const { conditions, params } = util.selectFormatOperator('', filter);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const pagesql = db.prepare(`SELECT * FROM ${table} ${whereClause} ORDER BY RANDOM() LIMIT @_limit OFFSET @_offset`);
+    const countsql = db.prepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
+    params['_limit'] = pageSize;
+    params['_offset'] = (page-1)*pageSize;
+    const { count } = countsql.get(params);
+    const pageData = pagesql.all(params);
+    return { data: pageData, pagination: { total: count, pages: Math.ceil(count / pageSize), page, pageSize } };
+  },
   count: (table, filter={}) => {
     const { conditions, params } = util.selectFormatOperator('', filter);
     const sql = conditions.length > 0 ? `SELECT COUNT(*) as count FROM ${table} WHERE ${conditions.join(' AND ')}` : `SELECT COUNT(*) as count FROM ${table}`;

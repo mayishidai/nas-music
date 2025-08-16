@@ -20,11 +20,6 @@ router.get('/api-configs', async (ctx) => {
       musicbrainz: { 
         baseUrl: 'https://musicbrainz.org/ws/2/',
         userAgent: config.musicbrainzUserAgent || 'NAS-Music-Server/1.0.0'
-      },
-      lastfm: { 
-        apiKey: config.lastfmApiKey || '', 
-        baseUrl: 'https://ws.audioscrobbler.com/2.0/',
-        enabled: config.enableLastfm || false
       }
     };
     
@@ -48,16 +43,12 @@ router.get('/api-configs', async (ctx) => {
  */
 router.put('/api-configs', async (ctx) => {
   try {
-    const { musicbrainz, lastfm } = ctx.request.body;
+    const { musicbrainz } = ctx.request.body;
     const config = await getConfig();
     
     // 更新配置
     if (musicbrainz) {
       config.musicbrainzUserAgent = musicbrainz.userAgent;
-    }
-    if (lastfm) {
-      config.lastfmApiKey = lastfm.apiKey;
-      config.enableLastfm = lastfm.enabled;
     }
     await saveConfig(config);
     ctx.body = {
@@ -232,18 +223,6 @@ router.post('/test-api/:service', async (ctx) => {
         testUrl = `${baseUrl}artist/5b11f4ce-a62d-471e-81fc-a69a8278c7da`;
         testParams = { fmt: 'json' };
         break;
-        
-      case 'lastfm':
-        baseUrl = 'https://ws.audioscrobbler.com/2.0/';
-        testUrl = baseUrl;
-        testParams = {
-          method: 'artist.getinfo',
-          artist: 'Cher',
-          api_key: config.lastfmApiKey,
-          format: 'json'
-        };
-        break;
-        
       default:
         ctx.status = 400;
         ctx.body = {

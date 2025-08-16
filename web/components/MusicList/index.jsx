@@ -47,6 +47,7 @@ function formatFileSize(bytes) {
  */
 const MusicList = ({
   tracks = [],
+  showPagination = true,
   showCover = true,
   isLoading = false,
   error = '',
@@ -335,6 +336,7 @@ const MusicList = ({
       </div>
 
       {/* 分页控件 */}
+      {showPagination && (
       <div className="pagination">
         <div className="pagination-info">
           <span className="track-count">共 {total} 首</span>
@@ -384,6 +386,7 @@ const MusicList = ({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

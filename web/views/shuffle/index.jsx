@@ -30,7 +30,7 @@ const ShufflePage = ({ router, player }) => {
         params.set('search', searchKeyword);
       }
 
-      const response = await fetch(`/api/music/tracks?${params.toString()}`);
+      const response = await fetch(`/api/music/random?${params.toString()}`);
       const result = await response.json();
 
       if (response.ok) {
@@ -56,9 +56,9 @@ const ShufflePage = ({ router, player }) => {
         }));
 
         setShuffleTracks(processedTracks);
-        setTotal(paginationData.total);
-        setPages(Math.ceil(paginationData.total / pageSize));
-        setPage(targetPage);
+        setTotal(10);
+        setPages(1);
+        setPage(1);
       } else {
         setError(result.message || '加载失败');
       }
@@ -203,6 +203,7 @@ const ShufflePage = ({ router, player }) => {
       </div>
       <div className="shuffle-view">
         <MusicList 
+          showPagination={false}
           tracks={shuffleTracks}
           showCover={true}
           isLoading={loading}
