@@ -1,6 +1,8 @@
 import Router from 'koa-router';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
+import path from 'path';
+import NodeID3 from 'node-id3';
 import { 
   getAllTracks, 
   findTrackById, 
@@ -14,7 +16,157 @@ import {
   getRecentlyPlayedTracks,
   updateArtistInfo,
   getArtistDetails,
+  updateMediaLibraryStats,
 } from '../client/database.js';
+
+// 读取音乐文件标签
+async function readMusicTags(filePath) {
+  try {
+    const tags = NodeID3.read(filePath);
+    return tags || {};
+  } catch (error) {
+    console.error('读取音乐标签失败:', error);
+    return {};
+  }
+}
+
+// 写入音乐文件标签
+async function writeMusicTags(filePath, metadata) {
+  try {
+    const ext = path.extname(filePath).toLowerCase();
+    
+    if (ext === '.mp3') {
+      // 处理MP3文件
+      const existingTags = await readMusicTags(filePath);
+      const tags = { ...existingTags };
+      
+      // 更新基本标签
+      if (metadata.title) tags.title = metadata.title;
+      if (metadata.artist) tags.artist = metadata.artist;
+      if (metadata.album) tags.album = metadata.album;
+      if (metadata.year) tags.year = metadata.year.toString();
+      if (metadata.lyrics) {
+        tags.unsynchronisedLyrics = {
+          language: 'eng',
+          text: metadata.lyrics
+        };
+      }
+      
+      // 如果有封面图片，添加封面
+      if (metadata.coverImage && metadata.coverImage.startsWith('data:image/')) {
+        try {
+          const base64Data = metadata.coverImage.split(',')[1];
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          const format = metadata.coverImage.match(/data:image\/([^;]+)/)?.[1] || 'jpeg';
+          
+          tags.image = {
+            imageBuffer,
+            type: {
+              id: 3,
+              name: 'front cover'
+            },
+            mime: `image/${format}`
+          };
+        } catch (error) {
+          console.error('处理封面图片失败:', error);
+        }
+      }
+      
+      const success = NodeID3.write(tags, filePath);
+      if (success) {
+        console.log(`已更新MP3标签: ${filePath}`);
+        return true;
+      } else {
+        throw new Error('写入MP3标签失败');
+      }
+    } else if (ext === '.flac') {
+      // 处理FLAC文件
+      const existingTags = await readMusicTags(filePath);
+      const tags = { ...existingTags };
+      
+      // 更新基本标签
+      if (metadata.title) tags.TITLE = metadata.title;
+      if (metadata.artist) tags.ARTIST = metadata.artist;
+      if (metadata.album) tags.ALBUM = metadata.album;
+      if (metadata.year) tags.DATE = metadata.year.toString();
+      if (metadata.lyrics) tags.LYRICS = metadata.lyrics;
+      
+      // 如果有封面图片，添加封面
+      if (metadata.coverImage && metadata.coverImage.startsWith('data:image/')) {
+        try {
+          const base64Data = metadata.coverImage.split(',')[1];
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          const format = metadata.coverImage.match(/data:image\/([^;]+)/)?.[1] || 'jpeg';
+          
+          tags.PICTURE = [{
+            imageBuffer,
+            type: {
+              id: 3,
+              name: 'front cover'
+            },
+            mime: `image/${format}`
+          }];
+        } catch (error) {
+          console.error('处理封面图片失败:', error);
+        }
+      }
+      
+      const success = NodeID3.write(tags, filePath);
+      if (success) {
+        console.log(`已更新FLAC标签: ${filePath}`);
+        return true;
+      } else {
+        throw new Error('写入FLAC标签失败');
+      }
+    } else if (ext === '.m4a' || ext === '.aac') {
+      // 处理M4A/AAC文件
+      const existingTags = await readMusicTags(filePath);
+      const tags = { ...existingTags };
+      
+      // 更新基本标签
+      if (metadata.title) tags.title = metadata.title;
+      if (metadata.artist) tags.artist = metadata.artist;
+      if (metadata.album) tags.album = metadata.album;
+      if (metadata.year) tags.year = metadata.year.toString();
+      if (metadata.lyrics) tags.lyrics = metadata.lyrics;
+      
+      // 如果有封面图片，添加封面
+      if (metadata.coverImage && metadata.coverImage.startsWith('data:image/')) {
+        try {
+          const base64Data = metadata.coverImage.split(',')[1];
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          const format = metadata.coverImage.match(/data:image\/([^;]+)/)?.[1] || 'jpeg';
+          
+          tags.image = {
+            imageBuffer,
+            type: {
+              id: 3,
+              name: 'front cover'
+            },
+            mime: `image/${format}`
+          };
+        } catch (error) {
+          console.error('处理封面图片失败:', error);
+        }
+      }
+      
+      const success = NodeID3.write(tags, filePath);
+      if (success) {
+        console.log(`已更新M4A/AAC标签: ${filePath}`);
+        return true;
+      } else {
+        throw new Error('写入M4A/AAC标签失败');
+      }
+    } else {
+      // 其他格式暂时跳过
+      console.log(`跳过标签写入，不支持的文件格式: ${ext}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('写入音乐标签失败:', error);
+    return false;
+  }
+}
 
 const router = new Router();
 
@@ -233,6 +385,82 @@ router.get('/stream/:id', async (ctx) => {
     console.error('流式播放失败:', error);
     ctx.status = 500;
     ctx.body = { success: false, error: '流式播放失败' };
+  }
+});
+
+// 保存音乐详情（包括更新metadata和统计信息）
+router.put('/tracks/:id', async (ctx) => {
+  try {
+    const { id } = ctx.params;
+    const { title, artist, album, year, lyrics, coverImage } = ctx.request.body;
+    
+    const track = await findTrackById(id);
+    if (!track) {
+      ctx.status = 404;
+      ctx.body = { success: false, error: '音乐不存在' };
+      return;
+    }
+
+    // 1. 更新数据库中的音乐详情
+    const updateData = {
+      title: title || track.title,
+      artist: artist || track.artist,
+      album: album || track.album,
+      year: year || track.year,
+      lyrics: lyrics || track.lyrics
+    };
+
+    // 如果有新的封面图片，保存为base64格式
+    if (coverImage && coverImage !== track.coverImage) {
+      // 验证base64格式
+      if (coverImage.startsWith('data:image/')) {
+        updateData.coverImage = coverImage;
+        console.log('保存base64格式的封面图片');
+      } else {
+        console.warn('封面图片格式不正确，跳过保存');
+      }
+    }
+
+    const updateResult = await updateTrack(id, updateData);
+    if (!updateResult) {
+      ctx.status = 500;
+      ctx.body = { success: false, error: '更新数据库失败' };
+      return;
+    }
+
+    // 2. 更新音乐文件的metadata
+    try {
+      if (track.path && await fs.access(track.path).then(() => true).catch(() => false)) {
+        const metadataToWrite = {
+          title: updateData.title,
+          artist: updateData.artist,
+          album: updateData.album,
+          year: updateData.year,
+          lyrics: updateData.lyrics,
+          coverImage: updateData.coverImage
+        };
+        
+        const writeSuccess = await writeMusicTags(track.path, metadataToWrite);
+        if (writeSuccess) {
+          console.log(`已更新音乐文件metadata: ${track.path}`);
+        } else {
+          console.warn(`音乐文件metadata更新失败: ${track.path}`);
+        }
+      }
+    } catch (metadataError) {
+      console.error('更新音乐文件metadata失败:', metadataError);
+      // 不阻止整个保存过程，只记录错误
+    }
+    const updatedTrack = await findTrackById(id);
+    ctx.body = { 
+      success: true, 
+      data: updatedTrack,
+      message: '保存成功！已更新音乐详情、文件metadata和音乐库统计信息。封面图片已保存为base64格式。'
+    };
+  } catch (error) {
+    console.error('保存音乐详情失败:', error);
+    ctx.status = 500;
+    ctx.body = { success: false, error: '保存音乐详情失败' };
   }
 });
 

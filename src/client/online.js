@@ -2,6 +2,7 @@ import { MusicBrainzApi, CoverArtArchiveApi } from 'musicbrainz-api';
 import { getConfig } from './database.js';
 import { tradToSimple } from 'simptrad';
 import { mergeAndUnique } from '../utils/dataUtils.js';
+import { normalizeSongTitle, normalizeArtistName } from '../utils/textUtils.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -11,6 +12,8 @@ const coverArtApi = new CoverArtArchiveApi({ appName: config.appName, appVersion
 
 // 根据歌曲名称和歌手名称，搜索音乐
 const searchMusic = async (title, artist) => {
+  title = normalizeSongTitle(title)
+  artist = normalizeArtistName(artist)
   // 清理搜索关键词
   const cleanTitle = title?.trim().replace(/[^\w\s\u4e00-\u9fff]/g, ' ').replace(/\s+/g, ' ').trim() || '';
   const cleanArtist = artist?.trim().replace(/[^\w\s\u4e00-\u9fff]/g, ' ').replace(/\s+/g, ' ').trim() || '';
@@ -68,8 +71,7 @@ const searchMusic = async (title, artist) => {
         artist: tradToSimple(artist_credit.artist.name),
         artistAliases: artist_credit.artist.aliases?.map(alias => alias.name),
         date: recording.date,
-        albums: recording['releases'].map(release => {
-          console.log(release)
+        albums: recording['releases']?.map(release => {
           return {
             albumId: release.id,
             title: tradToSimple(release.title),

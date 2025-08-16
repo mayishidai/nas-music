@@ -36,24 +36,14 @@ export function normalizeTextBasic(input) {
 // 歌曲名称格式化函数
 export function normalizeSongTitle(title) {
   if (!title) return '';
-  
   let normalized = String(title)
-    // 去除常见的歌手名前缀
-    .replace(/^[^-_–—~～\s]*[-_–—~～\s]+/, '')
-    // 去除括号内容（包括中文括号）
     .replace(/[\(（].*?[\)）]/g, '')
     .replace(/\[.*?\]/g, '')
     .replace(/\{.*?\}/g, '')
-    // 去除常见后缀
     .replace(/\s*(官方版|纯音乐|伴奏|现场版|无损|高品质|原声|原曲|铃声|remix|live|ost|original|official|lyrics?)\s*$/gi, '')
-    // 去除音轨号前缀
-    .replace(/^\s*\d{1,2}\s*[-_.]\s*/, '')
-    // 去除文件扩展名
     .replace(/\.[a-z0-9]{2,5}$/i, '')
-    // 去除多余空格
     .replace(/\s+/g, ' ')
     .trim();
-  
   return normalized;
 }
 

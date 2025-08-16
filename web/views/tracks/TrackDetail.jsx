@@ -16,6 +16,9 @@ const TrackDetailPage = ({ router, player }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
   const [favorite, setFavorite] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success'); // 'success' | 'error'
 
   // 从路由数据获取track信息
   const trackData = router.getCurrentData().track;
@@ -64,11 +67,103 @@ const TrackDetailPage = ({ router, player }) => {
     return { fileName: name, folderPath: folder };
   }, [track]);
 
+  // 将图片URL转换为base64格式
+  const convertImageUrlToBase64 = async (imageUrl) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // 处理跨域问题
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 设置最大尺寸为500x500
+        const maxSize = 500;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // 转换为base64，使用0.8的质量
+        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(base64);
+      };
+      
+      img.onerror = () => {
+        reject(new Error('图片加载失败'));
+      };
+      
+      img.src = imageUrl;
+    });
+  };
+
   const handleChooseCover = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      alert('请选择图片文件');
+      return;
+    }
+    
+    // 检查文件大小 (限制为5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('图片文件大小不能超过5MB');
+      return;
+    }
+    
     const reader = new FileReader();
-    reader.onload = () => setCoverPreview(reader.result);
+    reader.onload = () => {
+      // 压缩图片并转换为base64
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 设置最大尺寸为500x500
+        const maxSize = 500;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // 转换为base64，使用0.8的质量
+        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+        setCoverPreview(base64);
+      };
+      img.src = reader.result;
+    };
     reader.readAsDataURL(file);
   };
 
@@ -85,21 +180,22 @@ const TrackDetailPage = ({ router, player }) => {
           artist: form.artist, 
           album: form.album, 
           year: form.year, 
-          lyrics: form.lyrics
+          lyrics: form.lyrics,
+          coverImage: coverPreview
         })
       });
       
       const result = await response.json();
       if (result.success) {
         // 更新本地track数据
-        setTrack(prev => ({ ...prev, ...form }));
-        alert('保存成功');
+        setTrack(prev => ({ ...prev, ...form, coverImage: coverPreview }));
+        showToastMessage('保存成功！已更新音乐详情', 'success');
       } else {
-        alert('保存失败: ' + (result.error || '未知错误'));
+        showToastMessage('保存失败: ' + (result.error || '未知错误'), 'error');
       }
     } catch (error) {
       console.error('保存失败:', error);
-      alert('保存失败');
+      showToastMessage('保存失败，请检查网络连接', 'error');
     } finally {
       setLoading(false);
     }
@@ -107,7 +203,7 @@ const TrackDetailPage = ({ router, player }) => {
 
   const handleOnlineSearch = async () => {
     if (!form.title.trim() && !form.artist.trim()) {
-      alert('请输入歌曲名称或艺术家名称');
+      showToastMessage('请输入歌曲名称或艺术家名称', 'error');
       return;
     }
     setSearchLoading(true);
@@ -123,11 +219,11 @@ const TrackDetailPage = ({ router, player }) => {
         setSearchResults(json.data);
         setShowSearchPanel(true);
       } else {
-        alert('搜索失败: ' + (json.error || '未知错误'));
+        showToastMessage('搜索失败: ' + (json.error || '未知错误'), 'error');
       }
     } catch (error) {
       console.error('在线搜索失败:', error);
-      alert('搜索失败，请检查网络连接');
+      showToastMessage('搜索失败，请检查网络连接', 'error');
     } finally {
       setSearchLoading(false);
     }
@@ -163,11 +259,8 @@ const TrackDetailPage = ({ router, player }) => {
     return <div className="page-container">音乐不存在</div>;
   }
 
-  if (loading) {
-    return <div className="page-container">加载中...</div>;
-  }
-
   const onOnlineDataReplace = async (data) => {
+    setLoading(true);
     setForm(prev => ({
       ...prev,
       title: data.title || prev.title,
@@ -176,12 +269,75 @@ const TrackDetailPage = ({ router, player }) => {
       year: data.date || prev.year,
       coverImage: data.cover || prev.coverImage,
     }));
-    setCoverPreview(data.cover || '/images/default_cover.png');
+    
+    // 处理封面图片，如果是URL则转换为base64
+    if (data.cover && data.cover.startsWith('http')) {
+      try {
+        const base64Image = await convertImageUrlToBase64(data.cover);
+        setCoverPreview(base64Image);
+        setForm(prev => ({
+          ...prev,
+          coverImage: base64Image,
+        }));
+      } catch (error) {
+        console.error('转换封面图片失败:', error);
+        setCoverPreview(data.cover || '/images/default_cover.png');
+      }
+    } else {
+      setCoverPreview(data.cover || '/images/default_cover.png');
+    }
+    
+    // 自动搜索并设置歌词
+    try {
+      const params = new URLSearchParams();
+      params.append('title', data.title.trim());
+      params.append('artist', data.artist.trim());
+      const res = await fetch(`/api/online/lyrics?${params.toString()}`);
+      const json = await res.json();
+      if (json?.success) {
+        setForm(prev => ({
+          ...prev,
+          lyrics: json.data.lyrics || prev.lyrics,
+        }));
+        console.log(`已自动设置歌词，来源: ${json.data.source}，匹配度: ${Math.round((json.data.score || 0) * 100)}%`);
+      }
+    } catch (error) {
+      console.error('自动搜索歌词失败:', error);
+    }
+    setLoading(false);
     setShowSearchPanel(false);
+  };
+
+  // 显示Toast消息的函数
+  const showToastMessage = (message, type = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+    
+    // 1.7秒后开始关闭动画，2秒后完全隐藏
+    setTimeout(() => {
+      const toastElement = document.querySelector('.toast');
+      if (toastElement) {
+        toastElement.classList.add('hiding');
+      }
+    }, 1700);
+    
+    setTimeout(() => {
+      setShowToast(false);
+    }, 2000);
   };
 
   return (
     <div className="track-detail">
+      {/* 浮动Loading遮罩层 */}
+      {loading && (
+        <div className="floating-loading-overlay">
+          <div className="floating-loading-content">
+            <div className="floating-loading-spinner"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      )}
       <div className="td-header">
         <button className="td-back" onClick={router.goBack}>← 返回</button>
         <h2 className="td-title">音乐详情</h2>
@@ -199,8 +355,19 @@ const TrackDetailPage = ({ router, player }) => {
           >
             {favorite ? '❤️' : '🤍'}
           </button>
-          <button className="td-btn" disabled={searchLoading} onClick={handleOnlineSearch}>
-            {searchLoading ? '搜索中…' : '在线搜索'}
+          <button 
+            className={`td-btn ${searchLoading ? 'loading' : ''}`} 
+            disabled={searchLoading} 
+            onClick={handleOnlineSearch}
+          >
+            {searchLoading ? (
+              <>
+                <div className="btn-loading-spinner"></div>
+                <span>搜索中…</span>
+              </>
+            ) : (
+              '在线搜索'
+            )}
           </button>
         </div>
       </div>
@@ -220,8 +387,14 @@ const TrackDetailPage = ({ router, player }) => {
                 onChange={handleChooseCover} 
                 className="td-cover-input" 
                 id="cover-input"
+                disabled={loading}
               />
-              <label htmlFor="cover-input" className="td-cover-label">选择封面</label>
+              <label 
+                htmlFor="cover-input" 
+                className={`td-cover-label ${loading ? 'disabled' : ''}`}
+              >
+                选择封面
+              </label>
             </div>
             
             {/* 文件信息移动到封面区域 */}
@@ -278,6 +451,7 @@ const TrackDetailPage = ({ router, player }) => {
                 value={form.title} 
                 onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="歌曲名称"
+                disabled={loading}
               />
             </div>
             <div className="td-form-row">
@@ -287,6 +461,7 @@ const TrackDetailPage = ({ router, player }) => {
                 value={form.artist} 
                 onChange={(e) => setForm(prev => ({ ...prev, artist: e.target.value }))}
                 placeholder="艺术家名称"
+                disabled={loading}
               />
             </div>
             <div className="td-form-row">
@@ -296,6 +471,7 @@ const TrackDetailPage = ({ router, player }) => {
                 value={form.album} 
                 onChange={(e) => setForm(prev => ({ ...prev, album: e.target.value }))}
                 placeholder="专辑名称"
+                disabled={loading}
               />
             </div>
             <div className="td-form-row">
@@ -305,6 +481,7 @@ const TrackDetailPage = ({ router, player }) => {
                 value={form.year} 
                 onChange={(e) => setForm(prev => ({ ...prev, year: e.target.value }))}
                 placeholder="发行年份"
+                disabled={loading}
               />
             </div>
           </div>
@@ -316,18 +493,26 @@ const TrackDetailPage = ({ router, player }) => {
                 className="td-lyrics" 
                 value={form.lyrics} 
                 onChange={(e) => setForm(prev => ({ ...prev, lyrics: e.target.value }))}
-                placeholder="歌词内容" 
+                placeholder="歌词内容"
+                disabled={loading}
               />
             </div>
           </div>
 
           <div className="td-actions">
             <button 
-              className="td-save-btn" 
+              className={`td-save-btn ${loading ? 'loading' : ''}`}
               onClick={handleSaveTags}
               disabled={loading}
             >
-              {loading ? '保存中...' : '保存'}
+              {loading ? (
+                <>
+                  <div className="save-loading-spinner"></div>
+                  <span>保存中...</span>
+                </>
+              ) : (
+                '保存'
+              )}
             </button>
           </div>
         </div>
@@ -367,13 +552,25 @@ const TrackDetailPage = ({ router, player }) => {
                           <div className="result-source">来源: {result.source}</div>
                         </div>
                         <div className="result-score">
-                          匹配度: {Math.round((result.score || 0))}%
+                          匹配度: {Math.round(result.score || 0)}%
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast弹窗 */}
+        {showToast && (
+          <div className={`toast ${toastType}`}>
+            <div className="toast-content">
+              <div className="toast-icon">
+                {toastType === 'success' ? '✅' : '❌'}
+              </div>
+              <div className="toast-message">{toastMessage}</div>
             </div>
           </div>
         )}
