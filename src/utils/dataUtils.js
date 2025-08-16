@@ -85,3 +85,76 @@ export const merge = (a={}, b={}) => {
   }
   return result;
 }
+
+
+
+// 根据数组中的指定字段去重，并将指定字段合并
+export const mergeAndUnique = (datas=[], union_fields=[], merge_field='') => {
+  if (!Array.isArray(datas) || datas.length === 0) {
+      return [];
+  }
+  
+  if (!Array.isArray(union_fields) || union_fields.length === 0) {
+      return datas;
+  }
+  
+  const result = [];
+  const seen = new Map();
+  
+  for (const item of datas) {
+      // 构建用于去重的键
+      const key = union_fields.map(field => item[field] || '').join('|');
+      
+      if (seen.has(key)) {
+          // 如果已存在，合并指定字段
+          const existingItem = seen.get(key);
+          const existingIndex = result.findIndex(r => 
+              union_fields.every(field => r[field] === item[field])
+          );
+          
+          if (existingIndex !== -1 && merge_field && item[merge_field]) {
+              // 合并指定字段的数据
+              if (Array.isArray(item[merge_field])) {
+                  // 如果是数组，合并数组并去重
+                  const existingArray = result[existingIndex][merge_field] || [];
+                  const newArray = item[merge_field] || [];
+                  
+                  // 合并数组并去重
+                  const mergedArray = [...existingArray, ...newArray];
+                  const uniqueArray = mergedArray.filter((element, index, self) => {
+                      if (typeof element === 'object' && element !== null) {
+                          // 对于对象，使用JSON字符串比较
+                          return index === self.findIndex(e => 
+                              JSON.stringify(e) === JSON.stringify(element)
+                          );
+                      }
+                      return index === self.indexOf(element);
+                  });
+                  
+                  result[existingIndex][merge_field] = uniqueArray;
+              } else {
+                  // 如果不是数组，保留更长的字符串或更大的数值
+                  const existingValue = result[existingIndex][merge_field];
+                  if (typeof item[merge_field] === 'string' && typeof existingValue === 'string') {
+                      result[existingIndex][merge_field] = item[merge_field].length > existingValue.length 
+                          ? item[merge_field] 
+                          : existingValue;
+                  } else if (typeof item[merge_field] === 'number' && typeof existingValue === 'number') {
+                      result[existingIndex][merge_field] = Math.max(item[merge_field], existingValue);
+                  }
+              }
+              
+              // 更新分数（保留最高分）
+              if (item.score && result[existingIndex].score) {
+                  result[existingIndex].score = Math.max(item.score, result[existingIndex].score);
+              }
+          }
+      } else {
+          // 如果不存在，添加到结果中
+          seen.set(key, item);
+          result.push({ ...item });
+      }
+  }
+  
+  return result;
+}

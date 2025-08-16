@@ -106,6 +106,26 @@
   display: block;
 }
 
+/* 音乐列表滚动条样式 */
+.music-table tbody::-webkit-scrollbar {
+  width: 6px;
+}
+
+.music-table tbody::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 3px;
+}
+
+.music-table tbody::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.music-table tbody::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .music-table tbody tr {
   display: table;
   width: 100%;

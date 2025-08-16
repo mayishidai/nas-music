@@ -77,6 +77,22 @@ CREATE TABLE IF NOT EXISTS albums (
 )
 `;
 
+const createOnlineMusicTable = `
+CREATE TABLE IF NOT EXISTS online_music (
+  id TEXT PRIMARY KEY,
+  musicId TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL,
+  artistAliases TEXT, -- JSON 数组字符串
+  albumId TEXT NOT NULL,
+  album TEXT NOT NULL,
+  albumArtist TEXT NOT NULL,
+  date TEXT NOT NULL,
+  coverImage TEXT NOT NULL
+)
+`;
+
 // 创建索引
 const createIndexes = [
 'CREATE INDEX IF NOT EXISTS idx_music_type ON music(type)',
@@ -92,7 +108,13 @@ const createIndexes = [
 'CREATE INDEX IF NOT EXISTS idx_albums_title ON albums(title)',
 'CREATE INDEX IF NOT EXISTS idx_albums_artist ON albums(artist)',
 'CREATE INDEX IF NOT EXISTS idx_albums_normalizedTitle ON albums(normalizedTitle)',
-'CREATE INDEX IF NOT EXISTS idx_albums_artist_title ON albums(artist, normalizedTitle)'
+'CREATE INDEX IF NOT EXISTS idx_albums_artist_title ON albums(artist, normalizedTitle)',
+'CREATE INDEX IF NOT EXISTS idx_online_music_musicId ON online_music(musicId)',
+'CREATE INDEX IF NOT EXISTS idx_online_music_score ON online_music(score)',
+'CREATE INDEX IF NOT EXISTS idx_online_music_title ON online_music(title)',
+'CREATE INDEX IF NOT EXISTS idx_online_music_artist ON online_music(artist)',
+'CREATE INDEX IF NOT EXISTS idx_online_music_albumId ON online_music(albumId)',
+'CREATE INDEX IF NOT EXISTS idx_online_music_album ON online_music(album)',
 ];
 
 // 初始化表
@@ -101,6 +123,7 @@ sqlite.db.transaction((client)=>{
   client.db.execute(createConfigTable);
   client.db.execute(createArtistsTable);
   client.db.execute(createAlbumsTable);
+  client.db.execute(createOnlineMusicTable);
   createIndexes.forEach((indexSQL, i) => {
     client.db.execute(indexSQL);
   });

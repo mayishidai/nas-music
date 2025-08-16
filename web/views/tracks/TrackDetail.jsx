@@ -104,8 +104,32 @@ const TrackDetailPage = ({ router, player }) => {
   };
 
   const handleOnlineSearch = async () => {
-    if (!track && !form.title) return;
+    if (!form.title.trim() && !form.artist.trim()) {
+      alert('请输入歌曲名称或艺术家名称');
+      return;
+    }
     
+    setSearchLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (form.title.trim()) params.append('title', form.title.trim());
+      if (form.artist.trim()) params.append('artist', form.artist.trim());
+      
+      const res = await fetch(`/api/online/search/music?${params.toString()}`);
+      const json = await res.json();
+      
+      if (json?.success) {
+        setSearchResults(json.data);
+        setShowSearchPanel(true);
+      } else {
+        alert('搜索失败: ' + (json.error || '未知错误'));
+      }
+    } catch (error) {
+      console.error('在线搜索失败:', error);
+      alert('搜索失败，请检查网络连接');
+    } finally {
+      setSearchLoading(false);
+    }
   };
 
   const handlePlayMusic = () => {
@@ -304,30 +328,52 @@ const TrackDetailPage = ({ router, player }) => {
             <div className="td-drawer-mask" onClick={() => setShowSearchPanel(false)} />
             <div className="td-drawer-content">
               <div className="td-drawer-header">
-                <h3>在线搜索结果</h3>
-                <button onClick={() => setShowSearchPanel(false)}>✕</button>
+                <h3>🔍 在线搜索结果</h3>
+                <button className="td-drawer-close" onClick={() => setShowSearchPanel(false)}>✕</button>
               </div>
               <div className="td-drawer-body">
-                {searchResults.length === 0 ? (
-                  <div className="no-results">暂无搜索结果</div>
+                {searchLoading ? (
+                  <div className="search-loading">
+                    <div className="loading-spinner"></div>
+                    <p>搜索中...</p>
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="no-results">
+                    <div className="no-results-icon">🔍</div>
+                    <p>未找到相关结果</p>
+                    <p className="no-results-tip">请尝试其他关键词或检查网络连接</p>
+                  </div>
                 ) : (
-                  searchResults.map((result, idx) => (
-                    <div key={idx} className="search-result-item" onClick={() => {
-                      setForm(prev => ({
-                        ...prev,
-                        title: result.title || prev.title,
-                        artist: result.artist || prev.artist,
-                        album: result.album || prev.album,
-                        year: result.year || prev.year,
-                      }));
-                      setShowSearchPanel(false);
-                    }}>
-                      <div className="result-title">{result.title}</div>
-                      <div className="result-artist">{result.artist}</div>
-                      <div className="result-album">{result.album}</div>
-                      <div className="result-year">{result.year}</div>
-                    </div>
-                  ))
+                  <div className="search-results-list">
+                    {searchResults.map((result, idx) => (
+                      <div key={idx} className="search-result-item" onClick={() => {
+                        setForm(prev => ({
+                          ...prev,
+                          title: result.title || prev.title,
+                          artist: result.artist || prev.artist,
+                          album: result.album || prev.album,
+                        }));
+                        setShowSearchPanel(false);
+                      }}>
+                        <div className="result-cover">
+                          {result.cover ? (
+                            <img src={result.cover} alt={result.title} />
+                          ) : (
+                            <div className="default-cover">🎵</div>
+                          )}
+                        </div>
+                        <div className="result-info">
+                          <div className="result-title">{result.title}</div>
+                          <div className="result-artist">{result.artist}</div>
+                          {result.album && <div className="result-album">{result.album}</div>}
+                          <div className="result-source">来源: {result.source}</div>
+                        </div>
+                        <div className="result-score">
+                          匹配度: {Math.round((result.score || 0))}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
