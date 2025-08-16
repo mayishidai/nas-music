@@ -172,7 +172,6 @@ const Player = forwardRef((props, ref) => {
       if(parsedLyrics){
         const currentLyric = parsedLyrics.find(lyric => lyric.time <= audio.currentTime)?.text || '';
         setCurrentLyric(currentLyric);
-        console.log(currentLyric);
       }
     };
 

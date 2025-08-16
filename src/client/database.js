@@ -239,7 +239,7 @@ export const getRecentlyPlayedTracks = (options = {}) => {
 }
 
 // 获取专辑列表（支持搜索、排序、分页）
-export const getAlbums = (options = {}) => {
+export const albumsPage = (options = {}) => {
   const { query, sort = 'title', order = 'asc', page = 1, pageSize = 10 } = options;
   const conditions = { trackCount: { operator: '>', data: 0 } };
   if (query) {
@@ -256,7 +256,7 @@ export const getAlbums = (options = {}) => {
 }
 
 // 获取艺术家列表（支持搜索、排序、分页）
-export const getArtists = (options = {}) => {
+export const artistsPage = (options = {}) => {
   const { query: searchQuery = '', sort = 'name', order = 'asc', page = 1, pageSize = 10 } = options;
   const conditions = { trackCount: { operator: '>', data: 0 } };
   if (searchQuery) {
@@ -382,29 +382,30 @@ export const upsertArtistFromTrack = (trackData) => {
     return artistId;
   }
 };
-// 获取艺术家详细信息
-export const getArtistDetails = (artistId) => client.queryOne('artists', { id: artistId });
-// 根据歌手名称查找歌手
-export const findArtistByName = (artistName) => client.queryOne('artists', { normalizedName: client.util.normalize(artistName) });
-// 根据歌手ID查找歌手
-export const findArtistById = (artistId) => client.queryOne('artists', { id: artistId });
-// 根据专辑标题和歌手查找专辑
-export const findAlbumByTitleAndArtist = (albumTitle, artistName) => {
-  const normalizedTitle = client.util.normalize(albumTitle);
-  const album = client.queryOne('albums', { normalizedTitle, artist: artistName });
-  if (album) {
-    album.artists = client.util.deserialize(album.artists);
-  }
-  return album;
+// 根据歌手ID/名称查找歌手
+export const findArtist = (artist) => {
+  return client.queryOne('artists', {
+    query: {
+      operator: 'SQL',
+      condition: `id = @id OR name = @id`,
+      params: { id: artist }
+    }
+  });
 }
 
-// 根据专辑ID查找专辑
-export const findAlbumById = (albumId) => {
-  const album = client.queryOne('albums', { id: albumId });
-  if (album) {
-    album.artists = client.util.deserialize(album.artists);
+// 根据专辑ID/标题查找专辑
+export const findAlbum = (album) => {
+  const data = client.queryOne('albums', { 
+    id:  {
+      operator: 'SQL',
+      condition: `id = @id OR title = @id`,
+      params: { id: album }
+    }
+  });
+  if (data) {
+    data.artists = client.util.deserialize(data.artists);
   }
-  return album;
+  return data;
 }
 
 // 获取专辑的音乐列表
@@ -655,28 +656,27 @@ export default {
   getMediaLibraryStats, // 获取媒体库统计信息
   removeMediaLibraryStats, // 删除媒体库统计信息
   updateMediaLibraryStats, // 更新媒体库统计信息
-  // 索引相关
-  rebuildIndexes, // 重建索引
   // 艺术家相关
-  getArtists, // 获取艺术家列表
-  findArtistByName, // 根据歌手名称查找歌手
-  findArtistById, // 根据歌手ID查找歌手
+  artistsPage, // 获取艺术家列表
+  findArtist, // 根据歌手ID查找歌手
   updateArtistInfo, // 更新艺术家信息
   updateArtistStats, // 更新艺术家统计信息
   upsertArtistFromTrack, // 根据音乐信息更新或创建艺术家
-  getArtistDetails, // 获取艺术家详细信息
   updateArtistsWithoutPhoto, // 为没有图片的歌手获取图片
   // 专辑相关
-  getAlbums, // 获取专辑列表
-  findAlbumByTitleAndArtist, // 根据专辑标题和歌手查找专辑
-  findAlbumById, // 根据专辑ID查找专辑
+  albumsPage, // 获取专辑列表
+  findAlbum, // 根据专辑ID查找专辑
   getTracksByAlbum, // 获取专辑的音乐列表
   updateAlbumInfo, // 更新专辑信息
   updateAlbumStats, // 更新专辑统计信息
   upsertAlbumFromTrack, // 根据音乐信息更新或创建专辑
+
+  //=================
   mergeAndDeduplicateAlbums, // 合并和去重专辑
   updateAlbumsWithoutCover, // 为没有封面的专辑获取封面
   mergeAlbumInfo, // 合并专辑信息
+  // 索引相关
+  rebuildIndexes, // 重建索引
   // 扫描后处理
   postScanProcessing // 扫描音乐库后的完整处理流程
 };

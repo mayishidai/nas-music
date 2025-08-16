@@ -163,6 +163,16 @@ const ArtistDetailView = ({ router, player }) => {
     }
   };
 
+  // 处理艺术家点击
+  const handleArtistClick = (artist) => {
+    router.navigate('artist-detail', { artist: { id : artist } });
+  };
+
+  // 处理专辑点击
+  const handleAlbumClick = (album) => {
+    router.navigate('album-detail', { album: { id : album } });
+  };
+
   if (loading && !artist) {
     return (
       <div className="artist-detail">
@@ -274,6 +284,8 @@ const ArtistDetailView = ({ router, player }) => {
             onAddToPlaylist={handleAddToPlaylist}
             onOpenDetail={handleOpenDetail}
             onFavorite={handleFavorite}
+            onArtistClick={handleArtistClick}
+            onAlbumClick={handleAlbumClick}
           />
         </div>
       </div>

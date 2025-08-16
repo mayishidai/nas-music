@@ -59,6 +59,7 @@
   background: transparent;
   display: flex;
   flex-direction: column;
+  max-height: 100%;
 }
 
 .music-table thead {
@@ -445,6 +446,10 @@
   font-size: 0.9em;
   cursor: pointer;
 }
+.page-size-select option{
+  background: #2a2a2a !important;
+  color: #fff !important;
+}
 
 .page-size-select:focus {
   outline: none;
@@ -484,6 +489,13 @@
 .page-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.album-link{
+  cursor: pointer;
+}
+.artist-link{
+  cursor: pointer;
 }
 
 /* 响应式设计 */

@@ -75,6 +75,7 @@ const NASMusicPlayer = () => {
       if(routeHistory.length > 30){
         routeHistory.shift();
       }
+      console.log(view, data);
       setCurrentView(view);
       setViewData(data);
       // 小屏：切换视图后关闭侧边抽屉；大屏保持展开

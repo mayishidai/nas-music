@@ -22,7 +22,6 @@ const TrackDetailPage = ({ router, player }) => {
 
   // 从路由数据获取track信息
   const trackData = router.getCurrentData().track;
-  console.log(trackData);
   const trackId = trackData?.id || trackData?._id;
 
   useEffect(() => {
@@ -299,7 +298,6 @@ const TrackDetailPage = ({ router, player }) => {
           ...prev,
           lyrics: json.data.lyrics || prev.lyrics,
         }));
-        console.log(`已自动设置歌词，来源: ${json.data.source}，匹配度: ${Math.round((json.data.score || 0) * 100)}%`);
       }
     } catch (error) {
       console.error('自动搜索歌词失败:', error);

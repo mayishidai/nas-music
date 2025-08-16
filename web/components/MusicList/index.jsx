@@ -67,7 +67,10 @@ const MusicList = ({
   onPlayMusic,
   onAddToPlaylist,
   onOpenDetail,
-  onFavorite
+  onFavorite,
+  // 导航回调
+  onArtistClick,
+  onAlbumClick
 }) => {
   // 更多操作菜单状态
   const [showMoreMenu, setShowMoreMenu] = useState(null);
@@ -154,6 +157,16 @@ const MusicList = ({
       onFavorite(track);
     }
   };
+
+  /**
+   * 处理艺术家点击
+   */
+  const handleArtistClick = (artist) => onArtistClick(artist);
+
+  /**
+   * 处理专辑点击
+   */
+  const handleAlbumClick = (album) => onAlbumClick(album);
 
   /**
    * 处理双击播放
@@ -268,10 +281,22 @@ const MusicList = ({
                   </div>
                 </td>
                 <td className="col-artist">
-                  {track.artist || '未知艺术家'}
+                  <span 
+                    className={`artist-link ${track.artist && track.artist !== '未知艺术家' ? 'clickable' : ''}`}
+                    onClick={() => handleArtistClick(track.artist)}
+                    title={track.artist && track.artist !== '未知艺术家' ? `查看 ${track.artist} 的歌曲` : ''}
+                  >
+                    {track.artist || '未知艺术家'}
+                  </span>
                 </td>
                 <td className="col-album">
-                  {track.album || '未知专辑'}
+                  <span 
+                    className={`album-link ${track.album && track.album !== '未知专辑' ? 'clickable' : ''}`}
+                    onClick={() => handleAlbumClick(track.album)}
+                    title={track.album && track.album !== '未知专辑' ? `查看专辑 ${track.album}` : ''}
+                  >
+                    {track.album || '未知专辑'}
+                  </span>
                 </td>
                 <td className="col-duration">
                   {formatDuration(track.duration)}

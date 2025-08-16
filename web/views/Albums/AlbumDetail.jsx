@@ -127,6 +127,11 @@ const AlbumDetailView = ({ router, player }) => {
     router.navigate('track-detail', { track });
   };
 
+  // 处理艺术家点击
+  const handleArtistClick = (artist) => {
+    router.navigate('artist-detail', { artist: { id : artist } });
+  };
+
   // 获取专辑封面
   const getAlbumCover = () => {
     if (album?.coverImage) return album.coverImage;
@@ -248,7 +253,13 @@ const AlbumDetailView = ({ router, player }) => {
                   </div>
                 </div>
                 <div className="td td-artist">
-                  {track.artist || album.artist || '未知艺术家'}
+                  <span 
+                    className={`artist-link ${track.artist && track.artist !== '未知艺术家' ? 'clickable' : ''}`}
+                    onClick={() => handleArtistClick(track.artist)}
+                    title={track.artist && track.artist !== '未知艺术家' ? `查看 ${track.artist} 的歌曲` : ''}
+                  >
+                    {track.artist || '未知艺术家'}
+                  </span>
                 </div>
                 <div className="td td-duration">
                   {formatDuration(track.duration)}

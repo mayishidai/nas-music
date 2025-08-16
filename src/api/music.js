@@ -7,10 +7,10 @@ import {
   findTrackById,
   updateTrack,
   getFavoriteTracks,
-  getAlbums,
-  getArtists,
-  findAlbumById,
-  findArtistById,
+  albumsPage,
+  artistsPage,
+  findAlbum,
+  findArtist,
   getTracksByAlbum,
   getRecentlyPlayedTracks,
   updateArtistInfo,
@@ -18,7 +18,6 @@ import {
   upsertArtistFromTrack,
   updateAlbumStats,
   upsertAlbumFromTrack,
-  getArtistDetails,
 } from '../client/database.js';
 import { writeMusicTags, formatArtistNames } from '../utils/musicUtil.js';
 
@@ -107,7 +106,7 @@ router.put('/tracks/:id/favorite', async (ctx) => {
  router.get('/albums', async (ctx) => {
    try {
      const { query, page = 1, pageSize = 10, sort = 'title', order = 'asc' } = ctx.query;
-     const result = await getAlbums({ query, page: parseInt(page), pageSize: parseInt(pageSize), sort,  order });
+     const result = await albumsPage({ query, page: parseInt(page), pageSize: parseInt(pageSize), sort,  order });
      ctx.body = { success: true, ...result };
    } catch (error) {
      console.error('获取专辑列表失败:', error);
@@ -120,7 +119,7 @@ router.put('/tracks/:id/favorite', async (ctx) => {
  router.get('/artists', async (ctx) => {
    try {
      const { query, page = 1, pageSize = 10, sort = 'name', order = 'asc' } = ctx.query;
-     const result = await getArtists({ query, page: parseInt(page), pageSize: parseInt(pageSize), sort, order });
+     const result = await artistsPage({ query, page: parseInt(page), pageSize: parseInt(pageSize), sort, order });
      ctx.body = { success: true, ...result };
    } catch (error) {
      console.error('获取艺术家列表失败:', error);
@@ -133,7 +132,7 @@ router.put('/tracks/:id/favorite', async (ctx) => {
 router.get('/albums/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
-    const album = await findAlbumById(id);
+    const album = await findAlbum(id);
     if (!album) {
       ctx.status = 404;
       ctx.body = { success: false, error: '专辑不存在' };
@@ -152,7 +151,7 @@ router.get('/albums/:id', async (ctx) => {
 router.get('/artists/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
-    const artist = await findArtistById(id);
+    const artist = await findArtist(id);
     if (!artist) {
       ctx.status = 404;
       ctx.body = { success: false, error: '艺术家不存在' };
@@ -172,7 +171,7 @@ router.put('/artists/:id', async (ctx) => {
     const { id } = ctx.params;
     const artistInfo = ctx.request.body;
     // 验证艺术家是否存在
-    const existingArtist = await findArtistById(id);
+    const existingArtist = await findArtist(id);
     if (!existingArtist) {
       ctx.status = 404;
       ctx.body = { success: false, error: '艺术家不存在' };
@@ -181,11 +180,8 @@ router.put('/artists/:id', async (ctx) => {
     // 更新艺术家信息
     const success = await updateArtistInfo(id, artistInfo);
     if (success) {
-      // 获取更新后的艺术家信息
-      const updatedArtist = await getArtistDetails(id);
       ctx.body = { 
         success: true, 
-        data: updatedArtist,
         message: '艺术家信息更新成功'
       };
     } else {

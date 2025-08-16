@@ -156,6 +156,16 @@ const FavoritesPage = ({ router, player }) => {
     }
   };
 
+  // 处理艺术家点击
+  const handleArtistClick = (artist) => {
+    router.navigate('artist-detail', { artist : { id : artist } });
+  };
+
+  // 处理专辑点击
+  const handleAlbumClick = (album) => {
+    router.navigate('album-detail', { album: { id : album } });
+  };
+
   // 搜索变化时重新加载
   useEffect(() => {
     loadFavorites(1);
@@ -220,6 +230,8 @@ const FavoritesPage = ({ router, player }) => {
           onAddToPlaylist={handleAddToPlaylist}
           onOpenDetail={handleOpenDetail}
           onFavorite={handleFavorite}
+          onArtistClick={handleArtistClick}
+          onAlbumClick={handleAlbumClick}
         />
         
         {favorites.length === 0 && !loading && !error && (
