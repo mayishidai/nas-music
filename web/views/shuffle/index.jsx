@@ -6,7 +6,6 @@ const ShufflePage = ({ router, player }) => {
   const [shuffleTracks, setShuffleTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
@@ -15,7 +14,7 @@ const ShufflePage = ({ router, player }) => {
   const [sortOrder, setSortOrder] = useState('asc');
 
   // 加载随机播放数据
-  const loadShuffleTracks = useCallback(async (targetPage = 1, searchKeyword = search) => {
+  const loadShuffleTracks = useCallback(async (targetPage = 1) => {
     try {
       setLoading(true);
       setError('');
@@ -25,10 +24,6 @@ const ShufflePage = ({ router, player }) => {
       params.set('pageSize', String(pageSize));
       params.set('sort', sortKey);
       params.set('order', sortOrder);
-      
-      if (searchKeyword) {
-        params.set('search', searchKeyword);
-      }
 
       const response = await fetch(`/api/music/random?${params.toString()}`);
       const result = await response.json();
@@ -68,33 +63,12 @@ const ShufflePage = ({ router, player }) => {
     } finally {
       setLoading(false);
     }
-  }, [pageSize, sortKey, sortOrder, search]);
+  }, [pageSize, sortKey, sortOrder]);
 
-  // 处理搜索变化
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-  };
-
-  // 清除搜索
-  const handleClearSearch = () => {
-    setSearch('');
+  // 处理刷新
+  const handleRefresh = () => {
     setPage(1);
-    setShuffleTracks([]);
-    setTotal(0);
-    setPages(0);
-  };
-
-  // 执行搜索
-  const handleSearch = () => {
-    setPage(1);
-    loadShuffleTracks(1, search);
-  };
-
-  // 处理回车键搜索
-  const handleSearchKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    loadShuffleTracks(1);
   };
 
   // 处理页码变化
@@ -174,31 +148,14 @@ const ShufflePage = ({ router, player }) => {
           <h2>🔀 随机播放</h2>
         </div>
         <div className="fav-actions">
-          <div className="search-container">
-            <input
-              className="fav-search"
-              placeholder="搜索音乐..."
-              value={search}
-              onChange={handleSearchChange}
-              onKeyPress={handleSearchKeyPress}
-            />
-            {search && (
-              <button 
-                className="search-clear-btn"
-                onClick={handleClearSearch}
-                title="清除搜索"
-              >
-                ✕
-              </button>
-            )}
-            <button 
-              className="search-btn"
-              onClick={handleSearch}
-              title="搜索"
-            >
-              🔍
-            </button>
-          </div>
+          <button 
+            className="refresh-btn"
+            onClick={handleRefresh}
+            title="刷新"
+            disabled={loading}
+          >
+            🔄
+          </button>
         </div>
       </div>
       <div className="shuffle-view">
