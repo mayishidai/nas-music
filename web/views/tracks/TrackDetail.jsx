@@ -15,6 +15,7 @@ const TrackDetailPage = ({ router, player }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [favorite, setFavorite] = useState(false);
 
   // 从路由数据获取track信息
   const trackData = router.getCurrentData().track;
@@ -29,6 +30,7 @@ const TrackDetailPage = ({ router, player }) => {
         const json = await res.json();
         if (json?.success) {
           setTrack(json.data);
+          setFavorite(json.data.favorite);
         }
       } catch (error) {
         console.error('加载音乐详情失败:', error);
@@ -108,7 +110,6 @@ const TrackDetailPage = ({ router, player }) => {
       alert('请输入歌曲名称或艺术家名称');
       return;
     }
-    
     setSearchLoading(true);
     try {
       const params = new URLSearchParams();
@@ -147,16 +148,12 @@ const TrackDetailPage = ({ router, player }) => {
   const handleFavorite = async () => {
     if (!track) return;
     try {
-      const response = await fetch(`/api/music/tracks/${trackId}/favorite`, {
+      await fetch(`/api/music/tracks/${trackId}/favorite`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ favorite: !track.favorite })
+        body: JSON.stringify({ favorite: !favorite })
       });
-      
-      const result = await response.json();
-      if (result.success) {
-        setTrack(prev => ({ ...prev, favorite: !prev.favorite }));
-      }
+      setFavorite(!favorite);
     } catch (error) {
       console.error('收藏操作失败:', error);
     }
@@ -169,6 +166,19 @@ const TrackDetailPage = ({ router, player }) => {
   if (loading) {
     return <div className="page-container">加载中...</div>;
   }
+
+  const onOnlineDataReplace = async (data) => {
+    setForm(prev => ({
+      ...prev,
+      title: data.title || prev.title,
+      artist: data.artist || prev.artist,
+      album: data.album || prev.album,
+      year: data.date || prev.year,
+      coverImage: data.cover || prev.coverImage,
+    }));
+    setCoverPreview(data.cover || '/images/default_cover.png');
+    setShowSearchPanel(false);
+  };
 
   return (
     <div className="track-detail">
@@ -183,11 +193,11 @@ const TrackDetailPage = ({ router, player }) => {
             📋
           </button>
           <button 
-            className={`td-btn ${track?.favorite ? 'active' : ''}`} 
+            className={`td-btn ${favorite ? 'active' : ''}`} 
             onClick={handleFavorite} 
-            title={track?.favorite ? '取消收藏' : '收藏'}
+            title={favorite ? '取消收藏' : '收藏'}
           >
-            {track?.favorite ? '❤️' : '🤍'}
+            {favorite ? '❤️' : '🤍'}
           </button>
           <button className="td-btn" disabled={searchLoading} onClick={handleOnlineSearch}>
             {searchLoading ? '搜索中…' : '在线搜索'}
@@ -346,21 +356,9 @@ const TrackDetailPage = ({ router, player }) => {
                 ) : (
                   <div className="search-results-list">
                     {searchResults.map((result, idx) => (
-                      <div key={idx} className="search-result-item" onClick={() => {
-                        setForm(prev => ({
-                          ...prev,
-                          title: result.title || prev.title,
-                          artist: result.artist || prev.artist,
-                          album: result.album || prev.album,
-                        }));
-                        setShowSearchPanel(false);
-                      }}>
+                      <div key={idx} className="search-result-item" onClick={() => { onOnlineDataReplace(result); }}>
                         <div className="result-cover">
-                          {result.cover ? (
-                            <img src={result.cover} alt={result.title} />
-                          ) : (
-                            <div className="default-cover">🎵</div>
-                          )}
+                          <img src={result.cover} alt={result.title} onError={e => { e.target.src = '/images/default_cover.png' }}/>
                         </div>
                         <div className="result-info">
                           <div className="result-title">{result.title}</div>

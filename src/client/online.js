@@ -58,9 +58,6 @@ const searchMusic = async (title, artist) => {
           query += ` OR artist:"${chineseArtistSuffix}" OR artist:"${chineseArtistSuffix}"~`;
       }
   }
-
-  console.log(query)
-
   const recordings = await mbApi.search('recording', { query, limit: 10 }).then(res => res.recordings);
   const data = recordings.map(recording=>{
       const artist_credit = recording['artist-credit'].find(a => a);
@@ -72,12 +69,14 @@ const searchMusic = async (title, artist) => {
         artistAliases: artist_credit.artist.aliases?.map(alias => alias.name),
         date: recording.date,
         albums: recording['releases'].map(release => {
-            return {
-              albumId: release.id,
-                title: tradToSimple(release.title),
-                artist: tradToSimple(release['artist-credit']?.find(a => a).artist.name),
-                date: release.date
-            }
+          console.log(release)
+          return {
+            albumId: release.id,
+            title: tradToSimple(release.title),
+            artist: tradToSimple(release['artist-credit']?.find(a => a).artist.name),
+            date: release.date,
+            cover: `http://coverartarchive.org/release/${release.id}/front`,
+          }
         })
       }
       data.albums = mergeAndUnique(data.albums, ['title'])
@@ -96,6 +95,7 @@ const searchMusic = async (title, artist) => {
         album: album.title,
         albumArtist: album.artist,
         date: album.date,
+        cover: album.cover
       })
     }
   }
