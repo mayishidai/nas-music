@@ -10,10 +10,6 @@ CREATE TABLE IF NOT EXISTS music (
   albumArtist TEXT,
   genre TEXT,
   year INTEGER,
-  trackNumber INTEGER,
-  totalTracks INTEGER,
-  discNumber INTEGER,
-  totalDiscs INTEGER,
   duration INTEGER,
   bitrate INTEGER,
   sampleRate INTEGER,
@@ -27,8 +23,6 @@ CREATE TABLE IF NOT EXISTS music (
   coverImage TEXT,
   lyrics TEXT,
   artists TEXT, -- JSON 数组字符串
-  artistIds TEXT, -- JSON 数组字符串
-  albumId TEXT,
   created_at TEXT,
   updated_at TEXT
 )
@@ -51,11 +45,7 @@ CREATE TABLE IF NOT EXISTS artists (
   trackCount INTEGER DEFAULT 0,
   albumCount INTEGER DEFAULT 0,
   photo TEXT, -- 艺术家头像URL
-  bio TEXT, -- 艺术家简介/详情
-  country TEXT, -- 艺术家国家/地区
-  genre TEXT, -- 艺术家主要音乐类型
-  website TEXT, -- 艺术家官方网站
-  socialMedia TEXT, -- 社交媒体链接（JSON格式）
+  detail TEXT, -- 艺术家简介/详情
   created_at TEXT,
   updated_at TEXT
 )
@@ -85,7 +75,6 @@ CREATE TABLE IF NOT EXISTS online_music (
   title TEXT NOT NULL,
   artist TEXT NOT NULL,
   artistAliases TEXT, -- JSON 数组字符串
-  albumId TEXT NOT NULL,
   album TEXT NOT NULL,
   albumArtist TEXT NOT NULL,
   date TEXT NOT NULL,
@@ -102,7 +91,6 @@ const createIndexes = [
 'CREATE INDEX IF NOT EXISTS idx_music_album ON music(album)',
 'CREATE INDEX IF NOT EXISTS idx_music_genre ON music(genre)',
 'CREATE INDEX IF NOT EXISTS idx_music_favorite ON music(favorite)',
-'CREATE INDEX IF NOT EXISTS idx_music_albumId ON music(albumId)',
 'CREATE INDEX IF NOT EXISTS idx_artists_name ON artists(name)',
 'CREATE INDEX IF NOT EXISTS idx_artists_normalizedName ON artists(normalizedName)',
 'CREATE INDEX IF NOT EXISTS idx_albums_title ON albums(title)',
@@ -113,7 +101,6 @@ const createIndexes = [
 'CREATE INDEX IF NOT EXISTS idx_online_music_score ON online_music(score)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_title ON online_music(title)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_artist ON online_music(artist)',
-'CREATE INDEX IF NOT EXISTS idx_online_music_albumId ON online_music(albumId)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_album ON online_music(album)',
 ];
 

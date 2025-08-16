@@ -189,7 +189,7 @@ const TrackDetailPage = ({ router, player }) => {
       if (result.success) {
         // 更新本地track数据
         setTrack(prev => ({ ...prev, ...form, coverImage: coverPreview }));
-        showToastMessage('保存成功！已更新音乐详情', 'success');
+        showToastMessage('保存成功！', 'success');
       } else {
         showToastMessage('保存失败: ' + (result.error || '未知错误'), 'error');
       }
