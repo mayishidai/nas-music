@@ -504,10 +504,6 @@
     display: flex;
   }
   
-  .page-size-select {
-    display: block;
-  }
-  
   .page-buttons {
     display: flex;
   }
@@ -530,16 +526,8 @@
   .col-filesize {
     display: none;
   }
-  .col-album {
-    display: none;
-  }
-  
   .pagination-info {
     display: flex;
-  }
-  
-  .page-size-select {
-    display: none;
   }
   
   .page-buttons {
@@ -552,6 +540,9 @@
 }
 
 @media (max-width: 900px) {
+  .col-album {
+    display: none;
+  }
   .music-table {
     font-size: 0.9em;
   }
@@ -589,10 +580,6 @@
   
   .pagination-info {
     display: flex;
-  }
-  
-  .page-size-select {
-    display: none;
   }
   
   .page-buttons {

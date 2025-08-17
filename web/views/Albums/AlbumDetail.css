@@ -145,7 +145,14 @@
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  overflow: visible; /* 允许内部弹出层不被裁剪 */
+  overflow: hidden; /* 允许内部弹出层不被裁剪 */
+  flex:1;
+}
+
+.album-detail .album-detail-tracks .ad-tracks-body{
+  overflow-y: scroll;
+  height: 100%;
+  padding-right: 10px;
 }
 
 .album-detail .ad-tracks-header, .album-detail .tr {
@@ -159,6 +166,7 @@
   background: rgba(255,255,255,0.08);
   color: #ccc;
   font-weight: 600;
+  padding-right: 30px;
 }
 
 .album-detail .tr { border-top: 1px solid rgba(255,255,255,0.06); }
@@ -169,9 +177,10 @@
   padding: 40px 16px;
   font-style: italic;
 }
-
 .album-detail .td, .album-detail .th { display: flex; align-items: center; overflow: hidden; font-size: 13px; }
 .album-detail .th-title, .album-detail .td-title { overflow: hidden; }
+.album-detail .td, .album-detail .center { flex-grow: 1; text-align: center; }
+
 
 .album-detail .title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .album-detail .td-cover { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }

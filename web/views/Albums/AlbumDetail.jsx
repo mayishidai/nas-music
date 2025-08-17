@@ -224,7 +224,7 @@ const AlbumDetailView = ({ router, player }) => {
           <div className="th th-title">标题</div>
           <div className="th th-artist">艺术家</div>
           <div className="th th-duration">时长</div>
-          <div className="th th-actions">操作</div>
+          <div className="th th-actions"><div className='center'>操作</div></div>
         </div>
         <div className="ad-tracks-body">
           {tracks.length === 0 ? (

@@ -387,7 +387,7 @@ export const findArtist = (artist) => {
   return client.queryOne('artists', {
     query: {
       operator: 'SQL',
-      condition: `id = @id OR name = @id`,
+      condition: `id = @id OR name like @id OR normalizedName like @id`,
       params: { id: artist }
     }
   });

@@ -1,11 +1,10 @@
 {
-  "name": "vite-project",
-  "private": true,
-  "version": "0.0.0",
+  "name": "nas-music",
+  "private": false,
+  "version": "1.0.0",
   "type": "module",
   "imports": {
-    "#/*": "./*",
-    "#config/*": "./config/*"
+    "#/*": "./*"
   },
   "scripts": {
     "dev": "set NODE_ENV=DEV && nodemon --watch",
@@ -16,7 +15,6 @@
     "@vitejs/plugin-react-swc": "^3.9.0",
     "axios": "^1.11.0",
     "better-sqlite3": "^12.2.0",
-    "chokidar": "^4.0.3",
     "flac": "^0.3.0",
     "koa": "^2.16.1",
     "koa-body": "^6.0.1",
@@ -35,7 +33,6 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.8.0",
     "simptrad": "^0.2.0",
-    "sqlite3": "^5.1.7",
     "vite": "^6.3.2",
     "vite-plugin-css-injected-by-js": "^3.5.2"
   }

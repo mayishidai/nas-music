@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .runtime/
 db/
+package-lock.json
+/music/*
