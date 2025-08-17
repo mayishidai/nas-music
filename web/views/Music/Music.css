@@ -1,0 +1,183 @@
+.music-container .fav-toolbar { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 20px 35px 12px 35px;
+  flex-wrap: nowrap;
+  min-height: 60px;
+}
+
+.music-container .fav-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-shrink: 0;
+}
+
+.music-container .fav-toolbar-left h2 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.music-container .sidebar-toggle {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.music-container .sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.music-container .fav-actions { 
+  display: flex; 
+  gap: 8px; 
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.music-container .fav-search { 
+  padding: 6px 10px; 
+  border-radius: 6px; 
+  border: 1px solid rgba(255,255,255,0.2); 
+  background: rgba(255,255,255,0.08); 
+  color: #fff; 
+  outline: none; 
+  min-width: 200px;
+  max-width: 300px;
+  border-right: none;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  height: 33px;
+}
+
+.music-container .fav-search:focus {
+  border-color: rgba(78, 205, 196, 0.5);
+  background: rgba(255,255,255,0.12);
+}
+
+.music-container .search-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.music-container .search-clear-btn {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.music-container .search-clear-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.music-container .search-btn {
+  padding: 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  cursor: pointer;
+  border-radius: 0 6px 6px 0;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+}
+
+.music-container .search-btn:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.music-container .fav-btn { 
+  padding: 6px 10px; 
+  border-radius: 6px; 
+  border: 1px solid rgba(255,255,255,0.2); 
+  background: rgba(255,255,255,0.1); 
+  color: #fff; 
+  cursor: pointer; 
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.music-container .fav-btn:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.music-container .music-view {
+  padding: 10px 35px;
+  overflow-y: hidden;
+  height: 100%;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .music-container .music-view {
+    padding: 16px;
+  }
+  
+  .music-container .fav-toolbar {
+    padding: 15px 20px 10px 20px;
+    gap: 10px;
+  }
+  
+  .music-container .fav-toolbar-left h2 {
+    max-width: 150px;
+  }
+  
+  .music-container .fav-search {
+    min-width: 150px;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 600px) {
+  .music-container .fav-toolbar-left h2 {
+    display: none;
+  }
+  
+  .music-container .fav-search {
+    min-width: 120px;
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .music-container .fav-toolbar {
+    padding: 12px 15px 8px 15px;
+  }
+  
+  .music-container .fav-search {
+    min-width: 100px;
+    max-width: 120px;
+  }
+}
