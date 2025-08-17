@@ -273,6 +273,7 @@ body {
   position: relative;
   overflow: hidden;
   font-weight: 500;
+  text-decoration: none;
 }
 
 .app-container .main-container .nav-item::before {

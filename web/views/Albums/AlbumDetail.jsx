@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './AlbumDetail.css';
 
 /**
  * 专辑详情视图
  */
 const AlbumDetailView = ({ router, player }) => {
+  const navigate = useNavigate();
   const [album, setAlbum] = useState(null);
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ const AlbumDetailView = ({ router, player }) => {
 
   // 处理打开详情
   const handleOpenDetail = (track) => {
-    router.navigate('track-detail', { track });
+    router.navigate(`/track/${track}`, { track });
   };
 
   // 处理艺术家点击

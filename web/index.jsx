@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { StaticRouter, HashRouter, Routes, Route, Link, Navigate } from "react-router-dom";
 import { Player } from './components';
 import {
   MusicPage,
@@ -10,28 +11,19 @@ import {
   AlbumDetailView,
   TrackDetailPage,
   ArtistDetailView,
-  ShufflePage
+  ShufflePage,
 } from './views';
 import './index.css';
 
-const routeHistory = [];
+const Router = typeof window === 'undefined' ? StaticRouter : HashRouter;
 /**
  * NAS音乐播放器主组件
  * 提供完整的音乐播放、管理功能
  */
-const NASMusicPlayer = () => {
-  // 路由状态
-  const [currentView, setCurrentView] = useState('music');
-  const [viewData, setViewData] = useState({});
-  
+const NASMusicPlayer = (props) => {
   const playerRef = useRef(null);
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth > 900;
-    }
-    return true;
-  });
   const [isSmallScreen, setIsSmallScreen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false));
+  const [sidebarOpen, setSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 900 : true));
 
   // 监听窗口大小变化
   useEffect(() => {
@@ -48,67 +40,15 @@ const NASMusicPlayer = () => {
         setSidebarOpen(false);
       }
     };
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [sidebarOpen]);
 
-  // 监听键盘事件
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isSmallScreen && sidebarOpen) {
-        setSidebarOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSmallScreen, sidebarOpen]);
-
-  /**
-   * 路由控制方法
-   */
-  const router = {
-    // 导航到指定页面
-    navigate: (view, data = {}) => {
-      routeHistory.push({ view, data });
-      if(routeHistory.length > 30){
-        routeHistory.shift();
-      }
-      console.log(view, data);
-      setCurrentView(view);
-      setViewData(data);
-      // 小屏：切换视图后关闭侧边抽屉；大屏保持展开
-      if (isSmallScreen) setSidebarOpen(false);
-    },
-    
-    // 返回上一页
-    goBack: () => {
-      if (routeHistory.length > 1) {
-        routeHistory.pop();
-        const { view, data } = routeHistory[routeHistory.length - 1];
-        setCurrentView(view);
-        setViewData(data);
-      }else{
-        setCurrentView('music');
-        setViewData({});
-      }
-    },
-    
-    // 获取当前页面数据
-    getCurrentData: () => viewData,
-    
-    // 获取当前页面名称
-    getCurrentView: () => currentView,
-
-    // 切换侧边栏
-    switchSidebar: () => setSidebarOpen(!sidebarOpen)
-  };
-
-  /**
+   /**
    * 播放器控制方法
    */
   const player = {
+    switchSidebar: () => setSidebarOpen(!sidebarOpen),
     // 播放音乐
     playMusic: (track, playlistTracks = null) => {
       if (playerRef.current) {
@@ -146,109 +86,53 @@ const NASMusicPlayer = () => {
   };
 
   // 处理侧边栏点击事件（阻止冒泡）
-  const handleSidebarClick = (e) => {
-    e.stopPropagation();
-  };
-
-  // 渲染当前页面
-  const renderCurrentPage = () => {
-    const commonProps = {
-      router,
-      player
-    };
-
-    switch (currentView) {
-      case 'music':
-        return <MusicPage {...commonProps} />;
-      case 'albums':
-        return <AlbumsPage {...commonProps} />;
-      case 'artists':
-        return <ArtistsPage {...commonProps} />;
-      case 'favorites':
-        return <FavoritesPage {...commonProps} />;
-      case 'recent':
-        return <RecentlyPlayedPage {...commonProps} />;
-      case 'shuffle':
-        return <ShufflePage {...commonProps} />;
-      case 'settings':
-        return <SettingsPage {...commonProps} />;
-      case 'album-detail':
-        return <AlbumDetailView {...commonProps} />;
-      case 'artist-detail':
-        return <ArtistDetailView {...commonProps} />;
-      case 'track-detail':
-        return <TrackDetailPage {...commonProps} />;
-      default:
-        return <MusicPage {...commonProps} />;
-    }
-  };
+  const handleSidebarClick = (e) => { e.stopPropagation(); };
 
   return (
-    <div className="app-container">
-      <div className="main-container">
-        {/* 移动端遮罩层 */}
-        {isSmallScreen && sidebarOpen && (
-          <div className="sidebar-overlay" onClick={handleOverlayClick} />
-        )}
-        
-        <div className={`sidebar ${sidebarOpen ? 'open' : ''}`} onClick={handleSidebarClick}>
-          <div className="sidebar-header">
-            <h1>🎵 NAS音乐</h1>
+    <Router>
+      <div className="app-container">
+        <div className="main-container">
+          {/* 移动端遮罩层 */}
+          {isSmallScreen && sidebarOpen && (
+            <div className="sidebar-overlay" onClick={handleOverlayClick} />
+          )}
+          
+          <div className={`sidebar ${sidebarOpen ? 'open' : ''}`} onClick={handleSidebarClick}>
+            <div className="sidebar-header">
+              <h1>🎵 NAS音乐</h1>
+            </div>
+            <nav className="sidebar-nav">
+              <Link to='/' className={`nav-item`}>🎵 音乐</Link>
+              <Link to='/albums' className={`nav-item`}>💿 专辑</Link>
+              <Link to='/artists' className={`nav-item`}>👤 艺术家</Link>
+              <Link to='/favorites' className={`nav-item`}>⭐ 收藏</Link>
+              <Link to='/recent' className={`nav-item`}>🕒 最近播放</Link>
+              <Link to='/shuffle' className={`nav-item`}>🔀 随机播放</Link>
+              <Link to='/settings' className={`nav-item`}>⚙️ 设置</Link>
+            </nav>
           </div>
-          <nav className="sidebar-nav">
-            <button 
-              className={`nav-item ${currentView === 'music' ? 'active' : ''}`}
-              onClick={() => router.navigate('music')}
-            >
-              🎵 音乐
-            </button>
-            <button 
-              className={`nav-item ${currentView === 'albums' ? 'active' : ''}`}
-              onClick={() => router.navigate('albums')}
-            >
-              💿 专辑
-            </button>
-            <button 
-              className={`nav-item ${currentView === 'artists' ? 'active' : ''}`}
-              onClick={() => router.navigate('artists')}
-            >
-              👤 艺术家
-            </button>
-            <button 
-              className={`nav-item ${currentView === 'favorites' ? 'active' : ''}`}
-              onClick={() => router.navigate('favorites')}
-            >
-              ⭐ 收藏
-            </button>
-            <button 
-              className={`nav-item ${currentView === 'recent' ? 'active' : ''}`}
-              onClick={() => router.navigate('recent')}
-            >
-              🕒 最近播放
-            </button>
-            <button 
-              className={`nav-item ${currentView === 'shuffle' ? 'active' : ''}`}
-              onClick={() => router.navigate('shuffle')}
-            >
-              🔀 随机播放
-            </button>
-            <button 
-              className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
-              onClick={() => router.navigate('settings')}
-            >
-              ⚙️ 设置
-            </button>
-          </nav>
-        </div>
 
-        {/* 主内容区域 */}
-        <div className="main-content">
-        {renderCurrentPage()}
+          {/* 主内容区域 */}
+          <div className="main-content">
+            <Routes>
+              <Route path="/" element={<MusicPage player={player}/>} />
+              <Route path="/albums" element={<AlbumsPage player={player}/>} />
+              <Route path="/artists" element={<ArtistsPage player={player}/>} />
+              <Route path="/favorites" element={<FavoritesPage player={player}/>} />
+              <Route path="/recent" element={<RecentlyPlayedPage player={player}/>} />
+              <Route path="/shuffle" element={<ShufflePage player={player}/>} />
+              <Route path="/settings" element={<SettingsPage player={player}/>} />
+              <Route path="/album/:id" element={<AlbumDetailView player={player}/>} />
+              <Route path="/artist/:id" element={<ArtistDetailView player={player}/>} />
+              <Route path="/track/:trackId" element={<TrackDetailPage player={player}/>} />
+              <Route path="*" element={<Navigate replace to="/" />} />
+            </Routes>
+          </div>
         </div>
+        {/* 播放器组件 */}
+        <Player ref={playerRef} />
       </div>
-      {/* 播放器组件 */}
-      <Player ref={playerRef} />
-    </div>
+    </Router>
   );
 };
 

@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MusicList } from '../../components';
+import { useNavigate } from 'react-router-dom';
 import './Music.css';
 
 const MusicPage = ({ router, player }) => {
+  const navigate = useNavigate();
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -128,9 +130,7 @@ const MusicPage = ({ router, player }) => {
   };
 
   // 处理打开详情
-  const handleOpenDetail = (track) => {
-    router.navigate('track-detail', { track });
-  };
+  const handleOpenDetail = (track) => navigate(`/track/${track.id}`);
 
   // 处理收藏
   const handleFavorite = async (track) => {
@@ -178,7 +178,7 @@ const MusicPage = ({ router, player }) => {
     <div className="page-container music-container">
       <div className="fav-toolbar">
         <div className="fav-toolbar-left">
-          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <button className="sidebar-toggle" onClick={() => player.switchSidebar()}> ☰ </button>
           <h2>🎵 音乐库</h2>
         </div>
         <div className="fav-actions">

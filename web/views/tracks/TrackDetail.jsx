@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import './TrackDetail.css';
 
-const TrackDetailPage = ({ router, player }) => {
+const TrackDetailPage = ({ player }) => {
+  const navigate = useNavigate();
+  const { trackId } = useParams();
   const [track, setTrack] = useState(null);
   const [form, setForm] = useState({ 
     title: '', 
@@ -19,10 +22,6 @@ const TrackDetailPage = ({ router, player }) => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success'); // 'success' | 'error'
-
-  // 从路由数据获取track信息
-  const trackData = router.getCurrentData().track;
-  const trackId = trackData?.id || trackData?._id;
 
   useEffect(() => {
     const load = async () => {
@@ -254,7 +253,7 @@ const TrackDetailPage = ({ router, player }) => {
     }
   };
 
-  if (!trackData) {
+  if (!trackId) {
     return <div className="page-container">音乐不存在</div>;
   }
 
@@ -337,7 +336,7 @@ const TrackDetailPage = ({ router, player }) => {
         </div>
       )}
       <div className="td-header">
-        <button className="td-back" onClick={router.goBack}>← 返回</button>
+        <button className="td-back" onClick={()=>navigate(-1)}>← 返回</button>
         <h2 className="td-title">音乐详情</h2>
         <div className="td-title-actions">
           <button className="td-btn" onClick={handlePlayMusic} title="播放">
