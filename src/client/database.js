@@ -156,32 +156,6 @@ export const getRandomTracks = (options = {}) => {
   return result;
 }
 
-// 获取媒体库统计信息
-export const getMediaLibraryStats = (libraryId) => {
-  const stats = client.queryOne('config', { id: `media_library_${libraryId}` });
-  return stats ? JSON.parse(stats.data) : null;
-}
-
-// 更新媒体库统计信息
-export const updateMediaLibraryStats = (libraryId, tracks) => {
-  const statsKey = `media_library_${libraryId}`;
-  const existing = client.queryOne('config', { id: statsKey });
-  const stats = {
-    trackCount: tracks.length,
-    albumCount: new Set(tracks.map(t => t.album).filter(Boolean)).size,
-    artistCount: new Set(tracks.map(t => t.artist).filter(Boolean)).size,
-    lastScanned: new Date().toISOString()
-  };
-  if (existing) {
-    client.update('config', { data: JSON.stringify(stats) }, { id: statsKey });
-  } else {
-    client.insert('config', {
-      id: statsKey,
-      data: JSON.stringify(stats)
-    });
-  }
-  return stats;
-}
 // 根据ID查找音乐
 export const findTrackById = (trackId) => {
   const track = client.queryOne('music', { id: trackId });
@@ -608,8 +582,6 @@ export const removeTrackById = (trackId) => client.delete('music', { id: trackId
 export const removeTracksByLibraryPathPrefix = (libraryPath) => client.delete('music', { type: 'track', path: libraryPath.replace(/\\/g, '/') })
 // 删除所有音乐
 export const deleteAllTracks = () => client.delete('music', { type: 'track' });
-// 删除媒体库统计信息
-export const removeMediaLibraryStats = (libraryId) => client.delete('config', { id: `media_library_${libraryId}` });
 
 // 重建索引
 export const rebuildIndexes = () => client.db.execute('ANALYZE');
@@ -632,10 +604,6 @@ export default {
   updateTrack, // 更新音乐
   getFavoriteTracks, // 获取收藏的音乐
   getRecentlyPlayedTracks, // 获取最近播放的音乐
-  // 媒体库相关
-  getMediaLibraryStats, // 获取媒体库统计信息
-  removeMediaLibraryStats, // 删除媒体库统计信息
-  updateMediaLibraryStats, // 更新媒体库统计信息
   // 艺术家相关
   artistsPage, // 获取艺术家列表
   findArtist, // 根据歌手ID查找歌手

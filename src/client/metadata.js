@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { parseFile } from 'music-metadata';
 import NodeID3 from 'node-id3';
-import { upsertTrackByPath, getConfig, saveConfig, removeTracksByLibraryPathPrefix, removeMediaLibraryStats, updateMediaLibraryStats, postScanProcessing } from './database.js';
+import { upsertTrackByPath, getConfig, saveConfig, removeTracksByLibraryPathPrefix, postScanProcessing } from './database.js';
 import { normalizeSongTitle, normalizeArtistName, normalizeText, extractArtistTitleFromFilename } from '../utils/textUtils.js';
 import { extractLyrics, extractCoverImage } from '../utils/musicUtil.js';
 
@@ -289,17 +289,9 @@ export async function getMediaLibraries() {
     
     for (const libraryPath of config.musicLibraryPaths || []) {
       const id = Buffer.from(libraryPath).toString('base64').replace(/[^a-zA-Z0-9]/g, '');
-      const stats = await getMediaLibraryStats(id) || { 
-        trackCount: 0, 
-        albumCount: 0, 
-        artistCount: 0, 
-        lastScanned: null 
-      };
       libraries.push({ 
         id, 
         path: libraryPath, 
-        ...stats, 
-        createdAt: stats.createdAt || new Date().toISOString() 
       });
     }
     return libraries;
@@ -355,7 +347,6 @@ export async function deleteMediaLibrary(id) {
     await saveConfig(config);
     // 删除相关数据
     await removeTracksByLibraryPathPrefix(libPath.replace(/\\/g, '/'));
-    await removeMediaLibraryStats(id);
     return true;
   } catch (error) {
     console.error('删除媒体库失败:', error);
@@ -388,7 +379,6 @@ export async function scanMediaLibrary(libraryId) {
     await saveScanProgress(libraryId, progressUpdate);
     await removeTracksByLibraryPathPrefix(libraryPath.replace(/\\/g, '/'));
     let processedFiles = 0;
-    const processedTracks = [];
     for (const filePath of musicFiles) {
       try {
         const fileProgress = { 
@@ -409,15 +399,12 @@ export async function scanMediaLibrary(libraryId) {
           playCount: 0
         };
         upsertTrackByPath(trackDoc);
-        processedTracks.push(trackDoc);
         processedFiles++;
         await new Promise(r => setTimeout(r, 10));
       } catch (error) {
         console.error(`处理文件失败: ${filePath}`, error);
       }
     }
-    // 更新媒体库统计
-    await updateMediaLibraryStats(libraryId, processedTracks);
     postScanProcessing();
     const completedProgress = { 
       status: 'completed', 
@@ -426,14 +413,14 @@ export async function scanMediaLibrary(libraryId) {
       totalFiles, 
       processedFiles, 
       result: { 
-        tracks: processedTracks.length,
+        tracks: processedFiles,
         postProcess: true
       } 
     };
     scanProgress.set(libraryId, completedProgress);
     await saveScanProgress(libraryId, completedProgress);
     setTimeout(() => { clearScanProgress(libraryId); }, 5000);
-    console.log(`媒体库扫描完成: ${libraryPath}, 处理了 ${processedTracks.length} 个文件`);
+    console.log(`媒体库扫描完成: ${libraryPath}, 处理了 ${processedFiles} 个文件`);
   } catch (error) {
     console.error(`扫描媒体库失败`, error);
     const failedProgress = { 
@@ -485,18 +472,6 @@ async function getAllMusicFiles(dirPath) {
   await walk(dirPath);
   console.log(`扫描到 ${musicFiles.length} 个音乐文件`);
   return musicFiles;
-}
-
-// 获取媒体库统计信息
-async function getMediaLibraryStats(libraryId) {
-  try {
-    const config = await getConfig();
-    const statsKey = `media_library_${libraryId}`;
-    return config[statsKey] || null;
-  } catch (error) {
-    console.error('获取媒体库统计失败:', error);
-    return null;
-  }
 }
 
 export default {
