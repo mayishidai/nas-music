@@ -263,7 +263,6 @@ const client = {
     const countsql = db.prepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
     params['_limit'] = pageSize;
     params['_offset'] = (page-1)*pageSize;
-
     const { count } = countsql.get(params);
     const pageData = pagesql.all(params);
     return { data: pageData, pagination: { total: count, pages: Math.ceil(count / pageSize), page, pageSize }, sort };

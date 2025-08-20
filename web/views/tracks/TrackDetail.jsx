@@ -22,6 +22,7 @@ const TrackDetailPage = ({ player }) => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success'); // 'success' | 'error'
+  const [searchSource, setSearchSource] = useState(''); // 'cache' | 'online' | ''
 
   useEffect(() => {
     const load = async () => {
@@ -215,6 +216,7 @@ const TrackDetailPage = ({ player }) => {
       
       if (json?.success) {
         setSearchResults(json.data);
+        setSearchSource(json.source || 'online'); // 记录数据来源
         setShowSearchPanel(true);
       } else {
         showToastMessage('搜索失败: ' + (json.error || '未知错误'), 'error');
@@ -524,6 +526,13 @@ const TrackDetailPage = ({ player }) => {
             <div className="td-drawer-content">
               <div className="td-drawer-header">
                 <h3>🔍 在线搜索结果</h3>
+                <div className="td-drawer-header-info">
+                  {searchSource && (
+                    <span className={`search-source ${searchSource}`}>
+                      {searchSource === 'cache' ? '📦 缓存数据' : '🌐 在线数据'}
+                    </span>
+                  )}
+                </div>
                 <button className="td-drawer-close" onClick={() => setShowSearchPanel(false)}>✕</button>
               </div>
               <div className="td-drawer-body">

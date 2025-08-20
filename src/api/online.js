@@ -1,25 +1,43 @@
 import Router from 'koa-router';
 import online from '../client/online.js';
-import { findTrackById, updateTrack } from '../client/database.js';
 import lyricsPluginManager from '../plugins/index.js';
+import client from '../client/sqlite.js';
 
 const router = new Router();
 
 // 在线搜索音乐
 router.get('/search/music', async (ctx) => {
   try {
-    const { title, artist } = ctx.query;
+    const { title, artist, useCache = 'true' } = ctx.query;
     
     if (!title && !artist) {
       ctx.status = 400;
       ctx.body = { error: '请提供歌曲标题或歌手名称' };
       return;
     }
+
+    // 如果启用缓存，先尝试从数据库获取
+    if (useCache === 'true') {
+      const cachedResults = online.getOnlineMusicFromDatabase(title, artist);
+      console.log(cachedResults)
+      if (cachedResults && cachedResults.length > 0) {
+        ctx.body = {
+          success: true,
+          data: cachedResults,
+          count: cachedResults.length,
+          source: 'cache'
+        };
+        return;
+      }
+    }
+
+    // 从在线API搜索
     const results = await online.searchMusic(title || '', artist || '');
     ctx.body = {
       success: true,
       data: results,
-      count: results.length
+      count: results.length,
+      source: 'online'
     };
   } catch (error) {
     console.error('在线音乐搜索失败:', error);
@@ -27,6 +45,23 @@ router.get('/search/music', async (ctx) => {
     ctx.body = { error: '搜索失败，请稍后重试' };
   }
 });
+
+// 从数据库获取缓存的在线音乐数据
+const getCachedOnlineMusic = async (title, artist) => {
+  let query = {};
+  if (title) {
+    query.title = { operator: 'LIKE', data: title };
+  }
+  if (artist) {
+    query.artist = { operator: 'LIKE', data: artist };
+  }
+  const results = client.page('online_music', 1, 10, 'score DESC', query);
+  // 处理artistAliases字段的反序列化
+  return results.data.map(item => ({
+    ...item,
+    artistAliases: item.artistAliases ? JSON.parse(item.artistAliases) : null
+  }));
+};
 
 // 获取歌词信息
 router.get('/lyrics', async (ctx) => {
@@ -75,57 +110,6 @@ router.get('/lyrics', async (ctx) => {
     console.error('获取歌词失败:', error);
     ctx.status = 500;
     ctx.body = { error: '获取歌词失败，请稍后重试' };
-  }
-});
-
-// 获取可用歌词插件列表
-router.get('/lyrics/plugins', async (ctx) => {
-  try {
-    const plugins = lyricsPluginManager.getAvailablePlugins();
-    const pluginInfos = plugins.map(name => {
-      const info = lyricsPluginManager.getPluginInfo(name);
-      return {
-        name,
-        ...info
-      };
-    });
-    
-    ctx.body = {
-      success: true,
-      data: pluginInfos
-    };
-  } catch (error) {
-    console.error('获取插件列表失败:', error);
-    ctx.status = 500;
-    ctx.body = { error: '获取插件列表失败' };
-  }
-});
-
-// 测试指定插件的歌词搜索
-router.get('/lyrics/test/:plugin', async (ctx) => {
-  try {
-    const { plugin } = ctx.params;
-    const { title, artist } = ctx.query;
-    
-    if (!title || !artist) {
-      ctx.status = 400;
-      ctx.body = { error: '请提供歌曲标题和歌手名称' };
-      return;
-    }
-
-    const results = await lyricsPluginManager.searchLyrics(title, artist, plugin);
-    
-    ctx.body = {
-      success: true,
-      data: {
-        plugin,
-        results: results || []
-      }
-    };
-  } catch (error) {
-    console.error('测试插件失败:', error);
-    ctx.status = 500;
-    ctx.body = { error: '测试插件失败' };
   }
 });
 

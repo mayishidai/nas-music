@@ -3,12 +3,58 @@ import { getConfig } from './database.js';
 import { tradToSimple } from 'simptrad';
 import { mergeAndUnique } from '../utils/dataUtils.js';
 import { normalizeSongTitle, normalizeArtistName } from '../utils/textUtils.js';
+import client from './sqlite.js';
+import crypto from 'crypto';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const config = getConfig();
 const mbApi = new MusicBrainzApi({ appName: config.appName, appVersion: config.appVersion, appContactInfo: config.appContactInfo });
 const coverArtApi = new CoverArtArchiveApi({ appName: config.appName, appVersion: config.appVersion, appContactInfo: config.appContactInfo });
+
+// 生成MD5哈希
+const generateMD5 = (str) => {
+  return crypto.createHash('md5').update(str).digest('hex');
+};
+
+// 将搜索结果入库到online_music表
+const saveOnlineMusicToDatabase = (title, artist, searchResults) => {
+  try {
+    for (const result of searchResults) {
+      const id = generateMD5(result.musicId + result.albumId);
+      const onlineMusicData = {
+        id,
+        query: `${title} ${artist}`,
+        musicId: result.musicId,
+        score: result.score,
+        title: result.title,
+        artist: result.artist,
+        artistAliases: result.artistAliases ? JSON.stringify(result.artistAliases) : null,
+        albumId: result.albumId,
+        album: result.album,
+        albumArtist: result.albumArtist,
+        date: result.date,
+        cover: result.cover,
+        lyrics: result.lyrics || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      client.insertOrUpdate('online_music', onlineMusicData);
+    }
+    console.log(`成功保存 ${searchResults.length} 条在线音乐数据到数据库`);
+  } catch (error) {
+    console.error('保存在线音乐数据到数据库失败:', error);
+  }
+};
+
+const getOnlineMusicFromDatabase = (title, artist) => {
+  title = normalizeSongTitle(title) || ''
+  artist = normalizeArtistName(artist) || ''
+  return client.queryAll('online_music', { query: { operator: 'LIKE', data: `${title} ${artist}` } }).map(item => ({
+    ...item,
+    artistAliases: item.artistAliases ? JSON.parse(item.artistAliases) : null
+  }))
+}
 
 // 根据歌曲名称和歌手名称，搜索音乐
 const searchMusic = async (title, artist) => {
@@ -61,7 +107,7 @@ const searchMusic = async (title, artist) => {
           query += ` OR artist:"${chineseArtistSuffix}" OR artist:"${chineseArtistSuffix}"~`;
       }
   }
-  const recordings = await mbApi.search('recording', { query, limit: 10 }).then(res => res.recordings);
+  const recordings = await mbApi.search('recording', { query, limit: 20 }).then(res => res.recordings);
   const data = recordings.map(recording=>{
       const artist_credit = recording['artist-credit'].find(a => a);
       const data = {
@@ -101,7 +147,9 @@ const searchMusic = async (title, artist) => {
       })
     }
   }
-  return result.sort((a, b) => b.score - a.score).slice(0, 10)
+  const finalResults = result.sort((a, b) => b.score - a.score);
+  saveOnlineMusicToDatabase(title, artist, finalResults);
+  return finalResults;
 }
 
 const getAlbumCover = async (albumId) => {
@@ -111,4 +159,5 @@ const getAlbumCover = async (albumId) => {
 export default {
   searchMusic,
   getAlbumCover,
+  getOnlineMusicFromDatabase,
 };

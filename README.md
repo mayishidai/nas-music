@@ -1,74 +1,114 @@
-# NAS音乐服务器歌词插件系统
+# 音乐服务器
 
-## 项目简介
-这是一个为NAS音乐服务器开发的歌词搜索插件系统，支持通过多个音乐平台API获取歌词信息。系统包含以下核心功能：
+一个基于 Node.js 的音乐服务器，支持本地音乐管理和在线音乐搜索。
 
-- 支持多个音乐平台的歌词搜索服务
-- 智能匹配算法选择最佳歌词结果
-- 插件化架构便于扩展
-- 歌词格式清理与标准化
+## 功能特性
 
-目前支持的平台：
-- 网易云音乐
-- 咪咕音乐
-- 酷狗音乐
-- QQ音乐
+### 本地音乐管理
+- 支持多种音频格式 (MP3, WAV, FLAC, M4A, OGG, AAC, WMA)
+- 自动扫描媒体库
+- 音乐标签编辑
+- 收藏功能
+- 播放历史记录
 
-## 主要特性
-1. **多平台支持**：通过不同插件实现对多个音乐平台的歌词搜索
-2. **智能匹配**：使用字符串相似度算法自动选择最匹配的歌词
-3. **格式标准化**：统一不同平台的歌词格式，清理多余空行
-4. **插件管理**：可动态注册/注销歌词插件
-5. **错误处理**：完善的错误日志记录和异常处理机制
+### 在线音乐搜索
+- 基于 MusicBrainz API 的在线音乐搜索
+- 自动缓存搜索结果到本地数据库
+- 支持按歌曲名和艺术家名搜索
+- 搜索结果包含专辑封面、发行日期等信息
 
-## 安装指南
-1. 确保已安装Node.js和npm
-2. 克隆仓库：
-   ```bash
-   git clone https://gitee.com/yanfanVIP/nas-music.git
-   ```
-3. 安装依赖：
-   ```bash
-   cd nas-music
-   npm install
-   ```
-4. 配置API密钥（如需要）：
-   ```bash
-   # 在apikey文件中配置相关API密钥
-   ```
+### 在线音乐缓存功能
 
-## 使用方法
-1. 初始化插件管理器：
-   ```javascript
-   const lyricsPluginManager = new LyricsPluginManager();
-   ```
+#### 功能概述
+系统会自动将在线搜索的音乐结果缓存到 `online_music` 表中，提高搜索响应速度并减少对外部API的请求。
 
-2. 搜索歌词：
-   ```javascript
-   // 使用所有插件搜索
-   const results = await lyricsPluginManager.searchLyrics("歌曲名", "艺术家");
-   
-   // 使用指定插件搜索
-   const result = await lyricsPluginManager.searchLyrics("歌曲名", "艺术家", "netease");
-   ```
+#### 缓存机制
+- **主键生成**: 使用 `musicId + albumId` 的 MD5 哈希值作为主键
+- **自动更新**: 如果搜索结果已存在，会自动更新现有记录
+- **智能缓存**: 优先返回缓存数据，缓存未命中时才请求在线API
 
-3. 获取插件信息：
-   ```javascript
-   const pluginInfo = lyricsPluginManager.getPluginInfo("migu");
-   ```
+#### 数据库表结构
+```sql
+CREATE TABLE online_music (
+  id TEXT PRIMARY KEY,           -- musicId + albumId 的 MD5 哈希
+  musicId TEXT NOT NULL,         -- MusicBrainz 音乐 ID
+  score INTEGER NOT NULL,        -- 搜索匹配度
+  title TEXT NOT NULL,           -- 歌曲标题
+  artist TEXT NOT NULL,          -- 艺术家
+  artistAliases TEXT,            -- 艺术家别名 (JSON 数组)
+  album TEXT NOT NULL,           -- 专辑名称
+  albumArtist TEXT NOT NULL,     -- 专辑艺术家
+  date TEXT NOT NULL,            -- 发行日期
+  coverImage TEXT,               -- 专辑封面 URL
+  lyrics TEXT,                   -- 歌词内容
+  created_at TEXT,               -- 创建时间
+  updated_at TEXT                -- 更新时间
+)
+```
 
-## 插件开发
-要添加新的歌词插件，只需：
-1. 在`src/plugins/`目录创建新插件文件
-2. 实现`getInfo()`和`searchLyrics()`方法
-3. 在`LyricsPluginManager`中注册插件
+#### API 端点
 
-## 技术架构
-系统采用模块化设计，主要包含：
-- 插件接口层：定义插件标准接口
-- 网络请求层：处理HTTP请求
-- 数据处理层：歌词格式清理和匹配算法
-- 核心引擎：插件管理和调度
+##### 在线音乐搜索
+```
+GET /api/online/search/music?title={title}&artist={artist}&useCache={true|false}
+```
+- `useCache`: 是否使用缓存 (默认 true)
+- 返回数据包含 `source` 字段，标识数据来源 ('cache' 或 'online')
+
+##### 获取缓存的在线音乐数据
+```
+GET /api/online/music/cached?title={title}&artist={artist}&page={page}&pageSize={pageSize}
+```
+
+##### 清除缓存数据
+```
+DELETE /api/online/music/cached?id={id}  # 删除指定记录
+DELETE /api/online/music/cached          # 删除所有记录
+```
+
+#### 管理界面
+在设置页面的"缓存音乐"标签页中可以：
+- 查看所有缓存的在线音乐数据
+- 删除单条缓存记录
+- 清除所有缓存数据
+- 分页浏览缓存数据
+
+#### 前端显示
+在音乐详情页面的在线搜索结果中会显示数据来源：
+- 📦 缓存数据: 表示结果来自本地缓存
+- 🌐 在线数据: 表示结果来自在线API
+
+## 安装和运行
+
+1. 安装依赖
+```bash
+npm install
+```
+
+2. 启动服务器
+```bash
+npm start
+```
+
+3. 访问应用
+打开浏览器访问 `http://localhost:3000`
+
+## 配置
+
+### 媒体库配置
+在设置页面添加媒体库路径，系统会自动扫描并导入音乐文件。
+
+### API 配置
+- MusicBrainz API: 用于在线音乐搜索
+- 歌词插件: 支持多个歌词搜索源
+
+## 技术栈
+
+- **后端**: Node.js, Koa, SQLite
+- **前端**: React, React Router
+- **数据库**: SQLite
+- **在线API**: MusicBrainz, Cover Art Archive
 
 ## 许可证
-本项目采用MIT许可证，详细信息请查看LICENSE文件。
+
+MIT License

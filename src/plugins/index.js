@@ -22,9 +22,6 @@ class LyricsPluginManager {
   registerPlugin(name, plugin) {
     if (plugin && typeof plugin.searchLyrics === 'function') {
       this.plugins.set(name, plugin);
-      console.log(`歌词插件已注册: ${name}`);
-    } else {
-      console.warn(`插件 ${name} 格式不正确，需要实现 searchLyrics 方法`);
     }
   }
 
