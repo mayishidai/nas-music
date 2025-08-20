@@ -129,7 +129,7 @@ export const getAllTracks = (options = {}) => {
   }
   const sortField = ['title', 'artist', 'album', 'genre', 'year', 'duration', 'bitrate', 'playCount', 'favorite', 'size'].includes(sort) ? sort : 'title';
   const sortOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
-  const result = client.page('music', page, pageSize, `${sortField} ${sortOrder}`, conditions);
+  const result = client.page('music', page, pageSize, `${sortField} ${sortOrder}, lastPlayed DESC, playCount DESC, updated_at DESC`, conditions);
   result.data = result.data.map(track => ({
     ...track,
     artists: client.util.deserialize(track.artists)
@@ -245,9 +245,7 @@ export const albumsPage = (options = {}) => {
   if (query) {
     conditions.query = { operator: 'SQL', condition: `title LIKE @query OR artist LIKE @query`, params: { query: `%${query}%` }};
   }
-  const sortField = ['title', 'artist', 'year', 'trackCount'].includes(sort) ? sort : 'title';
-  const sortOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
-  const result = client.page('albums', page, pageSize, `${sortField} ${sortOrder}`, conditions);
+  const result = client.page('albums', page, pageSize, `trackCount DESC, year DESC, updated_at DESC, title ASC`, conditions);
   result.data = result.data.map(album => ({
     ...album,
     artists: client.util.deserialize(album.artists)
@@ -257,14 +255,12 @@ export const albumsPage = (options = {}) => {
 
 // 获取艺术家列表（支持搜索、排序、分页）
 export const artistsPage = (options = {}) => {
-  const { query: searchQuery = '', sort = 'name', order = 'asc', page = 1, pageSize = 10 } = options;
+  const { query: searchQuery = '', page = 1, pageSize = 10 } = options;
   const conditions = { trackCount: { operator: '>', data: 0 } };
   if (searchQuery) {
     conditions.name = { operator: 'LIKE', data: searchQuery };
   }
-  const sortField = ['name', 'trackCount', 'albumCount'].includes(sort) ? sort : 'name';
-  const sortOrder = ['asc', 'desc'].includes(order.toLowerCase()) ? order.toUpperCase() : 'ASC';
-  return client.page('artists', page, pageSize, `${sortField} ${sortOrder}`, conditions);
+  return client.page('artists', page, pageSize, `albumCount DESC, trackCount DESC, updated_at DESC, name ASC`, conditions);
 }
 
 // 更新艺术家信息
