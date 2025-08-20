@@ -63,15 +63,45 @@
   align-items: center;
 }
 
-.album-detail .ad-back {
+.album-detail .ad-header-buttons {
   grid-column: 1 / -1;
   justify-self: start;
   margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.album-detail .ad-sidebar-btn {
   background: transparent;
   border: none;
   color: #ccc;
   cursor: pointer;
-  padding: 20px; font-size: 18px; 
+  padding: 8px;
+  font-size: 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.album-detail .ad-sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.album-detail .ad-back {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.album-detail .ad-back:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .album-detail .ad-cover-wrap {
@@ -340,10 +370,19 @@
   .album-detail .title { font-size: 0.9em; }
   .album-detail .sub { font-size: 10px; }
   
-  .album-detail .ad-back {
-    padding: 12px 16px;
-    font-size: 16px;
+  .album-detail .ad-header-buttons {
     margin-bottom: 4px;
+    gap: 8px;
+  }
+  
+  .album-detail .ad-sidebar-btn {
+    padding: 6px;
+    font-size: 14px;
+  }
+  
+  .album-detail .ad-back {
+    padding: 8px 10px;
+    font-size: 14px;
   }
   
   .loading-container, .error-container {
@@ -372,10 +411,19 @@
     height: 80px; 
   }
   
-  .album-detail .ad-back {
-    padding: 8px 12px;
-    font-size: 14px;
+  .album-detail .ad-header-buttons {
     margin-bottom: 3px;
+    gap: 6px;
+  }
+  
+  .album-detail .ad-sidebar-btn {
+    padding: 5px;
+    font-size: 12px;
+  }
+  
+  .album-detail .ad-back {
+    padding: 6px 8px;
+    font-size: 12px;
   }
   
   .album-detail .ad-title { 

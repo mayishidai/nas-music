@@ -18,6 +18,28 @@
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
+.track-detail .td-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.track-detail .td-sidebar-btn {
+  background: transparent; 
+  border: none; 
+  color: #ccc; 
+  cursor: pointer; 
+  font-size: 16px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.track-detail .td-sidebar-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
 .track-detail .td-back { 
   background: transparent; 
   border: none; 
@@ -706,6 +728,20 @@
     align-items: flex-start;
     gap: 12px;
   }
+  
+  .track-detail .td-header-buttons {
+    gap: 8px;
+  }
+  
+  .track-detail .td-sidebar-btn {
+    padding: 6px;
+    font-size: 14px;
+  }
+  
+  .track-detail .td-back {
+    padding: 6px 8px;
+    font-size: 14px;
+  }
 
   .track-detail .td-title-actions {
     width: 250px;
@@ -783,6 +819,20 @@
   }
   .track-detail .td-title{
     display: none;
+  }
+  
+  .track-detail .td-header-buttons {
+    gap: 6px;
+  }
+  
+  .track-detail .td-sidebar-btn {
+    padding: 5px;
+    font-size: 12px;
+  }
+  
+  .track-detail .td-back {
+    padding: 5px 6px;
+    font-size: 12px;
   }
   
   .track-detail .td-cover-section {

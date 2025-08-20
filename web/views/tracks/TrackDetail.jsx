@@ -336,7 +336,10 @@ const TrackDetailPage = ({ player }) => {
         </div>
       )}
       <div className="td-header">
-        <button className="td-back" onClick={()=>navigate(-1)}>← 返回</button>
+        <div className="td-header-buttons">
+          <button className="td-sidebar-btn" onClick={() => player.switchSidebar()}>☰</button>
+          <button className="td-back" onClick={()=>navigate(-1)}>← 返回</button>
+        </div>
         <h2 className="td-title">音乐详情</h2>
         <div className="td-title-actions">
           <button className="td-btn" onClick={handlePlayMusic} title="播放">

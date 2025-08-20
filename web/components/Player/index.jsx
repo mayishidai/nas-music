@@ -108,7 +108,8 @@ const Player = forwardRef((props, ref) => {
       const response = await fetch(`/api/music/tracks/${track.id}`);
       const result = await response.json();
       if (result.success) {
-        setFavorite(result.data.favorite || false);
+        // 数据库中以数字形式存储收藏状态：1表示收藏，0表示未收藏
+        setFavorite(result.data.favorite === 1 || result.data.favorite === true);
       }
     } catch (error) {
       console.error('检查收藏状态失败:', error);
@@ -323,8 +324,8 @@ const Player = forwardRef((props, ref) => {
                   onClick={async () => {
                     if (!currentMusic) return;
                     try {
-                      const response = await fetch(`/api/music/favorites/${currentMusic.id}`, {
-                        method: 'POST',
+                      const response = await fetch(`/api/music/tracks/${currentMusic.id}/favorite`, {
+                        method: 'PUT',
                         headers: {
                           'Content-Type': 'application/json'
                         },
@@ -333,6 +334,8 @@ const Player = forwardRef((props, ref) => {
                       const result = await response.json();
                       if (result.success) {
                         setFavorite(!favorite);
+                      } else {
+                        console.error('收藏操作失败:', result.error);
                       }
                     } catch (error) {
                       console.error('收藏操作失败:', error);
@@ -342,7 +345,7 @@ const Player = forwardRef((props, ref) => {
                   disabled={!currentMusic}
                   title={favorite ? '取消收藏' : '收藏'}
                 >
-                  {favorite ? '❤️' : '🤍'}
+                  {favorite ? '⭐' : '☆'}
                 </button>
               </div>
               {/* 移动端音量控制 */}

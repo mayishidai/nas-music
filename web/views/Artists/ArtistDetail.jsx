@@ -221,7 +221,10 @@ const ArtistDetailView = ({ player }) => {
         <div className="ad-background-overlay" />
         
         {/* 返回按钮 */}
-        <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
+        <div className="ad-header-buttons">
+          <button className="ad-sidebar-btn" onClick={() => player.switchSidebar()}>☰</button>
+          <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
+        </div>
         
         {/* 艺术家信息 */}
         <div className="ad-artist-info">

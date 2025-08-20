@@ -97,7 +97,7 @@ const AlbumDetailView = ({ player }) => {
 
   // 处理打开详情
   const handleOpenDetail = (track) => {
-    navigate(`/track/${track}`);
+    navigate(`/track/${track.id || track._id}`);
   };
 
   // 处理艺术家点击
@@ -158,7 +158,10 @@ const AlbumDetailView = ({ player }) => {
   return (
     <div className="album-detail">
       <div className="album-detail-header">
-        <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
+        <div className="ad-header-buttons">
+          <button className="ad-sidebar-btn" onClick={() => player.switchSidebar()}>☰</button>
+          <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
+        </div>
         <div className="ad-cover-wrap">
           {cover ? (
             <img className="ad-cover" src={cover} alt={album.title || '专辑'} />

@@ -146,8 +146,9 @@
 
 /* 收藏按钮特殊样式 */
 .control-btn.active[title*="收藏"] {
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.1);
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 /* 去掉图标方框背景，直接用emoji或文字即可 */
