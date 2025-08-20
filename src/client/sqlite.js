@@ -7,6 +7,12 @@ import { ensureDir } from '../utils/fileUtils.js';
 const dbDir = './db';
 ensureDir(dbDir);
 const musicDB = new Database(path.join(dbDir, 'music.db'), { verbose: null });
+musicDB.pragma('journal_mode = WAL');
+musicDB.pragma('synchronous = NORMAL');
+musicDB.pragma('cache_size = -10000');
+musicDB.pragma('temp_store = MEMORY');
+musicDB.pragma('auto_vacuum = NONE');
+
 // 歌手名称分隔符
 const ARTIST_SEPARATORS = ['/', '、', ',', '，', '&', '&amp;', 'feat.', 'feat', 'ft.', 'ft', 'featuring', 'vs', 'VS'];
 
@@ -34,7 +40,7 @@ const util = {
     }
     return [...new Set(names)].filter(name => name.length > 0);
   },
-  normalize: (str) => {
+  normalize: (str='') => {
     return str.toLowerCase().replace(/[^\w\s\u4e00-\u9fff]/g, '').replace(/ /g, '').trim();
   },
   serialize: (json) => {
