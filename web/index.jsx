@@ -48,6 +48,11 @@ const NASMusicPlayer = (props) => {
    * 播放器控制方法
    */
   const player = {
+    onMobileCloseSidebar: () => {
+      if (isSmallScreen && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    },
     switchSidebar: () => setSidebarOpen(!sidebarOpen),
     // 播放音乐
     playMusic: (track, playlistTracks = null) => {
@@ -102,13 +107,13 @@ const NASMusicPlayer = (props) => {
               <h1>🎵 NAS音乐</h1>
             </div>
             <nav className="sidebar-nav">
-              <Link to='/' className={`nav-item`}>🎵 音乐</Link>
-              <Link to='/albums' className={`nav-item`}>💿 专辑</Link>
-              <Link to='/artists' className={`nav-item`}>👤 艺术家</Link>
-              <Link to='/favorites' className={`nav-item`}>⭐ 收藏</Link>
-              <Link to='/recent' className={`nav-item`}>🕒 最近播放</Link>
-              <Link to='/shuffle' className={`nav-item`}>🔀 随机播放</Link>
-              <Link to='/settings' className={`nav-item`}>⚙️ 设置</Link>
+              <Link to='/' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>🎵 音乐</Link>
+              <Link to='/albums' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>💿 专辑</Link>
+              <Link to='/artists' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>👤 艺术家</Link>
+              <Link to='/favorites' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>⭐ 收藏</Link>
+              <Link to='/recent' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>🕒 最近播放</Link>
+              <Link to='/shuffle' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>🔀 随机播放</Link>
+              <Link to='/settings' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>⚙️ 设置</Link>
             </nav>
           </div>
 

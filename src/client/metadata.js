@@ -177,6 +177,52 @@ export async function scanAll() {
 // 扫描进度存储
 const scanProgress = new Map();
 
+// 从配置文件加载扫描进度
+async function loadScanProgress() {
+  try {
+    const config = await getConfig();
+    const savedProgress = config.scanProgress || {};
+    
+    for (const [libraryId, progress] of Object.entries(savedProgress)) {
+      // 只恢复正在进行的扫描
+      if (progress.status === 'scanning') {
+        scanProgress.set(libraryId, progress);
+      }
+    }
+  } catch (error) {
+    console.error('加载扫描进度失败:', error);
+  }
+}
+
+// 保存扫描进度到配置文件
+async function saveScanProgress(libraryId, progress) {
+  try {
+    const config = await getConfig();
+    config.scanProgress = config.scanProgress || {};
+    config.scanProgress[libraryId] = progress;
+    await saveConfig(config);
+  } catch (error) {
+    console.error('保存扫描进度失败:', error);
+  }
+}
+
+// 清除扫描进度
+async function clearScanProgress(libraryId) {
+  try {
+    const config = await getConfig();
+    if (config.scanProgress && config.scanProgress[libraryId]) {
+      delete config.scanProgress[libraryId];
+      await saveConfig(config);
+    }
+    scanProgress.delete(libraryId);
+  } catch (error) {
+    console.error('清除扫描进度失败:', error);
+  }
+}
+
+// 初始化时加载扫描进度
+loadScanProgress();
+
 // 获取媒体库列表
 export async function getMediaLibraries() {
   try {
@@ -274,25 +320,29 @@ export async function scanMediaLibrary(libraryId) {
     if (!libraryPath) throw new Error('媒体库不存在');
     console.log(`开始扫描媒体库: ${libraryPath}`);
     // 初始化扫描进度
-    scanProgress.set(libraryId, { 
+    const initialProgress = { 
       status: 'scanning', 
       progress: 0, 
       currentFile: '', 
       totalFiles: 0, 
       processedFiles: 0 
-    });
+    };
+    scanProgress.set(libraryId, initialProgress);
+    await saveScanProgress(libraryId, initialProgress);
     
     // 获取所有音乐文件
     const musicFiles = await getAllMusicFiles(libraryPath);
     const totalFiles = musicFiles.length;
     
-    scanProgress.set(libraryId, { 
+    const progressUpdate = { 
       status: 'scanning', 
       progress: 0, 
       currentFile: '', 
       totalFiles, 
       processedFiles: 0 
-    });
+    };
+    scanProgress.set(libraryId, progressUpdate);
+    await saveScanProgress(libraryId, progressUpdate);
     
     // 删除旧记录
     await removeTracksByLibraryPathPrefix(libraryPath.replace(/\\/g, '/'));
@@ -302,13 +352,15 @@ export async function scanMediaLibrary(libraryId) {
     
     for (const filePath of musicFiles) {
       try {
-        scanProgress.set(libraryId, { 
+        const fileProgress = { 
           status: 'scanning', 
           progress: Math.round((processedFiles / totalFiles) * 100), 
           currentFile: path.basename(filePath), 
           totalFiles, 
           processedFiles 
-        });
+        };
+        scanProgress.set(libraryId, fileProgress);
+        await saveScanProgress(libraryId, fileProgress);
         
         const metadata = await getMetadata(filePath);
         const trackDoc = {
@@ -335,7 +387,7 @@ export async function scanMediaLibrary(libraryId) {
     console.log('开始扫描后处理...');
     postScanProcessing();
     
-    scanProgress.set(libraryId, { 
+    const completedProgress = { 
       status: 'completed', 
       progress: 100, 
       currentFile: '', 
@@ -345,19 +397,33 @@ export async function scanMediaLibrary(libraryId) {
         tracks: processedTracks.length,
         postProcess: true
       } 
-    });
+    };
+    scanProgress.set(libraryId, completedProgress);
+    await saveScanProgress(libraryId, completedProgress);
+    
+    // 延迟清除进度信息，让前端有时间获取完成状态
+    setTimeout(() => {
+      clearScanProgress(libraryId);
+    }, 5000);
     
     console.log(`媒体库扫描完成: ${libraryPath}, 处理了 ${processedTracks.length} 个文件`);
   } catch (error) {
     console.error(`扫描媒体库失败`, error);
-    scanProgress.set(libraryId, { 
+    const failedProgress = { 
       status: 'failed', 
       progress: 0, 
       currentFile: '', 
       totalFiles: 0, 
       processedFiles: 0, 
       error: error.message 
-    });
+    };
+    scanProgress.set(libraryId, failedProgress);
+    await saveScanProgress(libraryId, failedProgress);
+    
+    // 延迟清除进度信息，让前端有时间获取失败状态
+    setTimeout(() => {
+      clearScanProgress(libraryId);
+    }, 10000);
     throw error;
   }
 }

@@ -22,6 +22,7 @@ const SettingsPage = ({ player }) => {
   useEffect(() => {
     loadMediaLibraries();
     loadApiConfigs();
+    checkActiveScans();
   }, []);
 
   /**
@@ -51,6 +52,35 @@ const SettingsPage = ({ player }) => {
       }
     } catch (error) {
       console.error('加载API配置失败:', error);
+    }
+  };
+
+  /**
+   * 检查是否有正在进行的扫描任务
+   */
+  const checkActiveScans = async () => {
+    try {
+      // 检查每个媒体库的扫描状态
+      const response = await fetch('/api/settings/media-libraries');
+      const result = await response.json();
+      if (result.success) {
+        const libraries = result.data || [];
+        
+        for (const library of libraries) {
+          const progressResponse = await fetch(`/api/settings/media-libraries/${library.id}/scan-progress`);
+          const progressResult = await progressResponse.json();
+          
+          if (progressResult.success && progressResult.data && progressResult.data.status === 'scanning') {
+            // 发现正在进行的扫描，恢复进度轮询
+            setScanningLibrary(library);
+            setScanProgress(progressResult.data.progress || 0);
+            pollScanProgress(library.id);
+            break; // 只处理第一个正在进行的扫描
+          }
+        }
+      }
+    } catch (error) {
+      console.error('检查扫描状态失败:', error);
     }
   };
 
