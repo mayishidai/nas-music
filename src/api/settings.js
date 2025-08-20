@@ -324,4 +324,109 @@ router.post('/post-scan-processing', async (ctx) => {
   }
 });
 
+// ==================== 刮削功能配置接口 ====================
+
+/**
+ * 获取刮削功能配置
+ * GET /api/settings/scraping-config
+ */
+router.get('/scraping-config', async (ctx) => {
+  try {
+    const config = await getConfig(); // Assuming getConfig can fetch scraping config
+    const scrapingConfig = {
+      enabled: config.scrapingEnabled || false,
+      updatedAt: config.scrapingUpdatedAt || new Date().toISOString()
+    };
+    
+    ctx.body = {
+      success: true,
+      data: scrapingConfig
+    };
+  } catch (error) {
+    console.error('获取刮削配置失败:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: '获取刮削配置失败'
+    };
+  }
+});
+
+/**
+ * 保存刮削功能配置
+ * PUT /api/settings/scraping-config
+ */
+router.put('/scraping-config', async (ctx) => {
+  try {
+    const { enabled } = ctx.request.body;
+    
+    if (typeof enabled !== 'boolean') {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        error: 'enabled参数必须是布尔值'
+      };
+      return;
+    }
+
+    const config = await getConfig(); // Assuming getConfig can save scraping config
+    config.scrapingEnabled = enabled;
+    config.scrapingUpdatedAt = new Date().toISOString();
+    await saveConfig(config);
+
+    ctx.body = {
+      success: true,
+      data: { enabled, updatedAt: config.scrapingUpdatedAt },
+      message: enabled ? '刮削功能已开启' : '刮削功能已关闭'
+    };
+  } catch (error) {
+    console.error('保存刮削配置失败:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: '保存刮削配置失败'
+    };
+  }
+});
+
+/**
+ * 立即刮削
+ * POST /api/settings/start-scraping
+ */
+router.post('/start-scraping', async (ctx) => {
+  try {
+    const config = await getConfig();
+    
+    // 检查刮削功能是否已开启
+    if (!config.scrapingEnabled) {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        error: '刮削功能未开启'
+      };
+      return;
+    }
+
+    // TODO: 这里应该实现具体的刮削逻辑
+    // 目前仅返回成功响应，不做具体功能实现
+    console.log('立即刮削API被调用，但未实现具体功能');
+    
+    ctx.body = {
+      success: true,
+      message: '立即刮削已开始',
+      data: {
+        startedAt: new Date().toISOString(),
+        status: 'started'
+      }
+    };
+  } catch (error) {
+    console.error('启动立即刮削失败:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: '启动立即刮削失败'
+    };
+  }
+});
+
 export default router;

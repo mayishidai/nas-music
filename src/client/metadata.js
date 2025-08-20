@@ -291,17 +291,13 @@ export async function deleteMediaLibrary(id) {
     const idx = (config.musicLibraryPaths || []).findIndex(p => 
       Buffer.from(p).toString('base64').replace(/[^a-zA-Z0-9]/g, '') === id
     );
-    
     if (idx === -1) throw new Error('媒体库不存在');
-    
     const libPath = config.musicLibraryPaths[idx];
     config.musicLibraryPaths.splice(idx, 1);
     await saveConfig(config);
-    
     // 删除相关数据
     await removeTracksByLibraryPathPrefix(libPath.replace(/\\/g, '/'));
     await removeMediaLibraryStats(id);
-    
     return true;
   } catch (error) {
     console.error('删除媒体库失败:', error);
@@ -316,10 +312,8 @@ export async function scanMediaLibrary(libraryId) {
     const libraryPath = (config.musicLibraryPaths || []).find(p => 
       Buffer.from(p).toString('base64').replace(/[^a-zA-Z0-9]/g, '') === libraryId
     );
-    
     if (!libraryPath) throw new Error('媒体库不存在');
     console.log(`开始扫描媒体库: ${libraryPath}`);
-    // 初始化扫描进度
     const initialProgress = { 
       status: 'scanning', 
       progress: 0, 
@@ -329,27 +323,15 @@ export async function scanMediaLibrary(libraryId) {
     };
     scanProgress.set(libraryId, initialProgress);
     await saveScanProgress(libraryId, initialProgress);
-    
     // 获取所有音乐文件
     const musicFiles = await getAllMusicFiles(libraryPath);
     const totalFiles = musicFiles.length;
-    
-    const progressUpdate = { 
-      status: 'scanning', 
-      progress: 0, 
-      currentFile: '', 
-      totalFiles, 
-      processedFiles: 0 
-    };
+    const progressUpdate = { status: 'scanning', progress: 0, currentFile: '', totalFiles, processedFiles: 0 };
     scanProgress.set(libraryId, progressUpdate);
     await saveScanProgress(libraryId, progressUpdate);
-    
-    // 删除旧记录
     await removeTracksByLibraryPathPrefix(libraryPath.replace(/\\/g, '/'));
-    
     let processedFiles = 0;
     const processedTracks = [];
-    
     for (const filePath of musicFiles) {
       try {
         const fileProgress = { 
@@ -361,7 +343,6 @@ export async function scanMediaLibrary(libraryId) {
         };
         scanProgress.set(libraryId, fileProgress);
         await saveScanProgress(libraryId, fileProgress);
-        
         const metadata = await getMetadata(filePath);
         const trackDoc = {
           ...metadata,
@@ -373,7 +354,6 @@ export async function scanMediaLibrary(libraryId) {
         upsertTrackByPath(trackDoc);
         processedTracks.push(trackDoc);
         processedFiles++;
-        
         // 添加小延迟避免阻塞
         await new Promise(r => setTimeout(r, 10));
       } catch (error) {
@@ -382,11 +362,9 @@ export async function scanMediaLibrary(libraryId) {
     }
     // 更新媒体库统计
     await updateMediaLibraryStats(libraryId, processedTracks);
-    
     // 开始扫描后处理
     console.log('开始扫描后处理...');
     postScanProcessing();
-    
     const completedProgress = { 
       status: 'completed', 
       progress: 100, 
@@ -400,7 +378,6 @@ export async function scanMediaLibrary(libraryId) {
     };
     scanProgress.set(libraryId, completedProgress);
     await saveScanProgress(libraryId, completedProgress);
-    
     // 延迟清除进度信息，让前端有时间获取完成状态
     setTimeout(() => {
       clearScanProgress(libraryId);

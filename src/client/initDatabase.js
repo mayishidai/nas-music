@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS music (
   coverImage TEXT,
   lyrics TEXT,
   artists TEXT, -- JSON 数组字符串
+  scraped INTEGER DEFAULT 0,
   created_at TEXT,
   updated_at TEXT
 )
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS artists (
   albumCount INTEGER DEFAULT 0,
   photo TEXT, -- 艺术家头像URL
   detail TEXT, -- 艺术家简介/详情
+  scraped INTEGER DEFAULT 0,
   created_at TEXT,
   updated_at TEXT
 )
@@ -62,6 +64,7 @@ CREATE TABLE IF NOT EXISTS albums (
   trackCount INTEGER DEFAULT 0,
   year INTEGER,
   coverImage TEXT,
+  scraped INTEGER DEFAULT 0,
   created_at TEXT,
   updated_at TEXT
 )

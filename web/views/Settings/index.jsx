@@ -13,10 +13,15 @@ const SettingsPage = ({ player }) => {
   const [scanProgress, setScanProgress] = useState(0);
   const [libraryStats, setLibraryStats] = useState({});
 
+  // 刮削功能状态
+  const [scrapingEnabled, setScrapingEnabled] = useState(false);
+  const [scrapingInProgress, setScrapingInProgress] = useState(false);
+
   // 加载媒体库列表
   useEffect(() => {
     loadMediaLibraries();
     checkActiveScans();
+    loadScrapingConfig();
   }, []);
 
   // 当媒体库列表更新时，重新加载统计信息
@@ -53,6 +58,85 @@ const SettingsPage = ({ player }) => {
       }
     } catch (error) {
       console.error('加载统计信息失败:', error);
+    }
+  };
+
+  /**
+   * 加载刮削功能配置
+   */
+  const loadScrapingConfig = async () => {
+    try {
+      const response = await fetch('/api/settings/scraping-config');
+      const result = await response.json();
+      if (result.success) {
+        setScrapingEnabled(result.data.enabled || false);
+      }
+    } catch (error) {
+      console.error('加载刮削配置失败:', error);
+    }
+  };
+
+  /**
+   * 保存刮削功能配置
+   */
+  const saveScrapingConfig = async (enabled) => {
+    try {
+      const response = await fetch('/api/settings/scraping-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        setScrapingEnabled(enabled);
+        alert(enabled ? '刮削功能已开启' : '刮削功能已关闭');
+      } else {
+        alert('保存失败: ' + result.error);
+      }
+    } catch (error) {
+      console.error('保存刮削配置失败:', error);
+      alert('保存失败');
+    }
+  };
+
+  /**
+   * 立即刮削
+   */
+  const startScraping = async () => {
+    if (!scrapingEnabled) {
+      alert('请先开启刮削功能');
+      return;
+    }
+
+    if (scrapingInProgress) {
+      alert('刮削正在进行中，请稍候');
+      return;
+    }
+
+    if (!confirm('确定要开始立即刮削吗？这将为所有音乐文件获取元数据信息。')) {
+      return;
+    }
+
+    setScrapingInProgress(true);
+    
+    try {
+      const response = await fetch('/api/settings/start-scraping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        alert('立即刮削已开始');
+      } else {
+        alert('启动刮削失败: ' + result.error);
+      }
+    } catch (error) {
+      console.error('启动刮削失败:', error);
+      alert('启动刮削失败');
+    } finally {
+      setScrapingInProgress(false);
     }
   };
 
@@ -237,6 +321,46 @@ const SettingsPage = ({ player }) => {
                   <div className="stat-value">{mediaLibraries.length}</div>
                   <div className="stat-label">媒体库</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 刮削功能设置 */}
+          <div className="settings-section">
+            <div className="settings-section-header">
+              <h3>🔍 刮削功能</h3>
+              <p className="settings-section-desc">开启后将在扫描媒体库时自动获取音乐元数据信息</p>
+            </div>
+            
+            <div className="scraping-config">
+              <div className="config-item">
+                <div className="config-info">
+                  <div className="config-icon">🎯</div>
+                  <div className="config-details">
+                    <div className="config-title">自动刮削</div>
+                    <div className="config-desc">扫描媒体库时自动从在线服务获取音乐元数据</div>
+                  </div>
+                </div>
+                <div className="config-control">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={scrapingEnabled}
+                      onChange={(e) => saveScrapingConfig(e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="scraping-actions">
+                <button 
+                  className="scraping-btn"
+                  onClick={startScraping}
+                  disabled={scrapingInProgress}
+                >
+                  {scrapingInProgress ? '🔄 刮削中...' : '🚀 立即刮削'}
+                </button>
               </div>
             </div>
           </div>

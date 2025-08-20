@@ -10,6 +10,8 @@ export const defaultConfig = {
   supportedFormats: ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'],
   coverSize: 300,
   language: 'zh-CN',
+  scrapingEnabled: false, // 刮削功能开关
+  scrapingUpdatedAt: null, // 刮削配置更新时间
 };
 
 // 获取配置
