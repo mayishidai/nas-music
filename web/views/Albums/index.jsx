@@ -172,8 +172,16 @@ const AlbumsPage = ({ player }) => {
                 >
                   <div className="album-overlay">
                     <div className="album-info">
-                      <h3 className="album-name">{album.normalizedTitle}</h3>
-                      <p className="album-artist">{album.artist || album.albumArtist}</p>
+                      <h3 className="album-name">{album.title}</h3>
+                      <div className="album-meta">
+                        <span className="album-artist">{album.artist || album.albums}</span>
+                        {album.trackCount && (
+                          <>
+                            <span className="album-separator">•</span>
+                            <span className="album-track-count">{album.trackCount} 首歌曲</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

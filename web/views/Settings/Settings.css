@@ -383,7 +383,8 @@ input:checked + .slider:before {
   background: rgba(255, 255, 255, 0.15);
 }
 
-.add-btn {
+/* 设置页面专用的add-btn样式 */
+.settings-container .add-library .add-btn {
   padding: 12px 20px;
   background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
   border: none;
@@ -393,14 +394,18 @@ input:checked + .slider:before {
   font-weight: 500;
   transition: all 0.3s ease;
   white-space: nowrap;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  font-size: 14px;
 }
 
-.add-btn:hover:not(:disabled) {
+.settings-container .add-library .add-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-.add-btn:disabled {
+.settings-container .add-library .add-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
