@@ -1,31 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MusicList } from '../../components';
 import { useNavigate } from 'react-router-dom';
+import { useUrlState } from '../../hooks';
 import './Shuffle.css';
 
 const ShufflePage = ({ player }) => {
   const navigate = useNavigate();
+  
+  // 使用URL状态管理
+  const { state, setSort } = useUrlState({
+    sortKey: 'title',
+    sortOrder: 'asc'
+  });
+
   const [shuffleTracks, setShuffleTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
-  const [sortKey, setSortKey] = useState('title');
-  const [sortOrder, setSortOrder] = useState('asc');
 
   // 加载随机播放数据
-  const loadShuffleTracks = useCallback(async (targetPage = 1) => {
+  const loadShuffleTracks = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
       const params = new URLSearchParams();
-      params.set('page', String(targetPage));
-      params.set('pageSize', String(pageSize));
-      params.set('sort', sortKey);
-      params.set('order', sortOrder);
+      params.set('page', '1');
+      params.set('pageSize', '10');
+      params.set('sort', state.sortKey);
+      params.set('order', state.sortOrder);
 
       const response = await fetch(`/api/music/random?${params.toString()}`);
       const result = await response.json();
@@ -55,7 +59,6 @@ const ShufflePage = ({ player }) => {
         setShuffleTracks(processedTracks);
         setTotal(10);
         setPages(1);
-        setPage(1);
       } else {
         setError(result.message || '加载失败');
       }
@@ -65,33 +68,29 @@ const ShufflePage = ({ player }) => {
     } finally {
       setLoading(false);
     }
-  }, [pageSize, sortKey, sortOrder]);
+  }, [state.sortKey, state.sortOrder]);
 
   // 处理刷新
   const handleRefresh = () => {
-    setPage(1);
-    loadShuffleTracks(1);
+    loadShuffleTracks();
   };
 
-  // 处理页码变化
+  // 处理页码变化（随机播放页面不需要分页）
   const handlePageChange = (newPage) => {
-    loadShuffleTracks(newPage);
+    // 随机播放页面不处理分页
   };
 
-  // 处理每页数量变化
+  // 处理每页数量变化（随机播放页面不需要分页）
   const handlePageSizeChange = (newPageSize) => {
-    setPageSize(newPageSize);
-    setPage(1);
-    loadShuffleTracks(1);
+    // 随机播放页面不处理分页
   };
 
   // 处理排序
   const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    if (state.sortKey === key) {
+      setSort(key, state.sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortKey(key);
-      setSortOrder('asc');
+      setSort(key, 'asc');
     }
   };
 
@@ -142,15 +141,10 @@ const ShufflePage = ({ player }) => {
     navigate(`/album/${album}`);
   };
 
-  // 搜索变化时重新加载
+  // 当状态变化时重新加载数据
   useEffect(() => {
-    loadShuffleTracks(1);
-  }, [sortKey, sortOrder]);
-
-  // 初始加载
-  useEffect(() => {
-    loadShuffleTracks(1);
-  }, []);
+    loadShuffleTracks();
+  }, [loadShuffleTracks]);
 
   return (
     <div className="page-container shuffle-container">
@@ -177,14 +171,14 @@ const ShufflePage = ({ player }) => {
           showCover={true}
           isLoading={loading}
           error={error}
-          currentPage={page}
-          pageSize={pageSize}
+          currentPage={1}
+          pageSize={10}
           total={total}
           pages={pages}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
-          sortKey={sortKey}
-          sortOrder={sortOrder}
+          sortKey={state.sortKey}
+          sortOrder={state.sortOrder}
           onSort={handleSort}
           onPlayMusic={handlePlayMusic}
           onAddToPlaylist={handleAddToPlaylist}

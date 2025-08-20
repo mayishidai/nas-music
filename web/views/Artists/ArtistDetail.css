@@ -505,3 +505,19 @@
 }
 
 
+@media (max-width: 900px) {
+  .col-album {
+    display: revert;
+  }
+  .col-artist {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .col-artist {
+    display: none;
+  }
+  .col-album {
+    display: none;
+  }
+}

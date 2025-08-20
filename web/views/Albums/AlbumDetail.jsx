@@ -215,14 +215,7 @@ const AlbumDetailView = ({ player }) => {
                 <div className="td td-title">
                   <div className="title-wrap">
                     <img className="td-cover" src={track.coverImage || '/images/default_albums.png'} alt="封面" />
-                    <div className="title-text">
-                      <div className="title" title={track.title}>
-                        {track.title || '未知标题'}
-                      </div>
-                      <div className="sub" title={track.album}>
-                        {track.album || album.title}
-                      </div>
-                    </div>
+                    <div className="title-text">{track.title || '未知标题'}</div>
                   </div>
                 </div>
                 <div className="td td-artist">

@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { MusicList } from '../../components';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useUrlState } from '../../hooks';
 import './ArtistDetail.css';
 
 const ArtistDetailView = ({ player }) => {
   const navigate = useNavigate();
   const { artistId } = useParams();
+  
+  // 使用URL状态管理
+  const { state, setPage, setPageSize, setSearch } = useUrlState({
+    page: 1,
+    pageSize: 10,
+    search: ''
+  });
+
   const [artist, setArtist] = useState(null);
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [search, setSearch] = useState('');
-  
-  // 分页状态
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
 
@@ -48,22 +52,22 @@ const ArtistDetailView = ({ player }) => {
   }, [artistId]);
 
   // 加载艺术家的音乐列表
-  const loadTracks = async (page = 1, size = pageSize, searchKeyword = search) => {
+  const loadTracks = async () => {
     if (!artist?.name) return;
     
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: size.toString(),
+        page: state.page.toString(),
+        pageSize: state.pageSize.toString(),
         filter: JSON.stringify({
           artist: artist.name
         })
       });
       
       // 添加搜索关键词
-      if (searchKeyword) {
-        params.set('search', searchKeyword);
+      if (state.search) {
+        params.set('search', state.search);
       }
       
       const res = await fetch(`/api/music/tracks?${params}`).then(res => res.json()); 
@@ -73,7 +77,6 @@ const ArtistDetailView = ({ player }) => {
         setTracks(data);
         setTotal(pagination.total || 0);
         setPages(pagination.pages || 0);
-        setCurrentPage(page);
       } else {
         setError(res?.error || '获取音乐列表失败');
       }
@@ -85,34 +88,31 @@ const ArtistDetailView = ({ player }) => {
     }
   };
 
-  // 当艺术家信息加载完成后，加载音乐列表
+  // 当艺术家信息或状态变化时，加载音乐列表
   useEffect(() => {
     if (artist?.name) {
-      loadTracks(1, pageSize, search);
+      loadTracks();
     }
-  }, [artist?.name, pageSize, search]);
+  }, [artist?.name, state.page, state.pageSize, state.search]);
 
   // 处理页码变化
   const handlePageChange = (newPage) => {
-    loadTracks(newPage, pageSize, search);
+    setPage(newPage);
   };
 
   // 处理每页数量变化
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
-    loadTracks(1, newPageSize, search);
   };
 
   // 处理搜索变化
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
-    setCurrentPage(1); // 重置到第一页
   };
 
   // 处理搜索清除
   const handleClearSearch = () => {
     setSearch('');
-    setCurrentPage(1);
   };
 
   // 处理播放音乐
@@ -249,10 +249,10 @@ const ArtistDetailView = ({ player }) => {
               <input 
                 className="ad-search-input" 
                 placeholder="搜索歌曲..." 
-                value={search} 
+                value={state.search} 
                 onChange={handleSearchChange}
               />
-              {search && (
+              {state.search && (
                 <button 
                   className="ad-search-clear"
                   onClick={handleClearSearch}
@@ -267,8 +267,8 @@ const ArtistDetailView = ({ player }) => {
             tracks={tracks}
             isLoading={loading}
             error={error}
-            currentPage={currentPage}
-            pageSize={pageSize}
+            currentPage={state.page}
+            pageSize={state.pageSize}
             total={total}
             pages={pages}
             onPageChange={handlePageChange}

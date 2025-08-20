@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { InfiniteScroll } from '../../components/common';
 import { useNavigate } from 'react-router-dom';
+import { useUrlState } from '../../hooks';
 import '../Pages.css';
 import './Albums.css';
 
@@ -15,14 +16,19 @@ const pageData = {
  */
 const AlbumsPage = ({ player }) => {
   const navigate = useNavigate();
+  
+  // 使用URL状态管理
+  const { state, setSearch } = useUrlState({
+    search: ''
+  });
+
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [search, setSearch] = useState('');
   const searchTimeoutRef = useRef(null);
 
   // 加载专辑数据
-  const loadAlbums = async (clearData = false, searchKeyword = '') => {
+  const loadAlbums = async (clearData = false, searchKeyword = state.search) => {
     if (pageData.loading) return;
     if (clearData)  {
       pageData.nextPage = 1;
@@ -54,7 +60,7 @@ const AlbumsPage = ({ player }) => {
   // 加载下一页
   const loadNext = () => {
     if (!pageData.loading && pageData.hasMore) {
-      loadAlbums(false, search);
+      loadAlbums(false, state.search);
     }
   };
 
@@ -84,7 +90,7 @@ const AlbumsPage = ({ player }) => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    loadAlbums(true, search);
+    loadAlbums(true, state.search);
   };
 
   // 处理回车键搜索
@@ -99,15 +105,15 @@ const AlbumsPage = ({ player }) => {
     navigate(`/album/${album.id || album._id}`);
   };
 
-  // 初始加载
+  // 当搜索状态变化时重新加载
   useEffect(() => {
-    loadAlbums(true, '');
+    loadAlbums(true, state.search);
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, []);
+  }, [state.search]);
 
   return (
     <div className="page-container albums-container">
@@ -121,11 +127,11 @@ const AlbumsPage = ({ player }) => {
             <input 
               className="fav-search" 
               placeholder="搜索专辑..." 
-              value={search} 
+              value={state.search} 
               onChange={handleSearchChange}
               onKeyPress={handleSearchKeyPress}
             />
-            {search && (
+            {state.search && (
               <button 
                 className="search-clear-btn"
                 onClick={handleClearSearch}

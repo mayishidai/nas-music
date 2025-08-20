@@ -1,31 +1,37 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MusicList } from '../../components';
 import { useNavigate } from 'react-router-dom';
+import { useUrlState } from '../../hooks';
 import './RecentlyPlayed.css';
 
 const RecentlyPlayedPage = ({ player }) => {
   const navigate = useNavigate();
+  
+  // 使用URL状态管理
+  const { state, setPage, setPageSize, setSearch } = useUrlState({
+    page: 1,
+    pageSize: 10,
+    search: ''
+  });
+
   const [recentTracks, setRecentTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
 
   // 加载最近播放数据
-  const loadRecentTracks = useCallback(async (targetPage = 1, searchKeyword = search) => {
+  const loadRecentTracks = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
       const params = new URLSearchParams();
-      params.set('limit', String(pageSize));
-      params.set('offset', String((targetPage - 1) * pageSize));
+      params.set('limit', String(state.pageSize));
+      params.set('offset', String((state.page - 1) * state.pageSize));
       
-      if (searchKeyword) {
-        params.set('search', searchKeyword);
+      if (state.search) {
+        params.set('search', state.search);
       }
 
       const response = await fetch(`/api/music/recently-played?${params.toString()}`);
@@ -55,8 +61,7 @@ const RecentlyPlayedPage = ({ player }) => {
 
         setRecentTracks(processedTracks);
         setTotal(paginationData.total);
-        setPages(Math.ceil(paginationData.total / pageSize));
-        setPage(targetPage);
+        setPages(Math.ceil(paginationData.total / state.pageSize));
       } else {
         setError(result.message || '加载失败');
       }
@@ -66,7 +71,7 @@ const RecentlyPlayedPage = ({ player }) => {
     } finally {
       setLoading(false);
     }
-  }, [pageSize, search]);
+  }, [state.page, state.pageSize, state.search]);
 
   // 处理搜索变化
   const handleSearchChange = (e) => {
@@ -76,16 +81,11 @@ const RecentlyPlayedPage = ({ player }) => {
   // 清除搜索
   const handleClearSearch = () => {
     setSearch('');
-    setPage(1);
-    setRecentTracks([]);
-    setTotal(0);
-    setPages(0);
   };
 
   // 执行搜索
   const handleSearch = () => {
-    setPage(1);
-    loadRecentTracks(1, search);
+    // 搜索状态已经通过setSearch更新，会自动触发loadRecentTracks
   };
 
   // 处理回车键搜索
@@ -97,14 +97,12 @@ const RecentlyPlayedPage = ({ player }) => {
 
   // 处理页码变化
   const handlePageChange = (newPage) => {
-    loadRecentTracks(newPage);
+    setPage(newPage);
   };
 
   // 处理每页数量变化
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
-    setPage(1);
-    loadRecentTracks(1);
   };
 
   // 处理播放音乐
@@ -154,15 +152,10 @@ const RecentlyPlayedPage = ({ player }) => {
     navigate(`/album/${album}`);
   };
 
-  // 搜索变化时重新加载
+  // 当状态变化时重新加载数据
   useEffect(() => {
-    loadRecentTracks(1);
-  }, [search]);
-
-  // 初始加载
-  useEffect(() => {
-    loadRecentTracks(1);
-  }, []);
+    loadRecentTracks();
+  }, [loadRecentTracks]);
 
   return (
     <div className="page-container recently-played-container">
@@ -176,11 +169,11 @@ const RecentlyPlayedPage = ({ player }) => {
             <input
               className="fav-search"
               placeholder="搜索最近播放..."
-              value={search}
+              value={state.search}
               onChange={handleSearchChange}
               onKeyPress={handleSearchKeyPress}
             />
-            {search && (
+            {state.search && (
               <button 
                 className="search-clear-btn"
                 onClick={handleClearSearch}
@@ -204,8 +197,8 @@ const RecentlyPlayedPage = ({ player }) => {
           tracks={recentTracks}
           isLoading={loading}
           error={error}
-          currentPage={page}
-          pageSize={pageSize}
+          currentPage={state.page}
+          pageSize={state.pageSize}
           total={total}
           pages={pages}
           onPageChange={handlePageChange}

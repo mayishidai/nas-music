@@ -1,35 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MusicList } from '../../components';
 import { useNavigate } from 'react-router-dom';
+import { useUrlState } from '../../hooks';
 import './Music.css';
 
 const MusicPage = ({ player }) => {
   const navigate = useNavigate();
+  
+  // 使用URL状态管理
+  const { state, setPage, setPageSize, setSort, setSearch } = useUrlState({
+    page: 1,
+    pageSize: 10,
+    sortKey: 'title',
+    sortOrder: 'asc',
+    search: ''
+  });
+
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
-  const [sortKey, setSortKey] = useState('title');
-  const [sortOrder, setSortOrder] = useState('asc');
 
   // 加载音乐数据
-  const loadTracks = useCallback(async (targetPage = 1, searchKeyword = search) => {
+  const loadTracks = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
       const params = new URLSearchParams();
-      params.set('page', String(targetPage));
-      params.set('pageSize', String(pageSize));
-      params.set('sort', sortKey);
-      params.set('order', sortOrder);
+      params.set('page', String(state.page));
+      params.set('pageSize', String(state.pageSize));
+      params.set('sort', state.sortKey);
+      params.set('order', state.sortOrder);
       
-      if (searchKeyword) {
-        params.set('search', searchKeyword);
+      if (state.search) {
+        params.set('search', state.search);
       }
 
       const response = await fetch(`/api/music/tracks?${params.toString()}`);
@@ -59,8 +65,7 @@ const MusicPage = ({ player }) => {
         }));
         setTracks(processedTracks);
         setTotal(paginationData.total);
-        setPages(Math.ceil(paginationData.total / pageSize));
-        setPage(targetPage);
+        setPages(Math.ceil(paginationData.total / state.pageSize));
       } else {
         setError(result.message || '加载失败');
       }
@@ -70,7 +75,7 @@ const MusicPage = ({ player }) => {
     } finally {
       setLoading(false);
     }
-  }, [pageSize, sortKey, sortOrder, search]);
+  }, [state.page, state.pageSize, state.sortKey, state.sortOrder, state.search]);
 
   // 处理搜索变化
   const handleSearchChange = (e) => {
@@ -80,16 +85,11 @@ const MusicPage = ({ player }) => {
   // 清除搜索
   const handleClearSearch = () => {
     setSearch('');
-    setPage(1);
-    setTracks([]);
-    setTotal(0);
-    setPages(0);
   };
 
   // 执行搜索
   const handleSearch = () => {
-    setPage(1);
-    loadTracks(1, search);
+    // 搜索状态已经通过setSearch更新，会自动触发loadTracks
   };
 
   // 处理回车键搜索
@@ -101,7 +101,7 @@ const MusicPage = ({ player }) => {
 
   // 处理页码变化
   const handlePageChange = (newPage) => {
-    loadTracks(newPage);
+    setPage(newPage);
   };
 
   // 处理每页数量变化
@@ -111,11 +111,10 @@ const MusicPage = ({ player }) => {
 
   // 处理排序
   const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    if (state.sortKey === key) {
+      setSort(key, state.sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortKey(key);
-      setSortOrder('asc');
+      setSort(key, 'asc');
     }
   };
 
@@ -164,15 +163,10 @@ const MusicPage = ({ player }) => {
     navigate(`/album/${album}`);
   };
 
-  // 搜索变化时重新加载
+  // 当状态变化时重新加载数据
   useEffect(() => {
-    loadTracks(1);
-  }, [sortKey, sortOrder, pageSize]);
-
-  // 初始加载
-  useEffect(() => {
-    loadTracks(1);
-  }, []);
+    loadTracks();
+  }, [loadTracks]);
 
   return (
     <div className="page-container music-container">
@@ -186,11 +180,11 @@ const MusicPage = ({ player }) => {
             <input
               className="fav-search"
               placeholder="搜索音乐..."
-              value={search}
+              value={state.search}
               onChange={handleSearchChange}
               onKeyPress={handleSearchKeyPress}
             />
-            {search && (
+            {state.search && (
               <button 
                 className="search-clear-btn"
                 onClick={handleClearSearch}
@@ -215,14 +209,14 @@ const MusicPage = ({ player }) => {
           showCover={true}
           isLoading={loading}
           error={error}
-          currentPage={page}
-          pageSize={pageSize}
+          currentPage={state.page}
+          pageSize={state.pageSize}
           total={total}
           pages={pages}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
-          sortKey={sortKey}
-          sortOrder={sortOrder}
+          sortKey={state.sortKey}
+          sortOrder={state.sortOrder}
           onSort={handleSort}
           onPlayMusic={handlePlayMusic}
           onAddToPlaylist={handleAddToPlaylist}

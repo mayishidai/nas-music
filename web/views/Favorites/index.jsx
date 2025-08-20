@@ -1,35 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MusicList } from '../../components';
 import { useNavigate } from 'react-router-dom';
+import { useUrlState } from '../../hooks';
 import './Favorites.css';
 
 const FavoritesPage = ({ player }) => {
   const navigate = useNavigate();
+  
+  // 使用URL状态管理
+  const { state, setPage, setPageSize, setSort, setSearch } = useUrlState({
+    page: 1,
+    pageSize: 10,
+    sortKey: 'title',
+    sortOrder: 'asc',
+    search: ''
+  });
+
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
-  const [sortKey, setSortKey] = useState('title');
-  const [sortOrder, setSortOrder] = useState('asc');
 
   // 加载收藏数据
-  const loadFavorites = useCallback(async (targetPage = 1, searchKeyword = search) => {
+  const loadFavorites = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
       const params = new URLSearchParams();
-      params.set('page', String(targetPage));
-      params.set('pageSize', String(pageSize));
-      params.set('sort', sortKey);
-      params.set('order', sortOrder);
+      params.set('page', String(state.page));
+      params.set('pageSize', String(state.pageSize));
+      params.set('sort', state.sortKey);
+      params.set('order', state.sortOrder);
       
-      if (searchKeyword) {
-        params.set('search', searchKeyword);
+      if (state.search) {
+        params.set('search', state.search);
       }
 
       const response = await fetch(`/api/music/favorites?${params.toString()}`);
@@ -59,8 +65,7 @@ const FavoritesPage = ({ player }) => {
 
         setFavorites(processedTracks);
         setTotal(paginationData.total);
-        setPages(Math.ceil(paginationData.total / pageSize));
-        setPage(targetPage);
+        setPages(Math.ceil(paginationData.total / state.pageSize));
       } else {
         setError(result.message || '加载失败');
       }
@@ -70,7 +75,7 @@ const FavoritesPage = ({ player }) => {
     } finally {
       setLoading(false);
     }
-  }, [pageSize, sortKey, sortOrder, search]);
+  }, [state.page, state.pageSize, state.sortKey, state.sortOrder, state.search]);
 
   // 处理搜索变化
   const handleSearchChange = (e) => {
@@ -80,16 +85,11 @@ const FavoritesPage = ({ player }) => {
   // 清除搜索
   const handleClearSearch = () => {
     setSearch('');
-    setPage(1);
-    setFavorites([]);
-    setTotal(0);
-    setPages(0);
   };
 
   // 执行搜索
   const handleSearch = () => {
-    setPage(1);
-    loadFavorites(1, search);
+    // 搜索状态已经通过setSearch更新，会自动触发loadFavorites
   };
 
   // 处理回车键搜索
@@ -101,23 +101,20 @@ const FavoritesPage = ({ player }) => {
 
   // 处理页码变化
   const handlePageChange = (newPage) => {
-    loadFavorites(newPage);
+    setPage(newPage);
   };
 
   // 处理每页数量变化
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
-    setPage(1);
-    loadFavorites(1);
   };
 
   // 处理排序
   const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    if (state.sortKey === key) {
+      setSort(key, state.sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortKey(key);
-      setSortOrder('asc');
+      setSort(key, 'asc');
     }
   };
 
@@ -149,7 +146,7 @@ const FavoritesPage = ({ player }) => {
         // 从收藏列表中移除
         setFavorites(prev => prev.filter(t => t.id !== track.id));
         setTotal(prev => prev - 1);
-        setPages(Math.ceil((total - 1) / pageSize));
+        setPages(Math.ceil((total - 1) / state.pageSize));
       } else {
         console.error('收藏操作失败');
       }
@@ -168,15 +165,10 @@ const FavoritesPage = ({ player }) => {
     navigate(`/album/${album}`);
   };
 
-  // 搜索变化时重新加载
+  // 当状态变化时重新加载数据
   useEffect(() => {
-    loadFavorites(1);
-  }, [sortKey, sortOrder]);
-
-  // 初始加载
-  useEffect(() => {
-    loadFavorites(1);
-  }, []);
+    loadFavorites();
+  }, [loadFavorites]);
 
   return (
     <div className="page-container favorites-container">
@@ -190,11 +182,11 @@ const FavoritesPage = ({ player }) => {
             <input
               className="fav-search"
               placeholder="搜索收藏..."
-              value={search}
+              value={state.search}
               onChange={handleSearchChange}
               onKeyPress={handleSearchKeyPress}
             />
-            {search && (
+            {state.search && (
               <button 
                 className="search-clear-btn"
                 onClick={handleClearSearch}
@@ -219,14 +211,14 @@ const FavoritesPage = ({ player }) => {
           showCover={true}
           isLoading={loading}
           error={error}
-          currentPage={page}
-          pageSize={pageSize}
+          currentPage={state.page}
+          pageSize={state.pageSize}
           total={total}
           pages={pages}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
-          sortKey={sortKey}
-          sortOrder={sortOrder}
+          sortKey={state.sortKey}
+          sortOrder={state.sortOrder}
           onSort={handleSort}
           onPlayMusic={handlePlayMusic}
           onAddToPlaylist={handleAddToPlaylist}
