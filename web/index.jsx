@@ -16,6 +16,54 @@ import {
 import './index.css';
 
 const Router = typeof window === 'undefined' ? StaticRouter : HashRouter;
+
+/**
+ * Loading组件
+ */
+const Loading = ({ visible, message = '加载中...' }) => {
+  if (!visible) return null;
+  
+  return (
+    <div className="global-loading-overlay">
+      <div className="global-loading-content">
+        <div className="global-loading-spinner"></div>
+        <div className="global-loading-message">{message}</div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Toast组件
+ */
+const Toast = ({ visible, message, type = 'info', onClose }) => {
+  useEffect(() => {
+    if (visible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, onClose]);
+
+  if (!visible) return null;
+
+  return (
+    <div className={`global-toast global-toast-${type}`}>
+      <div className="global-toast-content">
+        <div className="global-toast-icon">
+          {type === 'success' && '✅'}
+          {type === 'error' && '❌'}
+          {type === 'warning' && '⚠️'}
+          {type === 'info' && 'ℹ️'}
+        </div>
+        <div className="global-toast-message">{message}</div>
+        <button className="global-toast-close" onClick={onClose}>×</button>
+      </div>
+    </div>
+  );
+};
+
 /**
  * NAS音乐播放器主组件
  * 提供完整的音乐播放、管理功能
@@ -24,6 +72,15 @@ const NASMusicPlayer = (props) => {
   const playerRef = useRef(null);
   const [isSmallScreen, setIsSmallScreen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 900 : false));
   const [sidebarOpen, setSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 900 : true));
+
+  // Loading状态
+  const [loadingVisible, setLoadingVisible] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('加载中...');
+
+  // Toast状态
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('info');
 
   // 监听窗口大小变化
   useEffect(() => {
@@ -44,6 +101,37 @@ const NASMusicPlayer = (props) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [sidebarOpen]);
 
+  /**
+   * 显示Loading
+   */
+  const showLoading = (message = '加载中...') => {
+    setLoadingMessage(message);
+    setLoadingVisible(true);
+  };
+
+  /**
+   * 隐藏Loading
+   */
+  const hideLoading = () => {
+    setLoadingVisible(false);
+  };
+
+  /**
+   * 显示Toast消息
+   */
+  const showToastMessage = (message, type = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+  };
+
+  /**
+   * 隐藏Toast消息
+   */
+  const hideToast = () => {
+    setToastVisible(false);
+  };
+
    /**
    * 播放器控制方法
    */
@@ -54,6 +142,7 @@ const NASMusicPlayer = (props) => {
       }
     },
     switchSidebar: () => setSidebarOpen(!sidebarOpen),
+    
     // 播放音乐
     playMusic: (track, playlistTracks = null) => {
       if (playerRef.current) {
@@ -80,7 +169,15 @@ const NASMusicPlayer = (props) => {
       if (playerRef.current) {
         playerRef.current.prevTrack();
       }
-    }
+    },
+
+    // 全局Loading方法
+    showLoading,
+    hideLoading,
+
+    // 全局Toast方法
+    showToastMessage,
+    hideToast
   };
 
   // 处理点击空白处关闭侧边栏
@@ -116,7 +213,6 @@ const NASMusicPlayer = (props) => {
               <Link to='/settings' className={`nav-item`} onClick={() => player.onMobileCloseSidebar()}>⚙️ 设置</Link>
             </nav>
           </div>
-
           {/* 主内容区域 */}
           <div className="main-content">
             <Routes>
@@ -136,6 +232,17 @@ const NASMusicPlayer = (props) => {
         </div>
         {/* 播放器组件 */}
         <Player ref={playerRef} />
+        
+        {/* 全局Loading组件 */}
+        <Loading visible={loadingVisible} message={loadingMessage} />
+        
+        {/* 全局Toast组件 */}
+        <Toast 
+          visible={toastVisible} 
+          message={toastMessage} 
+          type={toastType} 
+          onClose={hideToast} 
+        />
       </div>
     </Router>
   );

@@ -346,7 +346,7 @@ const MusicList = ({
         {/* 加载状态 */}
         {isLoading && (
           <div className="loading-overlay">
-            <div className="loading-spinner">🔄</div>
+            <div className="loading-spinner"></div>
             <p>加载中...</p>
           </div>
         )}

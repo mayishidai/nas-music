@@ -14,7 +14,7 @@ const TrackDetailPage = ({ player }) => {
     lyrics: ''
   });
   const [coverPreview, setCoverPreview] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
@@ -23,6 +23,15 @@ const TrackDetailPage = ({ player }) => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success'); // 'success' | 'error'
   const [searchSource, setSearchSource] = useState(''); // 'cache' | 'online' | ''
+
+  const setLoading = (loading) => {
+    _setLoading(loading);
+    if (loading) {
+      player.showLoading('Loading...');
+    } else {
+      player.hideLoading();
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -117,13 +126,13 @@ const TrackDetailPage = ({ player }) => {
     
     // 检查文件类型
     if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件');
+      player.showToastMessage('请选择图片文件', 'error');
       return;
     }
     
     // 检查文件大小 (限制为5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('图片文件大小不能超过5MB');
+      player.showToastMessage('图片文件大小不能超过5MB', 'error');
       return;
     }
     
@@ -328,15 +337,6 @@ const TrackDetailPage = ({ player }) => {
 
   return (
     <div className="track-detail">
-      {/* 浮动Loading遮罩层 */}
-      {loading && (
-        <div className="floating-loading-overlay">
-          <div className="floating-loading-content">
-            <div className="floating-loading-spinner"></div>
-            <p>Loading...</p>
-          </div>
-        </div>
-      )}
       <div className="td-header">
         <div className="td-header-buttons">
           <button className="td-sidebar-btn" onClick={() => player.switchSidebar()}>☰</button>

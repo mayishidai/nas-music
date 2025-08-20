@@ -104,7 +104,7 @@ const InfiniteScroll = ({
       <div className="infinite-scroll-status">
         {loading && (
           <div className="infinite-scroll-loading">
-            <div className="loading-spinner">⏳</div>
+            <div className="loading-spinner"></div>
             <span>{loadingText}</span>
           </div>
         )}

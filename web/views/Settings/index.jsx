@@ -90,13 +90,13 @@ const SettingsPage = ({ player }) => {
       const result = await response.json();
       if (result.success) {
         setScrapingEnabled(enabled);
-        alert(enabled ? '刮削功能已开启' : '刮削功能已关闭');
+        player.showToastMessage(enabled ? '刮削功能已开启' : '刮削功能已关闭', 'success');
       } else {
-        alert('保存失败: ' + result.error);
+        player.showToastMessage('保存失败: ' + result.error, 'error');
       }
     } catch (error) {
       console.error('保存刮削配置失败:', error);
-      alert('保存失败');
+      player.showToastMessage('保存失败', 'error');
     }
   };
 
@@ -104,39 +104,27 @@ const SettingsPage = ({ player }) => {
    * 立即刮削
    */
   const startScraping = async () => {
-    if (!scrapingEnabled) {
-      alert('请先开启刮削功能');
-      return;
-    }
-
     if (scrapingInProgress) {
-      alert('刮削正在进行中，请稍候');
-      return;
-    }
-
-    if (!confirm('确定要开始立即刮削吗？这将为所有音乐文件获取元数据信息。')) {
+      player.showToastMessage('刮削正在进行中，请稍候', 'warning');
       return;
     }
 
     setScrapingInProgress(true);
+    player.showLoading('正在启动刮削...');
     
     try {
-      const response = await fetch('/api/settings/start-scraping', {
+      await fetch('/api/settings/start-scraping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
-      const result = await response.json();
-      if (result.success) {
-        alert('立即刮削已开始');
-      } else {
-        alert('启动刮削失败: ' + result.error);
-      }
+      player.showToastMessage('立即刮削已开始', 'success');
     } catch (error) {
       console.error('启动刮削失败:', error);
-      alert('启动刮削失败');
+      player.showToastMessage('启动刮削失败', 'error');
     } finally {
       setScrapingInProgress(false);
+      player.hideLoading();
     }
   };
 
@@ -175,6 +163,8 @@ const SettingsPage = ({ player }) => {
   const addMediaLibrary = async () => {
     if (!newLibraryPath.trim()) return;
     
+    player.showLoading('正在添加媒体库...');
+    
     try {
       const response = await fetch('/api/settings/media-libraries', {
         method: 'POST',
@@ -186,12 +176,15 @@ const SettingsPage = ({ player }) => {
       if (result.success) {
         setNewLibraryPath('');
         loadMediaLibraries();
+        player.showToastMessage('媒体库添加成功', 'success');
       } else {
-        alert('添加失败: ' + result.error);
+        player.showToastMessage('添加失败: ' + result.error, 'error');
       }
     } catch (error) {
       console.error('添加媒体库失败:', error);
-      alert('添加失败');
+      player.showToastMessage('添加失败', 'error');
+    } finally {
+      player.hideLoading();
     }
   };
 
@@ -201,6 +194,8 @@ const SettingsPage = ({ player }) => {
   const deleteMediaLibrary = async (id) => {
     if (!confirm('确定要删除这个媒体库吗？')) return;
     
+    player.showLoading('正在删除媒体库...');
+    
     try {
       const response = await fetch(`/api/settings/media-libraries/${id}`, {
         method: 'DELETE'
@@ -209,12 +204,15 @@ const SettingsPage = ({ player }) => {
       const result = await response.json();
       if (result.success) {
         loadMediaLibraries();
+        player.showToastMessage('媒体库删除成功', 'success');
       } else {
-        alert('删除失败: ' + result.error);
+        player.showToastMessage('删除失败: ' + result.error, 'error');
       }
     } catch (error) {
       console.error('删除媒体库失败:', error);
-      alert('删除失败');
+      player.showToastMessage('删除失败', 'error');
+    } finally {
+      player.hideLoading();
     }
   };
 
@@ -224,6 +222,7 @@ const SettingsPage = ({ player }) => {
   const scanMediaLibrary = async (library) => {
     setScanningLibrary(library);
     setScanProgress(0);
+    player.showLoading(`正在扫描媒体库: ${library.path}`);
     
     try {
       const response = await fetch(`/api/settings/media-libraries/${library.id}/scan`, {
@@ -232,16 +231,20 @@ const SettingsPage = ({ player }) => {
       
       const result = await response.json();
       if (result.success) {
+        player.hideLoading();
+        player.showToastMessage('扫描已开始', 'success');
         // 开始轮询扫描进度
         pollScanProgress(library.id);
       } else {
-        alert('扫描失败: ' + result.error);
+        player.showToastMessage('扫描失败: ' + result.error, 'error');
         setScanningLibrary(null);
+        player.hideLoading();
       }
     } catch (error) {
       console.error('扫描媒体库失败:', error);
-      alert('扫描失败');
+      player.showToastMessage('扫描失败', 'error');
       setScanningLibrary(null);
+      player.hideLoading();
     }
   };
 
@@ -268,7 +271,7 @@ const SettingsPage = ({ player }) => {
             clearInterval(interval);
             setScanningLibrary(null);
             setScanProgress(0);
-            alert('扫描失败: ' + result.data.error);
+            player.showToastMessage('扫描失败: ' + result.data.error, 'error');
           }
         }
       } catch (error) {
