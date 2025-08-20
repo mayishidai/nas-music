@@ -17,7 +17,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装生产依赖
-RUN npm install
+RUN npm install --registry=https://registry.npmmirror.com
 
 # 复制项目代码（最后复制以最大化利用缓存）
 COPY . .

@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { parseFile } from 'music-metadata';
 import { upsertTrackByPath, getConfig, saveConfig, removeTracksByLibraryPathPrefix, removeMediaLibraryStats, updateMediaLibraryStats, postScanProcessing } from './database.js';
-import { normalizeText, extractArtistTitleFromFilename } from '../utils/textUtils.js';
+import { normalizeSongTitle, normalizeArtistName, normalizeText, extractArtistTitleFromFilename } from '../utils/textUtils.js';
 import { extractLyrics, extractCoverImage } from '../utils/musicUtil.js';
 
 // 支持的音乐文件格式
@@ -29,11 +29,13 @@ export async function getMetadata(filePath) {
     // 提取基本信息
     const filename = path.basename(filePath);
     const { artist: filenameArtist, title: filenameTitle } = extractArtistTitleFromFilename(filename);
+
+    console.log('解析音乐元数据成功:', metadata.common.title);
     
     // 标准化文本
-    const title = await normalizeText(metadata.common.title || filenameTitle || filename);
-    const artist = await normalizeText(metadata.common.artist || filenameArtist || 'Unknown');
-    const album = await normalizeText(metadata.common.album || 'Unknown');
+    const title = await normalizeSongTitle(metadata.common.title || filenameTitle || filename);
+    const artist = await normalizeArtistName(metadata.common.artist || filenameArtist || 'Unknown');
+    const album = await normalizeSongTitle(metadata.common.album || 'Unknown');
     const albumArtist = await normalizeText(metadata.common.albumartist || artist);
     const genre = await normalizeText(metadata.common.genre?.join(', ') || 'Unknown');
     
@@ -313,7 +315,6 @@ export async function scanMediaLibrary(libraryId) {
       Buffer.from(p).toString('base64').replace(/[^a-zA-Z0-9]/g, '') === libraryId
     );
     if (!libraryPath) throw new Error('媒体库不存在');
-    console.log(`开始扫描媒体库: ${libraryPath}`);
     const initialProgress = { 
       status: 'scanning', 
       progress: 0, 
@@ -354,7 +355,6 @@ export async function scanMediaLibrary(libraryId) {
         upsertTrackByPath(trackDoc);
         processedTracks.push(trackDoc);
         processedFiles++;
-        // 添加小延迟避免阻塞
         await new Promise(r => setTimeout(r, 10));
       } catch (error) {
         console.error(`处理文件失败: ${filePath}`, error);
@@ -362,8 +362,6 @@ export async function scanMediaLibrary(libraryId) {
     }
     // 更新媒体库统计
     await updateMediaLibraryStats(libraryId, processedTracks);
-    // 开始扫描后处理
-    console.log('开始扫描后处理...');
     postScanProcessing();
     const completedProgress = { 
       status: 'completed', 
@@ -378,11 +376,7 @@ export async function scanMediaLibrary(libraryId) {
     };
     scanProgress.set(libraryId, completedProgress);
     await saveScanProgress(libraryId, completedProgress);
-    // 延迟清除进度信息，让前端有时间获取完成状态
-    setTimeout(() => {
-      clearScanProgress(libraryId);
-    }, 5000);
-    
+    setTimeout(() => { clearScanProgress(libraryId); }, 5000);
     console.log(`媒体库扫描完成: ${libraryPath}, 处理了 ${processedTracks.length} 个文件`);
   } catch (error) {
     console.error(`扫描媒体库失败`, error);
@@ -413,14 +407,12 @@ export function getScanProgress(libraryId) {
 // 获取所有音乐文件
 async function getAllMusicFiles(dirPath) {
   const musicFiles = [];
-  
   async function walk(currentPath) {
     try {
       const items = await fs.readdir(currentPath);
       for (const item of items) {
         const fullPath = path.join(currentPath, item);
         const stat = await fs.stat(fullPath);
-        
         if (stat.isDirectory()) {
           await walk(fullPath);
         } else if (stat.isFile()) {
@@ -434,8 +426,8 @@ async function getAllMusicFiles(dirPath) {
       console.error(`扫描目录失败: ${currentPath}`, error);
     }
   }
-  
   await walk(dirPath);
+  console.log(`扫描到 ${musicFiles.length} 个音乐文件`);
   return musicFiles;
 }
 

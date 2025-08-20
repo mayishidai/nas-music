@@ -5,19 +5,7 @@ import { isGarbled, tryFixEncoding } from './encodingUtils.js';
 // 繁体转简体并处理乱码
 export function normalizeText(text) {
   if (!text) return '';
-  
-  try {
-    // 先转换为简体
-    let normalized = toSimplified(String(text));
-    // 检测并修复乱码
-    if (isGarbled(normalized)) {
-      normalized = tryFixEncoding(normalized);
-    }
-    return normalized.trim();
-  } catch (error) {
-    console.warn('文本标准化失败:', error);
-    return String(text || '').trim();
-  }
+  return toSimplified(String(text)).trim();
 }
 
 // 基础文本标准化

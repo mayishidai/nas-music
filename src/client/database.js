@@ -103,10 +103,8 @@ export const upsertTrackByPath = (trackDoc) => {
   };
   
   if (existing) {
-    console.log('更新现有记录', trackDoc.title);
     client.update('music', musicData, { path: trackDoc.path });
   } else {
-    console.log('插入新记录', trackDoc.title);
     client.insert('music', {
       ...musicData,
       id: trackDoc.id,
@@ -418,7 +416,6 @@ export const getTracksByAlbum = (album) => {
 // 扫描音乐库后的完整处理流程
 export const postScanProcessing = () => {
   try {
-    console.log('开始扫描后处理...');
     // 1. 合并和去重专辑
     mergeAndDeduplicateAlbums();
     // 2. 为没有封面的专辑获取封面
@@ -448,7 +445,6 @@ export const updateAlbumsWithoutCover = () => {
         trackCount: trackCount || 0,
         updated_at: new Date().toISOString()
       }, { id: album.id });
-      console.log(`已处理专辑 "${album.title}" 歌曲数: ${trackCount}`);
     }
   })
 }
@@ -471,14 +467,12 @@ export const updateArtistsWithoutPhoto = () => {
         albumCount: albumCount || 0,
         updated_at: new Date().toISOString()
       }, { id: artist.id });
-      console.log(`已处理歌手 "${artist.name}" 歌曲数: ${trackCount}, 专辑数: ${albumCount}`);
     }
   })
 }
 
 // 高级专辑合并和去重函数
 export const mergeAndDeduplicateAlbums = () => {
-  console.log('开始合并和去重专辑...');
   // 查找所有重复的专辑（基于标准化标题）
   const duplicateAlbums = client.db.queryAll(`
     SELECT normalizedTitle, COUNT(*) as count, GROUP_CONCAT(id) as ids, GROUP_CONCAT(title) as titles
@@ -486,9 +480,6 @@ export const mergeAndDeduplicateAlbums = () => {
     GROUP BY normalizedTitle 
     HAVING COUNT(*) > 1
   `);
-  
-  console.log(`找到 ${duplicateAlbums.length} 组重复专辑`);
-  
   for (const duplicate of duplicateAlbums) {
     const albumIds = duplicate.ids.split(',');
     const titles = duplicate.titles.split(',');
@@ -496,11 +487,7 @@ export const mergeAndDeduplicateAlbums = () => {
     // 选择第一个专辑作为主记录
     const primaryAlbumId = albumIds[0];
     const primaryAlbum = client.queryOne('albums', { id: primaryAlbumId });
-    
     if (!primaryAlbum) continue;
-    
-    console.log(`处理重复专辑: ${primaryAlbum.title} (${albumIds.length} 个记录)`);
-    
     // 合并其他重复记录的信息到主记录
     for (let i = 1; i < albumIds.length; i++) {
       const duplicateAlbum = client.queryOne('albums', { id: albumIds[i] });
@@ -527,13 +514,8 @@ export const mergeAndDeduplicateAlbums = () => {
         coverImage: mergedCoverImage,
         updated_at: new Date().toISOString()
       }, { id: primaryAlbumId });
-      
-      // 更新音乐记录中的专辑名称引用
       client.update('music', { album: primaryAlbum.title }, { album: duplicateAlbum.title });
-      
-      // 删除重复记录
       client.delete('albums', { id: albumIds[i] });
-      
       console.log(`已合并并删除重复专辑: ${duplicateAlbum.title}`);
     }
   }

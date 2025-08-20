@@ -309,7 +309,6 @@ const client = {
   delete: (table, filter={}) => {
     const { conditions, params } = util.deleteFormatOperator(filter);
     const sql = `DELETE FROM ${table} WHERE ${conditions.join(' AND ')}`;
-    console.log(sql, params)
     return db.execute(sql, params);
   },
 }
