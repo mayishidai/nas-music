@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { parseFile } from 'music-metadata';
+import NodeID3 from 'node-id3';
 import { upsertTrackByPath, getConfig, saveConfig, removeTracksByLibraryPathPrefix, removeMediaLibraryStats, updateMediaLibraryStats, postScanProcessing } from './database.js';
 import { normalizeSongTitle, normalizeArtistName, normalizeText, extractArtistTitleFromFilename } from '../utils/textUtils.js';
 import { extractLyrics, extractCoverImage } from '../utils/musicUtil.js';
@@ -8,30 +9,81 @@ import { extractLyrics, extractCoverImage } from '../utils/musicUtil.js';
 // 支持的音乐文件格式
 const SUPPORTED_FORMATS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
 
+export const parseMetadata = async(filePath) => {
+  try {
+    return await parseFile(filePath);
+  } catch (error) {
+    console.log(`使用 music-metadata 解析失败，尝试使用 NodeID3: ${error.message}`);
+  }
+  // 使用 NodeID3 作为备选方案
+  try {
+    const tags = NodeID3.read(filePath);
+    const metadata = {
+      common: {
+        title: tags.title || undefined,
+        artist: tags.artist || undefined,
+        albumartist: tags.performerInfo || tags.artist || undefined,
+        album: tags.album || undefined,
+        year: tags.year || undefined,
+        genre: tags.genre ? [tags.genre] : undefined,
+        comment: tags.comment ? [{ text: tags.comment.text }] : undefined,
+        track: tags.trackNumber ? { no: parseInt(tags.trackNumber.split('/')[0]) || 0, of: parseInt(tags.trackNumber.split('/')[1]) || 0 } : undefined,
+        disk: tags.partOfSet ? { no: parseInt(tags.partOfSet.split('/')[0]) || 0, of: parseInt(tags.partOfSet.split('/')[1]) || 0 } : undefined,
+        picture: tags.image ? [{
+          format: tags.image.mime,
+          data: tags.image.imageBuffer,
+          description: tags.image.description || ''
+        }] : undefined,
+        composer: tags.composer ? [tags.composer] : undefined,
+        lyrics: tags.unsynchronisedLyrics ? tags.unsynchronisedLyrics.text : undefined
+      },
+      format: {
+        // NodeID3 不提供这些信息，需要使用默认值或其他方式获取
+        duration: 0,
+        bitrate: 0,
+        sampleRate: 0,
+        numberOfChannels: 0,
+        container: path.extname(filePath).substring(1).toLowerCase(),
+        codec: 'mp3', // 假设是 mp3 文件
+        lossless: false,
+        tagTypes: ['ID3v2']
+      }
+    };
+    return metadata;
+  } catch (error) {
+    console.error(`NodeID3 解析失败: ${error.message}`);
+    // 返回最小化的元数据结构
+    return {
+      common: {},
+      format: {
+        container: path.extname(filePath).substring(1).toLowerCase(),
+        tagTypes: []
+      }
+    };
+  }
+}
+
 // 获取音乐文件元数据
 export async function getMetadata(filePath) {
+  // 检查文件是否存在
+  const stats = await fs.stat(filePath);
+  if (!stats.isFile()) {
+    throw new Error('不是有效的文件');
+  }
+  // 检查文件格式
+  const ext = path.extname(filePath).toLowerCase();
+  if (!SUPPORTED_FORMATS.includes(ext)) {
+    throw new Error('不支持的文件格式');
+  }
+  // 获取时间信息
+  const createdTime = stats.birthtime;
+  const modifiedTime = stats.mtime;
+  // 提取基本信息
+  const filename = path.basename(filePath);
+  const { artist: filenameArtist, title: filenameTitle } = extractArtistTitleFromFilename(filename);
   try {
-    // 检查文件是否存在
-    const stats = await fs.stat(filePath);
-    if (!stats.isFile()) {
-      throw new Error('不是有效的文件');
-    }
-    
-    // 检查文件格式
-    const ext = path.extname(filePath).toLowerCase();
-    if (!SUPPORTED_FORMATS.includes(ext)) {
-      throw new Error('不支持的文件格式');
-    }
-    
     // 解析音乐元数据
-    const metadata = await parseFile(filePath);
-    
-    // 提取基本信息
-    const filename = path.basename(filePath);
-    const { artist: filenameArtist, title: filenameTitle } = extractArtistTitleFromFilename(filename);
-
-    console.log('解析音乐元数据成功:', metadata.common.title);
-    
+    const metadata = await parseMetadata(filePath);
     // 标准化文本
     const title = await normalizeSongTitle(metadata.common.title || filenameTitle || filename);
     const artist = await normalizeArtistName(metadata.common.artist || filenameArtist || 'Unknown');
@@ -50,10 +102,6 @@ export async function getMetadata(filePath) {
     const bitrate = format.bitrate || 0;
     const sampleRate = format.sampleRate || 0;
     const channels = format.numberOfChannels || 0;
-    
-    // 获取时间信息
-    const createdTime = stats.birthtime;
-    const modifiedTime = stats.mtime;
     
     return {
       filename,
@@ -76,7 +124,17 @@ export async function getMetadata(filePath) {
     };
   } catch (error) {
     console.error('获取元数据失败:', filePath, error);
-    throw error;
+    const title = await normalizeSongTitle(filenameTitle || filename);
+    const artist = await normalizeArtistName(filenameArtist || 'Unknown');
+    return {
+      filename,
+      filePath,
+      title,
+      artist,
+      size: stats.size,
+      createdTime: createdTime.toISOString(),
+      modifiedTime: modifiedTime.toISOString(),
+    };
   }
 }
 
@@ -84,10 +142,8 @@ export async function getMetadata(filePath) {
 export async function scanMedia(libraryPath) {
   try {
     console.log(`开始扫描媒体库: ${libraryPath}`);
-    
     const processedTracks = [];
     const processedCount = { success: 0, failed: 0 };
-    
     // 递归扫描目录
     async function scanDirectory(dirPath) {
       try {
