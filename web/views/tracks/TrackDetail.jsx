@@ -557,11 +557,7 @@ const TrackDetailPage = ({ player }) => {
                         <div className="result-info">
                           <div className="result-title">{result.title}</div>
                           <div className="result-artist">{result.artist}</div>
-                          {result.album && <div className="result-album">{result.album}</div>}
-                          <div className="result-source">来源: {result.source}</div>
-                        </div>
-                        <div className="result-score">
-                          匹配度: {Math.round(result.score || 0)}%
+                          {result.album_title && <div className="result-album">{result.album_title}</div>}
                         </div>
                       </div>
                     ))}

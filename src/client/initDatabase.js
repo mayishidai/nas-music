@@ -70,20 +70,17 @@ CREATE TABLE IF NOT EXISTS albums (
 const createOnlineMusicTable = `
 CREATE TABLE IF NOT EXISTS online_music (
   id TEXT PRIMARY KEY,
-  query TEXT NOT NULL,
   musicId TEXT NOT NULL,
-  score INTEGER NOT NULL,
   title TEXT NOT NULL,
   artist TEXT NOT NULL,
-  artistAliases TEXT, -- JSON 数组字符串
+  artists TEXT, -- JSON 数组字符串
   albumId TEXT NOT NULL,
-  album TEXT NOT NULL,
-  albumArtist TEXT NOT NULL,
+  album_title TEXT NOT NULL,
+  album_artist TEXT NOT NULL,
+  album_artists TEXT, -- JSON 数组字符串
   date TEXT,
   cover TEXT,
-  lyrics TEXT,
-  created_at TEXT,
-  updated_at TEXT
+  lyrics TEXT
 )
 `;
 
@@ -104,11 +101,9 @@ const createIndexes = [
 'CREATE INDEX IF NOT EXISTS idx_albums_artist_title ON albums(artist, normalizedTitle)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_musicId ON online_music(musicId)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_albumId ON online_music(albumId)',
-'CREATE INDEX IF NOT EXISTS idx_online_music_score ON online_music(score)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_title ON online_music(title)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_artist ON online_music(artist)',
-'CREATE INDEX IF NOT EXISTS idx_online_music_album ON online_music(album)',
-'CREATE INDEX IF NOT EXISTS idx_online_music_query ON online_music(query)',
+'CREATE INDEX IF NOT EXISTS idx_online_music_album_artist ON online_music(album_artist)',
 ];
 
 // 初始化表
