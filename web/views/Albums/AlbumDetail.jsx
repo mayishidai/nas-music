@@ -1,50 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import './AlbumDetail.css';
 
 /**
  * 专辑详情视图
  */
-const AlbumDetailView = ({ router, player }) => {
+const AlbumDetailView = ({ player }) => {
   const navigate = useNavigate();
+  const { albumId } = useParams();
   const [album, setAlbum] = useState(null);
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // 从路由数据获取专辑ID
-  const albumData = router.getCurrentData().album;
-  const albumId = albumData?.id || albumData?._id;
-  
-  // 如果传递的是完整专辑对象，直接使用
-  const initialAlbum = albumData?.id ? null : albumData;
-
   // 加载专辑详情和歌曲列表
   useEffect(() => {
     const loadAlbumDetail = async () => {
-      // 如果已经有初始专辑数据，直接使用专辑信息，但仍需要加载歌曲列表
-      if (initialAlbum) {
-        setAlbum(initialAlbum);
-        
-        // 如果有专辑ID，加载歌曲列表
-        const id = initialAlbum.id || initialAlbum._id;
-        if (id) {
-          try {
-            const albumResponse = await fetch(`/api/music/albums/${id}`);
-            const albumResult = await albumResponse.json();
-            
-            if (albumResult.success) {
-              setTracks(albumResult.data.tracks || []);
-            }
-          } catch (err) {
-            console.error('加载专辑歌曲列表失败:', err);
-          }
-        }
-        
-        setLoading(false);
-        return;
-      }
-
       if (!albumId) {
         setError('专辑ID不存在');
         setLoading(false);
@@ -76,7 +47,7 @@ const AlbumDetailView = ({ router, player }) => {
     };
 
     loadAlbumDetail();
-  }, [albumId, initialAlbum]);
+  }, [albumId]);
 
   // 格式化时长
   const formatDuration = (seconds) => {
@@ -126,12 +97,12 @@ const AlbumDetailView = ({ router, player }) => {
 
   // 处理打开详情
   const handleOpenDetail = (track) => {
-    router.navigate(`/track/${track}`, { track });
+    navigate(`/track/${track}`);
   };
 
   // 处理艺术家点击
   const handleArtistClick = (artist) => {
-    router.navigate('artist-detail', { artist: { id : artist } });
+    navigate(`/artist/${artist}`);
   };
 
   // 获取专辑封面
@@ -163,7 +134,7 @@ const AlbumDetailView = ({ router, player }) => {
         <div className="error-container">
           <h3>加载失败</h3>
           <p>{error}</p>
-          <button className="ad-btn" onClick={router.goBack}>返回</button>
+          <button className="ad-btn" onClick={() => navigate(-1)}>返回</button>
         </div>
       </div>
     );
@@ -176,7 +147,7 @@ const AlbumDetailView = ({ router, player }) => {
         <div className="error-container">
           <h3>专辑不存在</h3>
           <p>该专辑可能已被删除或不存在</p>
-          <button className="ad-btn" onClick={router.goBack}>返回</button>
+          <button className="ad-btn" onClick={() => navigate(-1)}>返回</button>
         </div>
       </div>
     );
@@ -187,7 +158,7 @@ const AlbumDetailView = ({ router, player }) => {
   return (
     <div className="album-detail">
       <div className="album-detail-header">
-        <button className="ad-back" onClick={router.goBack}>← 返回</button>
+        <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
         <div className="ad-cover-wrap">
           {cover ? (
             <img className="ad-cover" src={cover} alt={album.title || '专辑'} />

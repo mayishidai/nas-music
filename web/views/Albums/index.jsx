@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { InfiniteScroll } from '../../components/common';
+import { useNavigate } from 'react-router-dom';
 import '../Pages.css';
 import './Albums.css';
 
@@ -12,7 +13,8 @@ const pageData = {
 /**
  * 专辑页面组件
  */
-const AlbumsPage = ({ router, player }) => {
+const AlbumsPage = ({ player }) => {
+  const navigate = useNavigate();
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -94,7 +96,7 @@ const AlbumsPage = ({ router, player }) => {
 
   // 处理专辑点击
   const handleAlbumClick = (album) => {
-    router.navigate('album-detail', { album });
+    navigate(`/album/${album.id || album._id}`);
   };
 
   // 初始加载
@@ -111,7 +113,7 @@ const AlbumsPage = ({ router, player }) => {
     <div className="page-container albums-container">
       <div className="fav-toolbar">
         <div className="fav-toolbar-left">
-          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <button className="sidebar-toggle" onClick={() => player.switchSidebar()}> ☰ </button>
           <h2>💿 专辑库</h2>
         </div>
         <div className="fav-actions">

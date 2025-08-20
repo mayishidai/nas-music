@@ -3,7 +3,7 @@ import { MusicList } from '../../components';
 import { useNavigate } from 'react-router-dom';
 import './Music.css';
 
-const MusicPage = ({ router, player }) => {
+const MusicPage = ({ player }) => {
   const navigate = useNavigate();
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -156,12 +156,12 @@ const MusicPage = ({ router, player }) => {
 
   // 处理艺术家点击
   const handleArtistClick = (artist) => {
-    router.navigate('artist-detail', { artist: { id : artist } });
+    navigate(`/artist/${artist}`);
   };
 
   // 处理专辑点击
   const handleAlbumClick = (album) => {
-    router.navigate('album-detail', { album: { id : album } });
+    navigate(`/album/${album}`);
   };
 
   // 搜索变化时重新加载

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MusicList } from '../../components';
+import { useNavigate, useParams } from 'react-router-dom';
 import './ArtistDetail.css';
 
-const ArtistDetailView = ({ router, player }) => {
+const ArtistDetailView = ({ player }) => {
+  const navigate = useNavigate();
+  const { artistId } = useParams();
   const [artist, setArtist] = useState(null);
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,10 +18,6 @@ const ArtistDetailView = ({ router, player }) => {
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
 
-  // 从路由数据获取artist信息
-  const artistData = router.getCurrentData().artist;
-  const artistId = artistData?.id || artistData?._id;
-
   // 加载艺术家详情
   useEffect(() => {
     const loadArtistDetail = async () => {
@@ -26,13 +25,7 @@ const ArtistDetailView = ({ router, player }) => {
         setLoading(true);
         setError(null);
         
-        // 检查是否已经有完整的artist数据
-        if (artistData && artistData.tracks) {
-          setArtist(artistData);
-          return;
-        }
-        
-        // 否则通过API获取数据
+        // 通过API获取数据
         const res = await fetch(`/api/music/artists/${artistId}`);
         const json = await res.json();
         
@@ -52,7 +45,7 @@ const ArtistDetailView = ({ router, player }) => {
     if (artistId) {
       loadArtistDetail();
     }
-  }, [artistId, artistData]);
+  }, [artistId]);
 
   // 加载艺术家的音乐列表
   const loadTracks = async (page = 1, size = pageSize, searchKeyword = search) => {
@@ -134,7 +127,7 @@ const ArtistDetailView = ({ router, player }) => {
 
   // 处理打开详情
   const handleOpenDetail = (track) => {
-    router.navigate('track-detail', { track });
+    navigate(`/track/${track.id || track._id}`);
   };
 
   // 处理收藏
@@ -165,12 +158,12 @@ const ArtistDetailView = ({ router, player }) => {
 
   // 处理艺术家点击
   const handleArtistClick = (artist) => {
-    router.navigate('artist-detail', { artist: { id : artist } });
+    navigate(`/artist/${artist}`);
   };
 
   // 处理专辑点击
   const handleAlbumClick = (album) => {
-    router.navigate('album-detail', { album: { id : album } });
+    navigate(`/album/${album}`);
   };
 
   if (loading && !artist) {
@@ -228,7 +221,7 @@ const ArtistDetailView = ({ router, player }) => {
         <div className="ad-background-overlay" />
         
         {/* 返回按钮 */}
-        <button className="ad-back" onClick={router.goBack}>← 返回</button>
+        <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
         
         {/* 艺术家信息 */}
         <div className="ad-artist-info">

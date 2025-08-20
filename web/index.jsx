@@ -122,8 +122,8 @@ const NASMusicPlayer = (props) => {
               <Route path="/recent" element={<RecentlyPlayedPage player={player}/>} />
               <Route path="/shuffle" element={<ShufflePage player={player}/>} />
               <Route path="/settings" element={<SettingsPage player={player}/>} />
-              <Route path="/album/:id" element={<AlbumDetailView player={player}/>} />
-              <Route path="/artist/:id" element={<ArtistDetailView player={player}/>} />
+              <Route path="/album/:albumId" element={<AlbumDetailView player={player}/>} />
+              <Route path="/artist/:artistId" element={<ArtistDetailView player={player}/>} />
               <Route path="/track/:trackId" element={<TrackDetailPage player={player}/>} />
               <Route path="*" element={<Navigate replace to="/" />} />
             </Routes>

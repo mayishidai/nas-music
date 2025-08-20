@@ -388,7 +388,7 @@ export const findArtist = (artist) => {
     query: {
       operator: 'SQL',
       condition: `id = @id OR name like @id OR normalizedName like @id`,
-      params: { id: artist }
+      params: { id: client.util.normalize(artist) }
     }
   });
 }
@@ -396,10 +396,10 @@ export const findArtist = (artist) => {
 // 根据专辑ID/标题查找专辑
 export const findAlbum = (album) => {
   const data = client.queryOne('albums', { 
-    id:  {
+    query: {
       operator: 'SQL',
-      condition: `id = @id OR title = @id`,
-      params: { id: album }
+      condition: `id = @id OR title like @id OR normalizedTitle like @id`,
+      params: { id: client.util.normalize(album) }
     }
   });
   if (data) {

@@ -132,6 +132,7 @@ router.put('/tracks/:id/favorite', async (ctx) => {
 router.get('/albums/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
+    console.log('id', id);
     const album = await findAlbum(id);
     if (!album) {
       ctx.status = 404;

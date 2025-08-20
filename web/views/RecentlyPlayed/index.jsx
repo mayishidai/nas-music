@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MusicList } from '../../components';
+import { useNavigate } from 'react-router-dom';
 import './RecentlyPlayed.css';
 
-const RecentlyPlayedPage = ({ router, player }) => {
+const RecentlyPlayedPage = ({ player }) => {
+  const navigate = useNavigate();
   const [recentTracks, setRecentTracks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -117,7 +119,7 @@ const RecentlyPlayedPage = ({ router, player }) => {
 
   // 处理打开详情
   const handleOpenDetail = (track) => {
-    router.navigate('track-detail', { track });
+    navigate(`/track/${track.id}`);
   };
 
   // 处理收藏
@@ -130,7 +132,7 @@ const RecentlyPlayedPage = ({ router, player }) => {
       });
       
       if (response.ok) {
-        // 更新本地状态
+        // 更新本地状态 
         setRecentTracks(prev => prev.map(t => 
           t.id === track.id ? { ...t, favorite: !t.favorite } : t
         ));
@@ -144,12 +146,12 @@ const RecentlyPlayedPage = ({ router, player }) => {
 
   // 处理艺术家点击
   const handleArtistClick = (artist) => {
-    router.navigate('artist-detail', { artist: { id : artist } });
+    navigate(`/artist/${artist}`);
   };
 
   // 处理专辑点击
   const handleAlbumClick = (album) => {
-    router.navigate('album-detail', { album: { id : album } });
+    navigate(`/album/${album}`);
   };
 
   // 搜索变化时重新加载
@@ -166,7 +168,7 @@ const RecentlyPlayedPage = ({ router, player }) => {
     <div className="page-container recently-played-container">
       <div className="fav-toolbar">
         <div className="fav-toolbar-left">
-          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <button className="sidebar-toggle" onClick={() => player.switchSidebar()}> ☰ </button>
           <h2>🕒 最近播放</h2>
         </div>
         <div className="fav-actions">

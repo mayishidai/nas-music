@@ -5,7 +5,7 @@ import './Settings.css';
 /**
  * 设置页面组件
  */
-const SettingsPage = ({ router }) => {
+const SettingsPage = ({ player }) => {
   // 媒体库管理状态
   const [mediaLibraries, setMediaLibraries] = useState([]);
   const [newLibraryPath, setNewLibraryPath] = useState('');
@@ -222,7 +222,7 @@ const SettingsPage = ({ router }) => {
     <div className="page-container settings-container">
       <div className="fav-toolbar">
         <div className="fav-toolbar-left">
-          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <button className="sidebar-toggle" onClick={() => player.switchSidebar()}> ☰ </button>
           <h2>⚙️ 设置</h2>
         </div>
         <div className="fav-actions">

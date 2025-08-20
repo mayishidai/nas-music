@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { InfiniteScroll } from '../../components/common';
+import { useNavigate } from 'react-router-dom';
 import '../Pages.css';
 import './Artists.css';
 
@@ -13,7 +14,8 @@ const pageData = {
 /**
  * 艺术家页面组件
  */
-const ArtistsPage = ({ router, player }) => {
+const ArtistsPage = ({ player }) => {
+  const navigate = useNavigate();
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -97,7 +99,7 @@ const ArtistsPage = ({ router, player }) => {
 
   // 处理艺术家点击
   const handleArtistClick = (artist) => {
-    router.navigate('artist-detail', { artist });
+    navigate(`/artist/${artist.id || artist._id}`);
   };
 
   // 初始加载
@@ -114,7 +116,7 @@ const ArtistsPage = ({ router, player }) => {
     <div className="page-container artists-container">
       <div className="fav-toolbar">
         <div className="fav-toolbar-left">
-          <button className="sidebar-toggle" onClick={() => router.switchSidebar()}> ☰ </button>
+          <button className="sidebar-toggle" onClick={() => player.switchSidebar()}> ☰ </button>
           <h2>👤 艺术家库</h2>
         </div>
         <div className="fav-actions">
