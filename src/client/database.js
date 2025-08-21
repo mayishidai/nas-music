@@ -350,56 +350,22 @@ export const updateAlbumsState = () => {
 }
 
 export const updateArtistsState = () => {
-  const now = new Date().toISOString();
-  // 使用 SQL 直接更新歌手信息，使用 JSON 数组匹配
-  const updateArtistsSql = `
-    UPDATE artists 
-    SET 
-      photo = (
-        SELECT coverImage 
-        FROM music 
-        WHERE json_array_length(artists) > 0
-        AND (
-          SELECT COUNT(*) 
-          FROM json_each(music.artists) 
-          WHERE json_each.value = artists.name
-        ) > 0
-        AND coverImage IS NOT NULL 
-        AND coverImage != ''
-        LIMIT 1
-      ),
-      trackCount = (
-        SELECT COUNT(*) 
-        FROM music 
-        WHERE json_array_length(artists) > 0
-        AND (
-          SELECT COUNT(*) 
-          FROM json_each(music.artists) 
-          WHERE json_each.value = artists.name
-        ) > 0
-      ),
-      albumCount = (
-        SELECT COUNT(DISTINCT album) 
-        FROM music 
-        WHERE json_array_length(artists) > 0
-        AND (
-          SELECT COUNT(*) 
-          FROM json_each(music.artists) 
-          WHERE json_each.value = artists.name
-        ) > 0
-        AND album IS NOT NULL
-        AND album != ''
-      ),
-      updated_at = @now
-    WHERE artists.name IS NOT NULL
-  `;
-  try {
-    const result = client.db.execute(updateArtistsSql, { now });
-    console.log(`歌手信息更新完成，影响 ${result.changes} 条记录`);
-  } catch (error) {
-    console.error('更新歌手信息失败:', error);
-  }
+  client.transaction((transaction)=>{
+    transaction.iterate('artists', (artist)=>{
+      const trackCount = transaction.count('music', { artist: artist.name });
+      const albumCount = transaction.count('albums', { artist: artist.name });
+      const tracksWithCover = transaction.queryOne('music', { artist: artist.name, coverImage: { operator: 'IS NOT', data: null } });
+      transaction.update('artists', {
+        photo: artist.photo || (tracksWithCover ? tracksWithCover.coverImage : null),
+        trackCount: trackCount || 0,
+        albumCount: albumCount || 0,
+        updated_at: new Date().toISOString()
+      }, { id: artist.id });
+    });
+  })
+  console.log('歌手信息更新完成');
 }
+
 // 根据库ID删除音乐
 export const removeTracksByLibraryId = (libraryId) => {
   client.delete('music', { libraryId })
