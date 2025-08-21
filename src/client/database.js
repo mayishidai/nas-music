@@ -119,6 +119,7 @@ export const upsertArtistInfo = (name, photo, detail='') => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   });
+  updateArtistStats(name);
 }
 
 // 合并专辑信息
@@ -137,6 +138,7 @@ export const upsertAlbumInfo = (albumTitle, artistNames, year, coverImage) => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString() 
   });
+  updateAlbumStats(albumTitle);
 }
 
 // 获取所有音乐（支持搜索、排序、分页）
@@ -398,13 +400,11 @@ export const updateArtistsState = () => {
     console.error('更新歌手信息失败:', error);
   }
 }
-
-// 根据ID删除音乐
-export const removeTrackById = (trackId) => client.delete('music', { id: trackId });
 // 根据库ID删除音乐
-export const removeTracksByLibraryId = (libraryId) => client.delete('music', { libraryId })
-// 删除所有音乐
-export const deleteAllTracks = () => client.delete('music', {});
+export const removeTracksByLibraryId = (libraryId) => {
+  client.delete('music', { libraryId })
+  updateState();
+}
 
 
 export default {
@@ -416,8 +416,6 @@ export default {
   // 音乐相关
   findTrackByPath, // 根据路径查找音乐
   upsertTrack, // 更新或插入音乐
-  removeTrackById, // 根据ID删除音乐
-  deleteAllTracks, // 删除所有音乐
   removeTracksByLibraryId, // 根据库ID删除音乐
   getAllTracks, // 获取所有音乐
   findTrackById, // 根据ID查找音乐

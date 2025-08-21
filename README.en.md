@@ -2,23 +2,25 @@
 
 A powerful Node.js-based music server that supports local music management, online music search, and data synchronization features.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
-![License](https://img.shields.io/badge/license-MIT-yellow.svg)
-
 ## 📸 Screenshots
 
-### 🏠 Homepage
-![Homepage](https://via.placeholder.com/800x450/2c3e50/ffffff?text=Homepage)
+### HomePage
+![HomePage](/screenimg/homepage.png)
 
-### 🎵 Music List
-![Music List](https://via.placeholder.com/800x450/34495e/ffffff?text=Music+List)
+### Album Management
+![Album Management](/screenimg/albumpage.png)
 
-### 💿 Album Management
-![Album Management](https://via.placeholder.com/800x450/3498db/ffffff?text=Album+Management)
+### Artist Management
+![Artist Management](/screenimg/artistpage.png)
 
-### ⚙️ Settings Page
-![Settings Page](https://via.placeholder.com/800x450/9b59b6/ffffff?text=Settings+Page)
+### Settings Page
+![Settings Page](/screenimg/settingpage.png)
+
+### Music Details
+![Music Details](/screenimg/musicdetail.png)
+
+### Artist Details
+![Artist Details](/screenimg/artistdetail.png)
 
 ## ✨ Features
 

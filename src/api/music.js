@@ -302,7 +302,6 @@ router.put('/tracks/:id', async (ctx) => {
       if (artistNames && artistNames.length > 0) {
         for (const artist of artistNames) {
           await upsertArtistInfo(artist, updateData.coverImage, '');
-          await updateArtistStats(artist);
         }
       }
     } catch (albumArtistError) {
@@ -314,7 +313,6 @@ router.put('/tracks/:id', async (ctx) => {
       ctx.body = { success: false, error: '更新数据库失败' };
       return;
     }
-    updateState();
     // 2. 更新音乐文件的metadata
     try {
       if (track.path && await fs.access(track.path).then(() => true).catch(() => false)) {

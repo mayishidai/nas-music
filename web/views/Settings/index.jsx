@@ -433,7 +433,7 @@ const SettingsPage = ({ player }) => {
           <div className="settings-section">
             <div className="settings-section-header">
               <h3>🔍 刮削功能</h3>
-              <p className="settings-section-desc">开启后将在扫描媒体库时自动获取音乐元数据信息</p>
+              <p className="settings-section-desc">在线搜索音乐元数据</p>
             </div>
             
             <div className="scraping-config">
@@ -473,7 +473,7 @@ const SettingsPage = ({ player }) => {
           <div className="settings-section">
             <div className="settings-section-header">
               <h3>🔄 数据同步</h3>
-              <p className="settings-section-desc">将本地音乐库与在线音乐服务进行同步，以获取更完整的音乐信息</p>
+              <p className="settings-section-desc">同步统计信息</p>
             </div>
             <div className="sync-actions">
               <button 
