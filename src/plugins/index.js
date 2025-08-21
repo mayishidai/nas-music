@@ -1,7 +1,5 @@
 import kugou from './kugou.js';
 import netease from './netease.js';
-import qq from './qq.js';
-import migu from './migu.js';
 
 // 歌词搜索插件管理器
 class LyricsPluginManager {
@@ -14,8 +12,6 @@ class LyricsPluginManager {
   registerDefaultPlugins() {
     this.registerPlugin('kugou', kugou);
     this.registerPlugin('netease', netease);
-    this.registerPlugin('qq', qq);
-    this.registerPlugin('migu', migu);
   }
 
   // 注册插件

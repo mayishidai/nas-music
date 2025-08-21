@@ -1,7 +1,6 @@
 import Router from 'koa-router';
 import online from '../client/online.js';
 import lyricsPluginManager from '../plugins/index.js';
-import client from '../client/sqlite.js';
 
 const router = new Router();
 

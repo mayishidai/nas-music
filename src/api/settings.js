@@ -1,6 +1,7 @@
 import Router from 'koa-router';
 import { getConfig, saveConfig, getMusicStats, updateState } from '../client/database.js';
 import { getMediaLibraries, addMediaLibrary, deleteMediaLibrary, scanMediaLibrary, getScanProgress } from '../client/metadata.js';
+import { syncOnlineMusic } from '../client/online.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -125,11 +126,8 @@ router.put('/scraping', async (ctx) => {
  * POST /api/settings/start-scraping
  */
 router.post('/scraping/start', async (ctx) => {
-  
-  // TODO: 这里应该实现具体的刮削逻辑
-  // 目前仅返回成功响应，不做具体功能实现
-  console.log('立即刮削API被调用，但未实现具体功能');
-
+  syncOnlineMusic();
+  updateState();
   if (global.gc) {
     global.gc();
   }

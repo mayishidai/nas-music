@@ -3,10 +3,14 @@ import { tradToSimple } from 'simptrad';
 import { mergeAndUnique } from '../utils/dataUtils.js';
 import { normalizeSongTitle, normalizeArtistName } from '../utils/textUtils.js';
 import client from './sqlite.js';
+import lyricsPluginManager from '../plugins/index.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
+// 添加限速
+const rateLimit = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 const getAPI = async (url) => {
+  await rateLimit(1000)
   const baseURL = 'https://musicbrainz.org/ws/2'
   try {
     const res = await axios.get(`${baseURL}${url}`, { headers: { 'Content-Type': 'application/json' } }).then(res=>res.data)
@@ -182,7 +186,7 @@ const queryAlbum = async (title, artist) => {
           query += ` OR artist:"${chineseArtistSuffix}" OR artist:"${chineseArtistSuffix}"~`;
       }
   }
-  const albums = await getAPI(`/release?query=${query}&limit=20&fmt=json`).then(res => res.releases)
+  const albums = await getAPI(`/release?query=${query}&limit=5&fmt=json`).then(res => res.releases)
   const result = albums.map(album =>{
     const artists = album['artist-credit']?.map(a => tradToSimple(a.name))
     return {
@@ -191,6 +195,7 @@ const queryAlbum = async (title, artist) => {
       title: tradToSimple(album.title),
       artists: artists,
       artist: artists.join(','),
+      shortnames: album['artist-credit']?.map(a => tradToSimple(a['sort-name'])),
       track_count: album['track-count'],
       date: album.date,
       cover: `http://coverartarchive.org/release/${album.id}/front`,
@@ -247,6 +252,71 @@ const getAlbum = async (albumId) => {
 // 获取歌手信息
 const getArtist = (artistId) => getAPI(`/artist/${artistId}?inc=releases`)
 
+export const syncOnlineMusic = async () => {
+  await client.iterate('albums', { scraped: 0 }, async (album) => {
+    if(album.artist == 'Unknown') { return }
+    const albums = await queryAlbum(album.title, album.artist)
+    const albumInfo = albums.find(a=>{
+      const titleLike = album.title.includes(a.title) || a.title.includes(album.title)  
+      const artistLike = album.artist.includes(a.artist) || a.artist.includes(album.artist)
+      const shortnamesLike = a.shortnames?.includes(album.title) || album.shortnames?.includes(a.title)
+      if(titleLike && artistLike) return true
+      if(titleLike && shortnamesLike) return true
+      return false
+    })
+    if(albumInfo) {
+      const result =await getAlbum(albumInfo.id)
+      client.update('albums', { 
+        scraped: 1, 
+        year: result.date, 
+        title: result.title, 
+        artist: result.artists?.join(','), 
+        artists: result.artists,
+        normalizeTitle: normalizeSongTitle(result.title),
+      }, { id: album.id })
+    }
+  })
+  await client.iterate('music', { scraped: 0 }, async (music) => {
+    const cacheData = client.queryOne('online_music', { title: music.title, artist: music.artist })
+    if(cacheData) {
+      client.update('music', {
+        scraped: 1,
+        title: cacheData.title,
+        artist: cacheData.artist,
+        album: cacheData.album_title,
+        albumArtist: cacheData.album_artist,
+        year: music.year || cacheData.date,
+        coverImage: music.coverImage || cacheData.cover,
+        lyrics: music.lyrics || cacheData.lyrics,
+      }, { id: music.id })
+    }else{
+      const titleLike = (a) => a.title.includes(music.title) || music.title.includes(a.title)
+      const artistLike = (a) => a.artist.includes(music.artist) || music.artist.includes(a.artist)
+      const info = await queryMusic(music.title, music.artist).then(res=>res.find(m=>titleLike(m) && artistLike(m)))
+      if(info) {
+        client.update('music', {
+          scraped: 1,
+          title: info.title,
+          artist: info.artist,
+          album: info.album_title,
+          albumArtist: info.album_artist,
+          year: music.year || info.date,
+          coverImage: music.coverImage || info.cover,
+          lyrics: music.lyrics || info.lyrics,
+        }, { id: music.id })
+      }
+    }
+    if(!music.lyrics) {
+      const titleLike = (a) => a.title.includes(music.title) || music.title.includes(a.title)
+      const artistLike = (a) => a.artist.includes(music.artist) || music.artist.includes(a.artist)
+      const lyrics = await lyricsPluginManager.searchLyrics(music.title, music.artist).then(res=>res.find(l=>titleLike(l) && artistLike(l)))
+      if(lyrics) {
+        client.update('music', { lyrics: lyrics.lyrics }, { id: music.id })
+      }
+    }
+  })
+}
+
 export default {
   queryMusic,
   queryAlbum,
@@ -254,4 +324,5 @@ export default {
   getAlbum,
   getArtist,
   queryMusicFromDatabase,
+  syncOnlineMusic,
 };

@@ -215,10 +215,15 @@ const db = {
   queryAll: (sql, params) => {
     return write_db.prepare(sql).all(params || {});
   },
-  iterate: (sql, params, callback=(data)=>{}) => {
-    const stmt = write_db.prepare(sql)
-    for (const data of stmt.iterate(params || {})) {
-      callback(data)
+  iterate: async (sql, params, callback=(data)=>{}) => {
+    const read_db = new Database(path.join(dbDir, 'music.db'), { verbose: null, readonly: true });
+    try {
+      const stmt = read_db.prepare(sql)
+      for (const data of stmt.iterate(params || {})) {
+        await callback(data)
+      }
+    } finally{
+      read_db.close()
     }
   },
 }
