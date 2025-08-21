@@ -53,14 +53,12 @@
 
 .settings-container .settings-view {
   padding: 10px 35px;
-  overflow-y: hidden;
+  overflow-y: scroll;
   height: 100%;
 }
 
 .settings-page {
   padding: 20px;
-  height: 100%;
-  overflow-y: auto;
   color: #fff;
 }
 
@@ -286,6 +284,57 @@
 }
 
 .scraping-tip {
+  font-size: 12px;
+  color: #aaa;
+  text-align: center;
+  line-height: 1.4;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+/* 数据同步操作区域 */
+.sync-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.sync-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sync-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #5fd8cf 0%, #55b19e 100%);
+}
+
+.sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+}
+
+.sync-tip {
   font-size: 12px;
   color: #aaa;
   text-align: center;
@@ -597,6 +646,15 @@ input:checked + .slider:before {
   }
   
   .scraping-btn {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  
+  .sync-actions {
+    padding: 12px;
+  }
+  
+  .sync-btn {
     padding: 10px 20px;
     font-size: 13px;
   }

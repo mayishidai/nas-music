@@ -125,11 +125,14 @@ router.put('/scraping', async (ctx) => {
  * POST /api/settings/start-scraping
  */
 router.post('/scraping/start', async (ctx) => {
-  updateState();
+  
   // TODO: 这里应该实现具体的刮削逻辑
   // 目前仅返回成功响应，不做具体功能实现
   console.log('立即刮削API被调用，但未实现具体功能');
-  
+
+  if (global.gc) {
+    global.gc();
+  }
   ctx.body = {
     success: true,
     message: '立即刮削已开始',
@@ -138,6 +141,18 @@ router.post('/scraping/start', async (ctx) => {
       status: 'started'
     }
   };
+});
+
+/**
+ * 数据同步
+ * POST /api/settings/data-sync
+ */
+router.post('/data-sync', async (ctx) => {
+  updateState();
+  if (global.gc) {
+    global.gc();
+  }
+  ctx.body = { success: true, message: '数据同步完成' };
 });
 
 export default router;

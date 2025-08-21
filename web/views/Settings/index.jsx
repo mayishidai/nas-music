@@ -17,6 +17,9 @@ const SettingsPage = ({ player }) => {
   const [scrapingEnabled, setScrapingEnabled] = useState(false);
   const [scrapingInProgress, setScrapingInProgress] = useState(false);
 
+  // 数据同步状态
+  const [syncInProgress, setSyncInProgress] = useState(false);
+
   // 加载媒体库列表
   useEffect(() => {
     loadMediaLibraries();
@@ -121,6 +124,40 @@ const SettingsPage = ({ player }) => {
       player.showToastMessage('启动刮削失败', 'error');
     } finally {
       setScrapingInProgress(false);
+      player.hideLoading();
+    }
+  };
+
+  /**
+   * 数据同步
+   */
+  const startDataSync = async () => {
+    if (syncInProgress) {
+      player.showToastMessage('数据同步正在进行中，请稍候', 'warning');
+      return;
+    }
+
+    setSyncInProgress(true);
+    player.showLoading('正在启动数据同步...');
+    
+    try {
+      const response = await fetch('/api/settings/data-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+      if (result.success) {
+        player.showToastMessage(result.message, 'success');
+        // 同步完成后刷新统计信息
+        loadLibraryStats();
+      } else {
+        player.showToastMessage('数据同步失败: ' + result.error, 'error');
+      }
+    } catch (error) {
+      console.error('启动数据同步失败:', error);
+      player.showToastMessage('启动数据同步失败', 'error');
+    } finally {
+      setSyncInProgress(false);
       player.hideLoading();
     }
   };
@@ -317,45 +354,6 @@ const SettingsPage = ({ player }) => {
             </div>
           </div>
 
-          {/* 刮削功能设置 */}
-          <div className="settings-section">
-            <div className="settings-section-header">
-              <h3>🔍 刮削功能</h3>
-              <p className="settings-section-desc">开启后将在扫描媒体库时自动获取音乐元数据信息</p>
-            </div>
-            
-            <div className="scraping-config">
-              <div className="config-item">
-                <div className="config-info">
-                  <div className="config-icon">🎯</div>
-                  <div className="config-details">
-                    <div className="config-title">自动刮削</div>
-                    <div className="config-desc">扫描媒体库时自动从在线服务获取音乐元数据</div>
-                  </div>
-                </div>
-                <div className="config-control">
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={scrapingEnabled}
-                      onChange={(e) => saveScrapingConfig(e.target.checked)}
-                    />
-                    <span className="slider"></span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="scraping-actions">
-                <button 
-                  className="scraping-btn"
-                  onClick={startScraping}
-                  disabled={scrapingInProgress}
-                >
-                  {scrapingInProgress ? '🔄 刮削中...' : '🚀 立即刮削'}
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* 媒体库管理 */}
           <div className="settings-section">
@@ -428,6 +426,63 @@ const SettingsPage = ({ player }) => {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+          {/* 刮削功能设置 */}
+          <div className="settings-section">
+            <div className="settings-section-header">
+              <h3>🔍 刮削功能</h3>
+              <p className="settings-section-desc">开启后将在扫描媒体库时自动获取音乐元数据信息</p>
+            </div>
+            
+            <div className="scraping-config">
+              <div className="config-item" style={{ display: 'none' }}>
+                <div className="config-info">
+                  <div className="config-icon">🎯</div>
+                  <div className="config-details">
+                    <div className="config-title">自动刮削</div>
+                    <div className="config-desc">扫描媒体库时自动从在线服务获取音乐元数据</div>
+                  </div>
+                </div>
+                <div className="config-control">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={scrapingEnabled}
+                      onChange={(e) => saveScrapingConfig(e.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="scraping-actions">
+                <button 
+                  className="scraping-btn"
+                  onClick={startScraping}
+                  disabled={scrapingInProgress}
+                >
+                  {scrapingInProgress ? '🔄 刮削中...' : '🚀 立即刮削'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 数据同步 */}
+          <div className="settings-section">
+            <div className="settings-section-header">
+              <h3>🔄 数据同步</h3>
+              <p className="settings-section-desc">将本地音乐库与在线音乐服务进行同步，以获取更完整的音乐信息</p>
+            </div>
+            <div className="sync-actions">
+              <button 
+                className="sync-btn"
+                onClick={startDataSync}
+                disabled={syncInProgress}
+              >
+                {syncInProgress ? '🔄 同步中...' : '🚀 立即同步'}
+              </button>
             </div>
           </div>
         </div>
