@@ -166,6 +166,102 @@ const ArtistDetailView = ({ player }) => {
     navigate(`/album/${album}`);
   };
 
+  // 编辑相关状态
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    detail: '',
+    photo: ''
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // 处理编辑按钮点击
+  const handleEditClick = () => {
+    setEditForm({
+      name: artist.name || '',
+      detail: artist.detail || '',
+      photo: artist.photo || ''
+    });
+    setShowEditModal(true);
+  };
+
+  // 处理编辑表单提交
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setEditLoading(true);
+      const response = await fetch(`/api/music/artists/${artistId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // 更新本地状态
+        setArtist(result.data);
+        setShowEditModal(false);
+        player.showToastMessage('艺术家信息更新成功', 'success');
+      } else {
+        player.showToastMessage('更新失败: ' + result.error, 'error');
+      }
+    } catch (error) {
+      console.error('更新艺术家信息失败:', error);
+      player.showToastMessage('更新艺术家信息失败', 'error');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // 处理编辑表单输入变化
+  const handleEditFormChange = (field, value) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // 处理图片上传
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 检查文件大小（100KB = 100 * 1024 bytes）
+    const maxSize = 100 * 1024;
+    if (file.size > maxSize) {
+      player.showToastMessage('图片文件大小不能超过100KB', 'error');
+      return;
+    }
+
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      player.showToastMessage('请选择图片文件', 'error');
+      return;
+    }
+
+    setUploadingImage(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64String = e.target.result;
+      setEditForm(prev => ({
+        ...prev,
+        photo: base64String
+      }));
+      setUploadingImage(false);
+      player.showToastMessage('图片上传成功', 'success');
+    };
+
+    reader.onerror = () => {
+      setUploadingImage(false);
+      player.showToastMessage('图片上传失败', 'error');
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   if (loading && !artist) {
     return (
       <div className="artist-detail">
@@ -222,8 +318,18 @@ const ArtistDetailView = ({ player }) => {
         
         {/* 返回按钮 */}
         <div className="ad-header-buttons">
-          <button className="ad-sidebar-btn" onClick={() => player.switchSidebar()}>☰</button>
-          <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
+          <div className="ad-left-buttons">
+            <button className="ad-sidebar-btn" onClick={() => player.switchSidebar()}>☰</button>
+            <button className="ad-back" onClick={() => navigate(-1)}>← 返回</button>
+          </div>
+          <div className="ad-right-buttons">
+            <button 
+              className="ad-btn edit-btn" 
+              onClick={handleEditClick}
+            >
+              ✏️ 编辑详情
+            </button>
+          </div>
         </div>
         
         {/* 艺术家信息 */}
@@ -238,7 +344,7 @@ const ArtistDetailView = ({ player }) => {
               <span className="dot">•</span>
               <span>{stats.tracks} 首歌曲</span>
             </div>
-            <div className="ad-desc">暂无简介</div>
+            <div className="ad-desc">{artist.detail || '暂无简介'}</div>
           </div>
         </div>
       </div>
@@ -285,6 +391,103 @@ const ArtistDetailView = ({ player }) => {
           />
         </div>
       </div>
+
+      {/* 编辑模态框 */}
+      {showEditModal && (
+        <div className="edit-modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="edit-modal-header">
+              <h3>编辑艺术家信息</h3>
+              <button 
+                className="edit-modal-close" 
+                onClick={() => setShowEditModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <form className="edit-modal-form" onSubmit={handleEditSubmit}>
+              <div className="form-group cover-section">
+                <div className="cover-upload-section">
+                  <div className="cover-preview-wrap">
+                    {editForm.photo ? (
+                      <img 
+                        src={editForm.photo} 
+                        alt="头像预览" 
+                        className="preview-image"
+                      />
+                    ) : (
+                      <div className="preview-placeholder">
+                        <div className="placeholder-icon">👤</div>
+                        <div className="placeholder-text">暂无头像</div>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="cover-input"
+                      id="photo-upload"
+                      disabled={uploadingImage}
+                    />
+                    <label 
+                      htmlFor="photo-upload" 
+                      className={`cover-label ${uploadingImage ? 'disabled' : ''}`}
+                    >
+                      {uploadingImage ? '上传中...' : '选择头像'}
+                    </label>
+                  </div>
+                  <div className="upload-hint">
+                    支持JPG、PNG格式，大小不超过100KB
+                  </div>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>艺术家名称</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => handleEditFormChange('name', e.target.value)}
+                  placeholder="请输入艺术家名称"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>艺术家简介</label>
+                <textarea
+                  value={editForm.detail}
+                  onChange={(e) => handleEditFormChange('detail', e.target.value)}
+                  placeholder="请输入艺术家简介"
+                  rows="4"
+                />
+              </div>
+              <div className="edit-modal-actions">
+                <button 
+                  type="button" 
+                  className="edit-btn cancel"
+                  onClick={() => setShowEditModal(false)}
+                  disabled={editLoading}
+                >
+                  取消
+                </button>
+                <button 
+                  type="submit" 
+                  className={`edit-btn submit ${editLoading ? 'loading' : ''}`}
+                  disabled={editLoading}
+                >
+                  {editLoading ? (
+                    <>
+                      <div className="btn-loading-spinner"></div>
+                      <span>保存中...</span>
+                    </>
+                  ) : (
+                    '保存'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

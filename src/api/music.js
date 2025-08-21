@@ -135,7 +135,6 @@ router.get('/artists', async (ctx) => {
 router.get('/albums/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
-    console.log('id', id);
     const album = await findAlbum(id);
     if (!album) {
       ctx.status = 404;
@@ -156,50 +155,35 @@ router.put('/albums/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
     const { title, artist, year, coverImage } = ctx.request.body;
-
     // 验证专辑是否存在
-    const existingAlbum = await findAlbum(id);
+    const existingAlbum = findAlbum(id);
     if (!existingAlbum) {
       ctx.status = 404;
       ctx.body = { success: false, error: '专辑不存在' };
       return;
     }
-
-    // 更新专辑信息
     const updateData = {
       title: title || existingAlbum.title,
-      artist: artist || existingAlbum.artist,
+      artist: [artist] || existingAlbum.artist,
       year: year || existingAlbum.year,
       coverImage: coverImage || existingAlbum.coverImage
     };
-
-    // 更新专辑信息
-    const success = await upsertAlbumInfo(updateData.title, updateData.artist, updateData.year, updateData.coverImage);
-    
-    if (success) {
-      // 更新该专辑下所有音乐的信息
-      const tracks = await getTracksByAlbum(existingAlbum.title);
-      for (const track of tracks) {
-        await updateTrack(track.id, {
-          album: updateData.title,
-          albumArtist: updateData.artist,
-          coverImage: updateData.coverImage
-        });
-      }
-
-      // 获取更新后的专辑信息
-      const updatedAlbum = await findAlbum(id);
-      const updatedTracks = await getTracksByAlbum(updatedAlbum.title);
-
-      ctx.body = {
-        success: true,
-        data: { ...updatedAlbum, tracks: updatedTracks },
-        message: '专辑信息更新成功'
-      };
-    } else {
-      ctx.status = 500;
-      ctx.body = { success: false, error: '更新专辑信息失败' };
+    upsertAlbumInfo(updateData.title, updateData.artist, updateData.year, updateData.coverImage);
+    const tracks = getTracksByAlbum(existingAlbum.title);
+    for (const track of tracks) {
+      updateTrack(track.id, {
+        album: updateData.title,
+        albumArtist: updateData.artist,
+        coverImage: updateData.coverImage
+      });
     }
+    const updatedAlbum = findAlbum(id);
+    const updatedTracks = getTracksByAlbum(updatedAlbum.title);
+    ctx.body = {
+      success: true,
+      data: { ...updatedAlbum, tracks: updatedTracks },
+      message: '专辑信息更新成功'
+    };
   } catch (error) {
     console.error('更新专辑信息失败:', error);
     ctx.status = 500;
@@ -211,7 +195,7 @@ router.put('/albums/:id', async (ctx) => {
 router.get('/artists/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
-    const artist = await findArtist(id);
+    const artist = findArtist(id);
     if (!artist) {
       ctx.status = 404;
       ctx.body = { success: false, error: '艺术家不存在' };
@@ -230,24 +214,20 @@ router.put('/artists/:id', async (ctx) => {
   try {
     const { id } = ctx.params;
     const artistInfo = ctx.request.body;
-    // 验证艺术家是否存在
-    const existingArtist = await findArtist(id);
+    const existingArtist = findArtist(id);
     if (!existingArtist) {
       ctx.status = 404;
       ctx.body = { success: false, error: '艺术家不存在' };
       return;
     }
-    // 更新艺术家信息
-    const success = await updateArtistInfo(id, artistInfo);
-    if (success) {
-      ctx.body = {
-        success: true,
-        message: '艺术家信息更新成功'
-      };
-    } else {
-      ctx.status = 500;
-      ctx.body = { success: false, error: '更新艺术家信息失败' };
-    }
+    updateArtistInfo(id, artistInfo);
+    // 获取更新后的艺术家信息
+    const updatedArtist = await findArtist(id);
+    ctx.body = {
+      success: true,
+      message: '艺术家信息更新成功',
+      data: updatedArtist
+    };
   } catch (error) {
     console.error('更新艺术家信息失败:', error);
     ctx.status = 500;
