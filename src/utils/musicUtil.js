@@ -59,9 +59,15 @@ export function extractCoverImage(metadata) {
     if(!metadata || !metadata.common || !metadata.common.picture) { return null; }
     const picture = metadata.common.picture.length > 0 ? metadata.common.picture[0] : null;
     if (picture &&  picture.data) {
-      const buf = Buffer.isBuffer(picture.data) ? picture.data : Buffer.from(picture.data);
-      const mime = picture.format && String(picture.format).startsWith('image/') ? picture.format : 'image/jpeg';
-      return `data:${mime};base64,${buf.toString('base64')}`;
+      let buf = Buffer.isBuffer(picture.data) ? picture.data : Buffer.from(picture.data);
+      if (buf.length > 500 * 1024) { return null; }
+      try {
+        const mime = picture.format && String(picture.format).startsWith('image/') ? picture.format : 'image/jpeg';
+        return `data:${mime};base64,${buf.toString('base64')}`;
+      } finally {
+        buf.fill(0);
+        buf = null;
+      }
     }
   } catch (error) {
     return null

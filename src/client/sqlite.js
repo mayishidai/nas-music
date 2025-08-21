@@ -6,12 +6,11 @@ import { ensureDir } from '../utils/fileUtils.js';
 // 确保数据库目录存在
 const dbDir = './db';
 ensureDir(dbDir);
-const musicDB = new Database(path.join(dbDir, 'music.db'), { verbose: null });
-musicDB.pragma('journal_mode = WAL');
-musicDB.pragma('synchronous = NORMAL');
-musicDB.pragma('cache_size = -10000');
-musicDB.pragma('temp_store = MEMORY');
-musicDB.pragma('auto_vacuum = NONE');
+const write_db = new Database(path.join(dbDir, 'music.db'), { verbose: null, readonly: false });
+write_db.pragma('journal_mode = WAL');
+write_db.pragma('synchronous = NORMAL');
+write_db.pragma('cache_size = 32000');
+write_db.pragma('temp_store = MEMORY');
 
 // 歌手名称分隔符
 const ARTIST_SEPARATORS = ['/', '、', ',', '，', '&', '&amp;', 'feat.', 'feat', 'ft.', 'ft', 'featuring', 'vs', 'VS'];
@@ -183,21 +182,21 @@ const util = {
 }
 
 const db = {
-  ...musicDB,
-  close: () => musicDB.close(),
+  ...write_db,
+  close: () => write_db.close(),
   transaction: (fn, data) => {
-    const func = musicDB.transaction((data)=>{
+    const func = write_db.transaction((data)=>{
       fn(client, data)
     })
     return func(data)
   },
   execute: (sql, params) => {
-    return musicDB.prepare(sql).run(params || {})
+    return write_db.prepare(sql).run(params || {})
   },
   executeBatch: (sql, datas=[]) => {
     if(datas.length === 0) return 0;
-    const execute = musicDB.prepare(sql);
-    const batch = musicDB.transaction((datas)=>{
+    const execute = write_db.prepare(sql);
+    const batch = write_db.transaction((datas)=>{
       let counts = 0;
       for (const data of datas) {
         const { changes } = execute.run(data);
@@ -208,16 +207,16 @@ const db = {
     return batch(datas);
   },
   prepare: (sql) => {
-    return musicDB.prepare(sql);
+    return write_db.prepare(sql);
   },
   queryOne: (sql, params) => {
-    return musicDB.prepare(sql).get(params || {});
+    return write_db.prepare(sql).get(params || {});
   },
   queryAll: (sql, params) => {
-    return musicDB.prepare(sql).all(params || {});
+    return write_db.prepare(sql).all(params || {});
   },
   iterate: (sql, params, callback=(data)=>{}) => {
-    const stmt = musicDB.prepare(sql).raw()
+    const stmt = write_db.prepare(sql)
     for (const data of stmt.iterate(params || {})) {
       callback(data)
     }
@@ -228,7 +227,7 @@ const client = {
   db: db,
   util: util,
   transaction: (fn, data) => {
-    const func = musicDB.transaction((data)=>{
+    const func = write_db.transaction((data)=>{
       fn(client, data)
     })
     return func(data)
@@ -317,12 +316,12 @@ const client = {
     const sql = `DELETE FROM ${table} WHERE ${conditions.join(' AND ')}`;
     return db.execute(sql, params);
   },
-}
+};
 
 // 程序关闭时关闭数据库
-process.on('SIGINT', () => {
-  db.close();
-  process.exit(0);
-});
+process.on('exit', () => db.close());
+process.on('SIGHUP', () => process.exit(128 + 1));
+process.on('SIGINT', () => process.exit(128 + 2));
+process.on('SIGTERM', () => process.exit(128 + 15));
 
 export default client;

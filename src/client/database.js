@@ -311,98 +311,91 @@ export const getTracksByAlbum = (album) => {
   });
 }
 
-// 扫描音乐库后的完整处理流程
-export const postScanProcessing = () => {
-  // 1. 合并和去重专辑
-  mergeAndDeduplicateAlbums();
-  // 2. 为没有封面的专辑获取封面
-  updateAlbumsWithoutCover();
-  // 3. 为没有图片的歌手获取图片
-  updateArtistsWithoutPhoto();
+// 更新专辑和歌手状态
+export const updateState = () => {
+  updateAlbumsState();
+  updateArtistsState();
 }
 
-
-// 为没有封面的专辑自动获取封面
-export const updateAlbumsWithoutCover = () => {
-  client.transaction((transaction)=>{
-    const albums = transaction.queryAll('albums', { });
-    for (const album of albums) {
-      const trackCount = transaction.count('music', { album: album.title });
-      const tracks = transaction.queryOne('music', { album: album.title, coverImage: { operator: 'IS NOT', data: null } });
-      transaction.update('albums', {
-        coverImage: tracks ? tracks.coverImage : null,
-        trackCount: trackCount || 0,
-        updated_at: new Date().toISOString()
-      }, { id: album.id });
-    }
-  })
+export const updateAlbumsState = () => {
+  const now = new Date().toISOString();
+  // 使用 SQL 直接更新专辑信息
+  const updateAlbumsSql = `
+    UPDATE albums 
+    SET 
+      coverImage = (
+        SELECT coverImage 
+        FROM music 
+        WHERE album = albums.title 
+        AND coverImage IS NOT NULL 
+        AND coverImage != ''
+        LIMIT 1
+      ),
+      trackCount = (
+        SELECT COUNT(*) 
+        FROM music 
+        WHERE album = albums.title
+      ),
+      updated_at = @now
+    WHERE albums.title IS NOT NULL
+  `;
+  try {
+    const result = client.db.execute(updateAlbumsSql, { now });
+    console.log(`专辑信息更新完成，影响 ${result.changes} 条记录`);
+  } catch (error) {
+    console.error('更新专辑信息失败:', error);
+  }
 }
 
-// 为没有图片的歌手自动获取图片
-export const updateArtistsWithoutPhoto = () => {
-  client.transaction((transaction)=>{
-    const artists = transaction.queryAll('artists', { });
-    for (const artist of artists) {
-      const trackCount = transaction.count('music', { artist: artist.name });
-      const albumCount = transaction.count('albums', { artist: artist.name });
-      const tracksWithCover = transaction.queryOne('music', { artist: artist.name, coverImage: { operator: 'IS NOT', data: null } });
-      transaction.update('artists', {
-        photo: tracksWithCover ? tracksWithCover.coverImage : null,
-        trackCount: trackCount || 0,
-        albumCount: albumCount || 0,
-        updated_at: new Date().toISOString()
-      }, { id: artist.id });
-    }
-  })
-}
-
-// 高级专辑合并和去重函数
-export const mergeAndDeduplicateAlbums = () => {
-  // 查找所有重复的专辑（基于标准化标题）
-  const duplicateAlbums = client.db.queryAll(`
-    SELECT normalizedTitle, COUNT(*) as count, GROUP_CONCAT(id) as ids, GROUP_CONCAT(title) as titles
-    FROM albums 
-    GROUP BY normalizedTitle 
-    HAVING COUNT(*) > 1
-  `);
-  for (const duplicate of duplicateAlbums) {
-    const albumIds = duplicate.ids.split(',');
-    const titles = duplicate.titles.split(',');
-    
-    // 选择第一个专辑作为主记录
-    const primaryAlbumId = albumIds[0];
-    const primaryAlbum = client.queryOne('albums', { id: primaryAlbumId });
-    if (!primaryAlbum) continue;
-    // 合并其他重复记录的信息到主记录
-    for (let i = 1; i < albumIds.length; i++) {
-      const duplicateAlbum = client.queryOne('albums', { id: albumIds[i] });
-      if (!duplicateAlbum) continue;
-      
-      // 合并信息（选择更完整的信息）
-      const mergedTitle = primaryAlbum.title.length >= duplicateAlbum.title.length ? 
-                         primaryAlbum.title : duplicateAlbum.title;
-      const mergedArtist = primaryAlbum.artist || duplicateAlbum.artist;
-      const mergedYear = primaryAlbum.year || duplicateAlbum.year;
-      const mergedCoverImage = primaryAlbum.coverImage || duplicateAlbum.coverImage;
-      
-      // 合并艺术家列表
-      const primaryArtists = client.util.deserialize(primaryAlbum.artists);
-      const duplicateArtists = client.util.deserialize(duplicateAlbum.artists);
-      const mergedArtists = [...new Set([...primaryArtists, ...duplicateArtists])];
-      
-      // 更新主记录
-      client.update('albums', {
-        title: mergedTitle,
-        artist: mergedArtist,
-        artists: client.util.serialize(mergedArtists),
-        year: mergedYear,
-        coverImage: mergedCoverImage,
-        updated_at: new Date().toISOString()
-      }, { id: primaryAlbumId });
-      client.update('music', { album: primaryAlbum.title }, { album: duplicateAlbum.title });
-      client.delete('albums', { id: albumIds[i] });
-      console.log(`已合并并删除重复专辑: ${duplicateAlbum.title}`);
-    }
+export const updateArtistsState = () => {
+  const now = new Date().toISOString();
+  // 使用 SQL 直接更新歌手信息，使用 JSON 数组匹配
+  const updateArtistsSql = `
+    UPDATE artists 
+    SET 
+      photo = (
+        SELECT coverImage 
+        FROM music 
+        WHERE json_array_length(artists) > 0
+        AND (
+          SELECT COUNT(*) 
+          FROM json_each(music.artists) 
+          WHERE json_each.value = artists.name
+        ) > 0
+        AND coverImage IS NOT NULL 
+        AND coverImage != ''
+        LIMIT 1
+      ),
+      trackCount = (
+        SELECT COUNT(*) 
+        FROM music 
+        WHERE json_array_length(artists) > 0
+        AND (
+          SELECT COUNT(*) 
+          FROM json_each(music.artists) 
+          WHERE json_each.value = artists.name
+        ) > 0
+      ),
+      albumCount = (
+        SELECT COUNT(DISTINCT album) 
+        FROM music 
+        WHERE json_array_length(artists) > 0
+        AND (
+          SELECT COUNT(*) 
+          FROM json_each(music.artists) 
+          WHERE json_each.value = artists.name
+        ) > 0
+        AND album IS NOT NULL
+        AND album != ''
+      ),
+      updated_at = @now
+    WHERE artists.name IS NOT NULL
+  `;
+  try {
+    const result = client.db.execute(updateArtistsSql, { now });
+    console.log(`歌手信息更新完成，影响 ${result.changes} 条记录`);
+  } catch (error) {
+    console.error('更新歌手信息失败:', error);
   }
 }
 
@@ -436,7 +429,6 @@ export default {
   findArtist, // 根据歌手ID查找歌手
   updateArtistInfo, // 更新艺术家信息
   updateArtistStats, // 更新艺术家统计信息
-  updateArtistsWithoutPhoto, // 为没有图片的歌手获取图片
   // 专辑相关
   albumsPage, // 获取专辑列表
   findAlbum, // 根据专辑ID查找专辑
@@ -446,8 +438,8 @@ export default {
   upsertAlbumInfo, // 更新或插入专辑
   upsertArtistInfo, // 更新或插入艺术家
   //=================
-  mergeAndDeduplicateAlbums, // 合并和去重专辑
-  updateAlbumsWithoutCover, // 为没有封面的专辑获取封面
+  updateAlbumsState, // 更新专辑状态
+  updateArtistsState, // 更新歌手状态
   // 扫描后处理
-  postScanProcessing // 扫描音乐库后的完整处理流程
+  updateState // 扫描音乐库后的完整处理流程
 };

@@ -1,5 +1,5 @@
 import Router from 'koa-router';
-import { getConfig, saveConfig, getMusicStats } from '../client/database.js';
+import { getConfig, saveConfig, getMusicStats, updateState } from '../client/database.js';
 import { getMediaLibraries, addMediaLibrary, deleteMediaLibrary, scanMediaLibrary, getScanProgress } from '../client/metadata.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -70,6 +70,16 @@ router.post('/media-libraries/:id/scan', async (ctx) => {
 });
 
 /**
+ * 媒体库状态更新
+ * POST /api/settings/media-libraries/:id/update-state
+ */
+router.post('/media-libraries/:id/sync', async (ctx) => {
+  const { id } = ctx.params;
+  updateState(id);
+  ctx.body = { success: true, message: '同步完成' };
+});
+
+/**
  * 获取扫描进度
  * GET /api/settings/media-libraries/:id/scan-progress
  */
@@ -115,7 +125,7 @@ router.put('/scraping', async (ctx) => {
  * POST /api/settings/start-scraping
  */
 router.post('/scraping/start', async (ctx) => {
-  const config = await getConfig();
+  updateState();
   // TODO: 这里应该实现具体的刮削逻辑
   // 目前仅返回成功响应，不做具体功能实现
   console.log('立即刮削API被调用，但未实现具体功能');

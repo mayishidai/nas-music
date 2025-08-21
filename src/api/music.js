@@ -18,6 +18,7 @@ import {
   updateAlbumStats,
   upsertAlbumInfo,
   upsertArtistInfo,
+  updateState,
 } from '../client/database.js';
 import { writeMusicTags, formatArtistNames } from '../utils/musicUtil.js';
 
@@ -313,7 +314,7 @@ router.put('/tracks/:id', async (ctx) => {
       ctx.body = { success: false, error: '更新数据库失败' };
       return;
     }
-
+    updateState();
     // 2. 更新音乐文件的metadata
     try {
       if (track.path && await fs.access(track.path).then(() => true).catch(() => false)) {
