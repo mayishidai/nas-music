@@ -16,6 +16,7 @@ const SettingsPage = ({ player }) => {
   // 刮削功能状态
   const [scrapingEnabled, setScrapingEnabled] = useState(false);
   const [scrapingInProgress, setScrapingInProgress] = useState(false);
+  const [scrapingProgress, setScrapingProgress] = useState(0);
 
   // 数据同步状态
   const [syncInProgress, setSyncInProgress] = useState(false);
@@ -108,25 +109,38 @@ const SettingsPage = ({ player }) => {
       player.showToastMessage('刮削正在进行中，请稍候', 'warning');
       return;
     }
-
     setScrapingInProgress(true);
     player.showLoading('正在启动刮削...');
-    
     try {
       await fetch('/api/settings/scraping/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      
       player.showToastMessage('立即刮削已开始', 'success');
     } catch (error) {
       console.error('启动刮削失败:', error);
       player.showToastMessage('启动刮削失败', 'error');
     } finally {
-      setScrapingInProgress(false);
       player.hideLoading();
     }
+    checkScrapingProgress();
   };
+
+  const checkScrapingProgress = async () => {
+    const response = await fetch('/api/settings/scraping/progress');
+    const result = await response.json();
+    if (result.success) {
+      setScrapingInProgress(result.data.status === 'running');
+      setScrapingProgress(result.data.current / result.data.total * 100);
+    }
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkScrapingProgress();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   /**
    * 数据同步
@@ -463,7 +477,7 @@ const SettingsPage = ({ player }) => {
                   onClick={startScraping}
                   disabled={scrapingInProgress}
                 >
-                  {scrapingInProgress ? '🔄 刮削中...' : '🚀 立即刮削'}
+                  {scrapingInProgress ? `🔄 刮削中... ${scrapingProgress.toFixed(2)}%` : '🚀 立即刮削'}
                 </button>
               </div>
             </div>

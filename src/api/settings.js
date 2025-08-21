@@ -1,7 +1,7 @@
 import Router from 'koa-router';
 import { getConfig, saveConfig, getMusicStats, updateState } from '../client/database.js';
 import { getMediaLibraries, addMediaLibrary, deleteMediaLibrary, scanMediaLibrary, getScanProgress } from '../client/metadata.js';
-import { syncOnlineMusic } from '../client/online.js';
+import { syncOnlineMusic, getOnlineSearchProgress } from '../client/online.js';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
@@ -141,6 +141,14 @@ router.post('/scraping/start', async (ctx) => {
   };
 });
 
+/**
+ * 获取刮削进度
+ * GET /api/settings/scraping/progress
+ */
+router.get('/scraping/progress', async (ctx) => {
+  const progress = getOnlineSearchProgress();
+  ctx.body = { success: true, data: progress };
+});
 /**
  * 数据同步
  * POST /api/settings/data-sync

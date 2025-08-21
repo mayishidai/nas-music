@@ -252,7 +252,16 @@ const getAlbum = async (albumId) => {
 // 获取歌手信息
 const getArtist = (artistId) => getAPI(`/artist/${artistId}?inc=releases`)
 
+const onlineSearchProgress = { total: 0, current: 0, status: 'completed' }
+
 export const syncOnlineMusic = async () => {
+  const music_total = await client.count('music', { scraped: 0 })
+  const albums_total = await client.count('albums', { scraped: 0 })
+
+  onlineSearchProgress.total = music_total + albums_total
+  onlineSearchProgress.current = 0
+  onlineSearchProgress.status = 'running'
+
   await client.iterate('albums', { scraped: 0 }, async (album) => {
     if(album.artist == 'Unknown') { return }
     const albums = await queryAlbum(album.title, album.artist)
@@ -275,6 +284,7 @@ export const syncOnlineMusic = async () => {
         normalizeTitle: normalizeSongTitle(result.title),
       }, { id: album.id })
     }
+    onlineSearchProgress.current++
   })
   await client.iterate('music', { scraped: 0 }, async (music) => {
     const cacheData = client.queryOne('online_music', { title: music.title, artist: music.artist })
@@ -314,8 +324,13 @@ export const syncOnlineMusic = async () => {
         client.update('music', { lyrics: lyrics.lyrics }, { id: music.id })
       }
     }
-  })
+    onlineSearchProgress.current++
+  })  
+  onlineSearchProgress.status = 'completed'
+  onlineSearchProgress.current = onlineSearchProgress.total
 }
+
+export const getOnlineSearchProgress = () => onlineSearchProgress
 
 export default {
   queryMusic,
