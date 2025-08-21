@@ -40,7 +40,7 @@ export const saveConfig = (config) => {
 
 // 获取音乐统计信息
 export const getMusicStats = () => {
-  const tracksCount = client.count('music', { type: 'track' });
+  const tracksCount = client.count('music', { });
   const albumsCount = client.count('albums', {});
   const artistsCount = client.count('artists', {});
   const stats = {
@@ -61,26 +61,25 @@ export const findTrackByPath = (trackPath) => {
 }
 
 // 根据路径更新或插入音乐
-export const upsertTrackByPath = (trackDoc) => {
+export const upsertTrack = (trackDoc) => {
   trackDoc.id = client.util.md5(trackDoc.path);
-  const existing = client.queryOne('music', { path: trackDoc.path });
   // 格式化歌手名称
   const artistNames = client.util.formatArtistNames(trackDoc.artist);
   const albumTitle = trackDoc.album || '';
   // 处理歌手数据
   for (const artistName of artistNames) {
-    const normalizedName = client.util.normalize(artistName);
-    mergeArtistInfo(artistName, normalizedName, trackDoc.artistInfo);
+    upsertArtistInfo(artistName, trackDoc.coverImage, '');
   }
   // 处理专辑数据
   if (albumTitle && artistNames.length > 0) {
-    const primaryArtist = artistNames[0]; // 使用第一个歌手作为专辑的主要歌手
-    mergeAlbumInfo(albumTitle, primaryArtist, artistNames, trackDoc.year, trackDoc.coverImage);
+    upsertAlbumInfo(albumTitle, artistNames, trackDoc.year, trackDoc.coverImage);
   }
-  
   // 更新或插入音乐记录
   const now = new Date().toISOString();
   const musicData = {
+    id: trackDoc.id,
+    libraryId: trackDoc.libraryId,
+    path: trackDoc.path,
     title: trackDoc.title,
     artist: trackDoc.artist,
     album: trackDoc.album,
@@ -99,27 +98,51 @@ export const upsertTrackByPath = (trackDoc) => {
     coverImage: trackDoc.coverImage,
     lyrics: trackDoc.lyrics,
     artists: client.util.serialize(artistNames),
-    updated_at: now
+    updated_at: now,
+    created_at: now
   };
-  
-  if (existing) {
-    client.update('music', musicData, { path: trackDoc.path });
-  } else {
-    client.insert('music', {
-      ...musicData,
-      id: trackDoc.id,
-      type: trackDoc.type,
-      path: trackDoc.path,
-      created_at: now
-    });
-  }
-  return true;
+  return client.insertOrUpdate('music', musicData, { id: trackDoc.id });
+}
+
+
+export const upsertArtistInfo = (name, photo, detail='') => {
+  const id = client.util.md5(name);
+  const normalizedName = client.util.normalize(name);
+  client.insertOrUpdate('artists', {
+    id,
+    name,
+    normalizedName,
+    trackCount: 1,
+    albumCount: 1,
+    photo: photo || null,
+    detail: detail || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+}
+
+// 合并专辑信息
+export const upsertAlbumInfo = (albumTitle, artistNames, year, coverImage) => {
+  const albumId = client.util.md5(albumTitle);
+  const normalizedTitle = client.util.normalize(albumTitle);
+  client.insertOrUpdate('albums', { 
+    id: albumId,
+    title: albumTitle,
+    normalizedTitle,
+    artist: artistNames.join(','),
+    artists: client.util.serialize(artistNames),
+    trackCount: 0,
+    year,
+    coverImage,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString() 
+  });
 }
 
 // 获取所有音乐（支持搜索、排序、分页）
 export const getAllTracks = (options = {}) => {
   const { search = '', sort = 'title', order = 'asc', page = 1, pageSize = 10, filter = {} } = options;
-  const conditions = { type: 'track', ...filter };
+  const conditions = filter;
   if (search) {
     conditions.search = { 
       operator: 'SQL', 
@@ -139,8 +162,8 @@ export const getAllTracks = (options = {}) => {
 
 // 获取所有音乐（支持搜索、排序、分页）
 export const getRandomTracks = (options = {}) => {
-  const { search = '', sort = 'title', order = 'asc', page = 1, pageSize = 10, filter = {} } = options;
-  const conditions = { type: 'track', ...filter };
+  const { search = '', page = 1, pageSize = 10, filter = {} } = options;
+  const conditions = filter;
   if (search) {
     conditions.search = { 
       operator: 'SQL', 
@@ -184,7 +207,7 @@ export const updateTrack = (trackId, updates) => {
 // 获取收藏的音乐（支持排序、分页）
 export const getFavoriteTracks = (options = {}) => {
   const { sort = 'title', order = 'asc', page = 1, pageSize = 10, search = '' } = options;
-  const conditions = { type: 'track', favorite: 1 };
+  const conditions = { favorite: 1 };
   if (search) {
     conditions.search = { 
       operator: 'SQL', 
@@ -200,10 +223,7 @@ export const getFavoriteTracks = (options = {}) => {
 // 获取最近播放的音乐（支持分页）
 export const getRecentlyPlayedTracks = (options = {}) => {
   const { search, sort = 'title', order = 'asc', page = 1, pageSize = 10 } = options;
-  const conditions = {
-    type: 'track',
-    lastPlayed: { operator: 'IS NOT', data: null }
-  };
+  const conditions = { lastPlayed: { operator: 'IS NOT', data: null } };
   if (search) {
     conditions.search = { operator: 'SQL', condition: `title LIKE @search OR artist LIKE @search`, params: { search: `%${search}%` }};
   }
@@ -245,7 +265,7 @@ export const updateAlbumInfo = (albumId, albumInfo) => client.update('albums', a
 
 // 更新专辑统计信息
 export const updateAlbumStats = (album) => {
-  const trackCount = client.count('music', { type: 'track', album: album });
+  const trackCount = client.count('music', { album: album });
   client.update('albums', { trackCount: trackCount || 0, updated_at: new Date().toISOString() }, { title:album });
 };
 
@@ -256,102 +276,6 @@ export const updateArtistStats = (artist) => {
   client.update('artists', { trackCount: trackCount || 0, albumCount: albumCount || 0, updated_at: new Date().toISOString() }, { name:artist });
 };
 
-// 根据音乐信息更新或创建专辑
-export const upsertAlbumFromTrack = (trackData) => {
-  if (!trackData.album || !trackData.artist) { return null; }
-  const albumId = client.util.md5(trackData.album);
-  const normalizedTitle = client.util.normalize(trackData.album);
-  
-  let album = client.queryOne('albums', {
-    query: { 
-      operator: 'SQL', 
-      condition: `id = @albumId OR title = @title OR normalizedTitle = @normalizedTitle`, 
-      params: { 
-        albumId: albumId,
-        title: trackData.album,
-        normalizedTitle: normalizedTitle,
-      }
-    }
-  });
-  if (album) {
-    // 更新现有专辑
-    const updateData = {
-      title: trackData.album,
-      artist: trackData.artist,
-      artists: client.util.serialize(trackData.artists),
-      year: trackData.year || album.year,
-      coverImage: album.coverImage || trackData.coverImage,
-      updated_at: new Date().toISOString()
-    };
-    client.update('albums', updateData, { id: album.id });
-    updateAlbumStats(trackData.album);
-    return album.id;
-  } else {
-    // 创建新专辑
-    const albumData = {
-      id: albumId,
-      title: trackData.album,
-      normalizedTitle,
-      artist: trackData.artist,
-      artists: client.util.serialize(trackData.artists),
-      trackCount: 0,
-      year: trackData.year,
-      coverImage: trackData.coverImage,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    client.insert('albums', albumData);
-    updateAlbumStats(trackData.album);
-    return albumId;
-  }
-};
-
-// 根据音乐信息更新或创建艺术家
-export const upsertArtistFromTrack = (trackData) => {
-  if (!trackData.artist) { return null; }
-  const artistId = client.util.md5(trackData.artist);
-  const normalizedName = client.util.normalize(trackData.artist);
-  
-  let artist = client.queryOne('artists', {
-    query: {
-      operator: 'SQL',
-      condition: `id = @id OR normalizedName = @normalizedName OR name = @name`,
-      params: {
-        id: artistId,
-        normalizedName: normalizedName,
-        name: trackData.artist
-      }
-    }
-  });
-  
-  if (artist) {
-    const updateData = {
-      name: trackData.artist,
-      normalizedName: normalizedName,
-      photo: artist.photo ||trackData.coverImage, // 使用音乐封面作为艺术家照片
-      updated_at: new Date().toISOString()
-    };
-    client.update('artists', updateData, { id: artist.id });
-    updateArtistStats(trackData.artist);
-    return artist.id;
-  } else {
-         // 创建新艺术家
-     const artistData = {
-       id: artistId,
-       name: trackData.artist,
-       normalizedName,
-       trackCount: 0,
-       albumCount: 0,
-       photo: trackData.coverImage || null, // 使用音乐封面作为艺术家照片
-       detail: null,
-       created_at: new Date().toISOString(),
-       updated_at: new Date().toISOString()
-     };
-    client.insert('artists', artistData);
-    updateArtistStats(trackData.artist);
-    return artistId;
-  }
-};
 // 根据歌手ID/名称查找歌手
 export const findArtist = (artist) => {
   return client.queryOne('artists', {
@@ -380,7 +304,7 @@ export const findAlbum = (album) => {
 
 // 获取专辑的音乐列表
 export const getTracksByAlbum = (album) => {
-  const tracks = client.queryAll('music', { type: 'track', album: album });
+  const tracks = client.queryAll('music', { album: album });
   return tracks.map(track => {
     track.artists = client.util.deserialize(track.artists);
     return track;
@@ -389,17 +313,12 @@ export const getTracksByAlbum = (album) => {
 
 // 扫描音乐库后的完整处理流程
 export const postScanProcessing = () => {
-  try {
-    // 1. 合并和去重专辑
-    mergeAndDeduplicateAlbums();
-    // 2. 为没有封面的专辑获取封面
-    updateAlbumsWithoutCover();
-    // 3. 为没有图片的歌手获取图片
-    updateArtistsWithoutPhoto();
-  } catch (error) {
-    console.error('扫描后处理失败:', error);
-    throw error;
-  }
+  // 1. 合并和去重专辑
+  mergeAndDeduplicateAlbums();
+  // 2. 为没有封面的专辑获取封面
+  updateAlbumsWithoutCover();
+  // 3. 为没有图片的歌手获取图片
+  updateArtistsWithoutPhoto();
 }
 
 
@@ -408,12 +327,8 @@ export const updateAlbumsWithoutCover = () => {
   client.transaction((transaction)=>{
     const albums = transaction.queryAll('albums', { });
     for (const album of albums) {
-      const trackCount = transaction.count('music', { type: 'track', album: album.title });
-      const tracks = transaction.queryOne('music', {
-        type: 'track',
-        album: album.title,
-        coverImage: { operator: 'IS NOT', data: null }
-      });
+      const trackCount = transaction.count('music', { album: album.title });
+      const tracks = transaction.queryOne('music', { album: album.title, coverImage: { operator: 'IS NOT', data: null } });
       transaction.update('albums', {
         coverImage: tracks ? tracks.coverImage : null,
         trackCount: trackCount || 0,
@@ -428,13 +343,9 @@ export const updateArtistsWithoutPhoto = () => {
   client.transaction((transaction)=>{
     const artists = transaction.queryAll('artists', { });
     for (const artist of artists) {
-      const trackCount = transaction.count('music', { type: 'track', artist: artist.name });
+      const trackCount = transaction.count('music', { artist: artist.name });
       const albumCount = transaction.count('albums', { artist: artist.name });
-      const tracksWithCover = transaction.queryOne('music', {
-        type: 'track',
-        artist: artist.name,
-        coverImage: { operator: 'IS NOT', data: null }
-      });
+      const tracksWithCover = transaction.queryOne('music', { artist: artist.name, coverImage: { operator: 'IS NOT', data: null } });
       transaction.update('artists', {
         photo: tracksWithCover ? tracksWithCover.coverImage : null,
         trackCount: trackCount || 0,
@@ -495,96 +406,12 @@ export const mergeAndDeduplicateAlbums = () => {
   }
 }
 
-// 合并歌手信息
-export const mergeArtistInfo = (artistName, normalizedName, artistInfo = {}) => {
-  const artistId = client.util.md5(artistName);
-  artistInfo.normalizedName = normalizedName;
-  let artist = client.queryOne('artists', {
-    query: {
-      operator: 'SQL',
-      condition: `id = @id OR normalizedName = @normalizedName OR name = @name`,
-      params: {
-        id: client.util.md5(artistName),
-        normalizedName: normalizedName,
-        name: artistName
-      }
-    }
-  });
-  if (artist) {
-    artist = client.util.merge(artist, artistInfo);
-    artist.updated_at = new Date().toISOString();
-    client.update('artists', artist, { id: artist.id });
-    return artist;
-  }
-  // 如果没有找到，创建新记录
-  const data = {
-    id: artistId,
-    name: artistName,
-    normalizedName,
-    trackCount: 0,
-    albumCount: 0,
-    photo: artistInfo.photo || null,
-    detail: artistInfo.detail || null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-  client.insert('artists', data);
-  return data;
-}
-
-// 合并专辑信息
-export const mergeAlbumInfo = (albumTitle, primaryArtist, artistNames, year, coverImage) => {
-  const albumId = client.util.md5(albumTitle);
-  const normalizedTitle = client.util.normalize(albumTitle);
-  let album = client.queryOne('albums', {
-    query: { 
-      operator: 'SQL', 
-      condition: `id = @albumId OR title = @title OR normalizedTitle = @normalizedTitle `, 
-      params: { 
-        albumId: albumId,
-        title: albumTitle,
-        normalizedTitle: normalizedTitle,
-      }
-    }
-  });
-  if (album) {
-    album = client.util.merge(album, {
-      title: albumTitle,
-      artist: primaryArtist,
-      artists: client.util.serialize(artistNames),
-      year: year || album.year,
-      coverImage: coverImage || album.coverImage,
-      updated_at: new Date().toISOString()
-    }); 
-    client.update('albums', album, { id: album.id });
-    return album;
-  }
-  
-  const data = {
-    id: albumId,
-    title: albumTitle,
-    normalizedTitle,
-    artist: primaryArtist,
-    artists: client.util.serialize(artistNames),
-    trackCount: 0,
-    year,
-    coverImage,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-  client.insert('albums', data);
-  return data;
-}
-
 // 根据ID删除音乐
 export const removeTrackById = (trackId) => client.delete('music', { id: trackId });
-// 根据库路径前缀删除音乐
-export const removeTracksByLibraryPathPrefix = (libraryPath) => client.delete('music', { type: 'track', path: libraryPath.replace(/\\/g, '/') })
+// 根据库ID删除音乐
+export const removeTracksByLibraryId = (libraryId) => client.delete('music', { libraryId })
 // 删除所有音乐
-export const deleteAllTracks = () => client.delete('music', { type: 'track' });
-
-// 重建索引
-export const rebuildIndexes = () => client.db.execute('ANALYZE');
+export const deleteAllTracks = () => client.delete('music', {});
 
 
 export default {
@@ -595,10 +422,10 @@ export default {
   getMusicStats, // 获取音乐统计信息
   // 音乐相关
   findTrackByPath, // 根据路径查找音乐
-  upsertTrackByPath, // 更新或插入音乐
+  upsertTrack, // 更新或插入音乐
   removeTrackById, // 根据ID删除音乐
-  removeTracksByLibraryPathPrefix, // 根据路径前缀删除音乐
   deleteAllTracks, // 删除所有音乐
+  removeTracksByLibraryId, // 根据库ID删除音乐
   getAllTracks, // 获取所有音乐
   findTrackById, // 根据ID查找音乐
   updateTrack, // 更新音乐
@@ -609,7 +436,6 @@ export default {
   findArtist, // 根据歌手ID查找歌手
   updateArtistInfo, // 更新艺术家信息
   updateArtistStats, // 更新艺术家统计信息
-  upsertArtistFromTrack, // 根据音乐信息更新或创建艺术家
   updateArtistsWithoutPhoto, // 为没有图片的歌手获取图片
   // 专辑相关
   albumsPage, // 获取专辑列表
@@ -617,14 +443,11 @@ export default {
   getTracksByAlbum, // 获取专辑的音乐列表
   updateAlbumInfo, // 更新专辑信息
   updateAlbumStats, // 更新专辑统计信息
-  upsertAlbumFromTrack, // 根据音乐信息更新或创建专辑
-
+  upsertAlbumInfo, // 更新或插入专辑
+  upsertArtistInfo, // 更新或插入艺术家
   //=================
   mergeAndDeduplicateAlbums, // 合并和去重专辑
   updateAlbumsWithoutCover, // 为没有封面的专辑获取封面
-  mergeAlbumInfo, // 合并专辑信息
-  // 索引相关
-  rebuildIndexes, // 重建索引
   // 扫描后处理
   postScanProcessing // 扫描音乐库后的完整处理流程
 };

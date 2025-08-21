@@ -3,8 +3,9 @@ import sqlite from './sqlite.js';
 const createMusicTable = `
 CREATE TABLE IF NOT EXISTS music (
   id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
-  title TEXT,
+  libraryId TEXT NOT NULL,
+  path TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
   artist TEXT,
   album TEXT,
   albumArtist TEXT,
@@ -14,7 +15,6 @@ CREATE TABLE IF NOT EXISTS music (
   bitrate INTEGER,
   sampleRate INTEGER,
   channels INTEGER,
-  path TEXT UNIQUE NOT NULL,
   filename TEXT,
   size INTEGER,
   favorite INTEGER DEFAULT 0,
@@ -89,19 +89,16 @@ CREATE TABLE IF NOT EXISTS online_music (
 
 // 创建索引
 const createIndexes = [
-'CREATE INDEX IF NOT EXISTS idx_music_type ON music(type)',
 'CREATE INDEX IF NOT EXISTS idx_music_path ON music(path)',
+'CREATE INDEX IF NOT EXISTS idx_music_libraryId ON music(libraryId)',
 'CREATE INDEX IF NOT EXISTS idx_music_title ON music(title)',
 'CREATE INDEX IF NOT EXISTS idx_music_artist ON music(artist)',
 'CREATE INDEX IF NOT EXISTS idx_music_album ON music(album)',
-'CREATE INDEX IF NOT EXISTS idx_music_genre ON music(genre)',
 'CREATE INDEX IF NOT EXISTS idx_music_favorite ON music(favorite)',
 'CREATE INDEX IF NOT EXISTS idx_artists_name ON artists(name)',
 'CREATE INDEX IF NOT EXISTS idx_artists_normalizedName ON artists(normalizedName)',
 'CREATE INDEX IF NOT EXISTS idx_albums_title ON albums(title)',
-'CREATE INDEX IF NOT EXISTS idx_albums_artist ON albums(artist)',
 'CREATE INDEX IF NOT EXISTS idx_albums_normalizedTitle ON albums(normalizedTitle)',
-'CREATE INDEX IF NOT EXISTS idx_albums_artist_title ON albums(artist, normalizedTitle)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_musicId ON online_music(musicId)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_albumId ON online_music(albumId)',
 'CREATE INDEX IF NOT EXISTS idx_online_music_title ON online_music(title)',

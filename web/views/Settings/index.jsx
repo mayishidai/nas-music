@@ -66,11 +66,9 @@ const SettingsPage = ({ player }) => {
    */
   const loadScrapingConfig = async () => {
     try {
-      const response = await fetch('/api/settings/scraping-config');
+      const response = await fetch('/api/settings/configs');
       const result = await response.json();
-      if (result.success) {
-        setScrapingEnabled(result.data.enabled || false);
-      }
+      setScrapingEnabled(result.data.scrapingEnabled || false);
     } catch (error) {
       console.error('加载刮削配置失败:', error);
     }
@@ -81,12 +79,11 @@ const SettingsPage = ({ player }) => {
    */
   const saveScrapingConfig = async (enabled) => {
     try {
-      const response = await fetch('/api/settings/scraping-config', {
+      const response = await fetch('/api/settings/scraping', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled })
       });
-      
       const result = await response.json();
       if (result.success) {
         setScrapingEnabled(enabled);
@@ -113,7 +110,7 @@ const SettingsPage = ({ player }) => {
     player.showLoading('正在启动刮削...');
     
     try {
-      await fetch('/api/settings/start-scraping', {
+      await fetch('/api/settings/scraping/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -162,9 +159,7 @@ const SettingsPage = ({ player }) => {
    */
   const addMediaLibrary = async () => {
     if (!newLibraryPath.trim()) return;
-    
     player.showLoading('正在添加媒体库...');
-    
     try {
       const response = await fetch('/api/settings/media-libraries', {
         method: 'POST',
@@ -193,9 +188,7 @@ const SettingsPage = ({ player }) => {
    */
   const deleteMediaLibrary = async (id) => {
     if (!confirm('确定要删除这个媒体库吗？')) return;
-    
     player.showLoading('正在删除媒体库...');
-    
     try {
       const response = await fetch(`/api/settings/media-libraries/${id}`, {
         method: 'DELETE'
@@ -223,12 +216,8 @@ const SettingsPage = ({ player }) => {
     setScanningLibrary(library);
     setScanProgress(0);
     player.showLoading(`正在扫描媒体库: ${library.path}`);
-    
     try {
-      const response = await fetch(`/api/settings/media-libraries/${library.id}/scan`, {
-        method: 'POST'
-      });
-      
+      const response = await fetch(`/api/settings/media-libraries/${library.id}/scan`, { method: 'POST' });
       const result = await response.json();
       if (result.success) {
         player.hideLoading();

@@ -15,9 +15,9 @@ import {
   getRecentlyPlayedTracks,
   updateArtistInfo,
   updateArtistStats,
-  upsertArtistFromTrack,
   updateAlbumStats,
-  upsertAlbumFromTrack,
+  upsertAlbumInfo,
+  upsertArtistInfo,
 } from '../client/database.js';
 import { writeMusicTags, formatArtistNames } from '../utils/musicUtil.js';
 
@@ -292,16 +292,16 @@ router.put('/tracks/:id', async (ctx) => {
     // 3. 更新专辑和艺术家信息
     try {
       if (updateData.album && updateData.artist) {
-        await upsertAlbumFromTrack(updateData);
+        await upsertAlbumInfo(updateData.album, updateData.artist, updateData.year, updateData.coverImage);
         if (updateData.album !== track.album) {
           await updateAlbumStats(track.album);
         }
       }
       // 更新或创建艺术家信息
-      if (updateData.artist) {
-        await upsertArtistFromTrack(updateData);
-        if (updateData.artist !== track.artist) {
-          await updateArtistStats(track.artist);
+      if (artistNames && artistNames.length > 0) {
+        for (const artist of artistNames) {
+          await upsertArtistInfo(artist, updateData.coverImage, '');
+          await updateArtistStats(artist);
         }
       }
     } catch (albumArtistError) {
