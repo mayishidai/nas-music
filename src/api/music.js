@@ -151,6 +151,62 @@ router.get('/albums/:id', async (ctx) => {
   }
 });
 
+// 更新专辑信息
+router.put('/albums/:id', async (ctx) => {
+  try {
+    const { id } = ctx.params;
+    const { title, artist, year, coverImage } = ctx.request.body;
+
+    // 验证专辑是否存在
+    const existingAlbum = await findAlbum(id);
+    if (!existingAlbum) {
+      ctx.status = 404;
+      ctx.body = { success: false, error: '专辑不存在' };
+      return;
+    }
+
+    // 更新专辑信息
+    const updateData = {
+      title: title || existingAlbum.title,
+      artist: artist || existingAlbum.artist,
+      year: year || existingAlbum.year,
+      coverImage: coverImage || existingAlbum.coverImage
+    };
+
+    // 更新专辑信息
+    const success = await upsertAlbumInfo(updateData.title, updateData.artist, updateData.year, updateData.coverImage);
+    
+    if (success) {
+      // 更新该专辑下所有音乐的信息
+      const tracks = await getTracksByAlbum(existingAlbum.title);
+      for (const track of tracks) {
+        await updateTrack(track.id, {
+          album: updateData.title,
+          albumArtist: updateData.artist,
+          coverImage: updateData.coverImage
+        });
+      }
+
+      // 获取更新后的专辑信息
+      const updatedAlbum = await findAlbum(id);
+      const updatedTracks = await getTracksByAlbum(updatedAlbum.title);
+
+      ctx.body = {
+        success: true,
+        data: { ...updatedAlbum, tracks: updatedTracks },
+        message: '专辑信息更新成功'
+      };
+    } else {
+      ctx.status = 500;
+      ctx.body = { success: false, error: '更新专辑信息失败' };
+    }
+  } catch (error) {
+    console.error('更新专辑信息失败:', error);
+    ctx.status = 500;
+    ctx.body = { success: false, error: '更新专辑信息失败' };
+  }
+});
+
 // 获取艺术家详情
 router.get('/artists/:id', async (ctx) => {
   try {

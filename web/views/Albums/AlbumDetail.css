@@ -1,3 +1,4 @@
+/* 专辑详情页面样式 */
 .album-detail {
   display: flex;
   flex-direction: column;
@@ -65,8 +66,19 @@
 
 .album-detail .ad-header-buttons {
   grid-column: 1 / -1;
-  justify-self: start;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 6px;
+}
+
+.album-detail .ad-left-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.album-detail .ad-right-buttons {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -107,79 +119,116 @@
 .album-detail .ad-cover-wrap {
   width: 140px;
   height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .album-detail .ad-cover {
   width: 100%;
   height: 100%;
-  border-radius: 10px;
   object-fit: cover;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 
 .album-detail .ad-cover.placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  font-size: 42px;
+  font-size: 48px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.album-detail .ad-meta { min-width: 0; }
+.album-detail .ad-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .album-detail .ad-title {
-  margin: 0 0 6px 0;
-  font-size: 1.4em;
-  line-height: 1.3;
-  word-break: break-word; /* 长标题在手机端自动换行 */
-  overflow: hidden;
+  margin: 0;
+  font-size: 2em;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
 }
 
 .album-detail .ad-sub {
-  color: #bbb;
-  margin-bottom: 10px;
+  color: #ccc;
+  font-size: 1.1em;
+  line-height: 1.4;
 }
 
-.album-detail .ad-actions { display: flex; gap: 10px; }
+.album-detail .ad-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
 .album-detail .ad-btn {
-  padding: 8px 12px;
+  padding: 10px 20px;
+  border: none;
   border-radius: 6px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .album-detail .ad-btn:hover:not(:disabled) {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .album-detail .ad-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .album-detail .ad-btn.primary {
-  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
 }
 
 .album-detail .ad-btn.primary:hover:not(:disabled) {
-  background: linear-gradient(45deg, #ff5252, #45b8b0);
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
 }
 
+.album-detail .ad-btn.edit-btn {
+  background: rgba(255,255,255,0.1); 
+  border: 1px solid rgba(255,255,255,0.2); 
+  color: #fff; 
+  padding: 8px 12px; 
+  border-radius: 6px; 
+  cursor: pointer; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.album-detail .ad-btn.edit-btn:hover:not(:disabled) {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #fff;
+}
+
+/* 音乐列表样式 */
 .album-detail .album-detail-tracks {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  overflow: hidden; /* 允许内部弹出层不被裁剪 */
-  flex:1;
+  overflow: hidden;
+  flex: 1;
 }
 
-.album-detail .album-detail-tracks .ad-tracks-body{
+.album-detail .album-detail-tracks .ad-tracks-body {
   overflow-y: scroll;
   height: 100%;
   padding-right: 10px;
@@ -187,7 +236,7 @@
 
 .album-detail .ad-tracks-header, .album-detail .tr {
   display: grid;
-  grid-template-columns: 60px 1.5fr 1fr 100px 160px; /* 加宽操作列，避免拥挤 */
+  grid-template-columns: 60px 1.5fr 1fr 100px 160px;
   gap: 12px;
   padding: 12px 16px;
 }
@@ -199,39 +248,76 @@
   padding-right: 30px;
 }
 
-.album-detail .tr { border-top: 1px solid rgba(255,255,255,0.06); }
-.album-detail .tr.empty { 
-  text-align: center; 
-  grid-column: 1 / -1; 
-  color: #888; 
+.album-detail .tr {
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.album-detail .tr.empty {
+  text-align: center;
+  grid-column: 1 / -1;
+  color: #888;
   padding: 40px 16px;
   font-style: italic;
 }
-.album-detail .td, .album-detail .th { display: flex; align-items: center; overflow: hidden; font-size: 13px; }
-.album-detail .th-title, .album-detail .td-title { overflow: hidden; }
-.album-detail .td, .album-detail .center { flex-grow: 1; text-align: center; }
 
-
-.album-detail .title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.album-detail .td-cover { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }
-.album-detail .title-text { min-width: 0; }
-.album-detail .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; font-size: 0.95em; }
-.album-detail .sub { color: #999; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.album-detail .row-btn {
-  width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
-  background: rgba(255,255,255,0.1); color: #fff; margin-left: 6px;
+.album-detail .td, .album-detail .th {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  font-size: 13px;
 }
 
-/* 对齐 MusicList 的按钮与更多菜单风格 */
+.album-detail .th-title, .album-detail .td-title {
+  overflow: hidden;
+}
+
+.album-detail .td, .album-detail .center {
+  flex-grow: 1;
+  text-align: center;
+}
+
+.album-detail .title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.album-detail .td-cover {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.album-detail .title-text {
+  min-width: 0;
+  color: #fff;
+  font-size: 0.95em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-detail .artist-link {
+  color: #ccc;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.album-detail .artist-link.clickable:hover {
+  color: #667eea;
+  text-decoration: underline;
+}
+
+/* 操作按钮样式 */
 .album-detail .td-actions {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible; /* 允许弹层 */
+  overflow: visible;
 }
 
-/* 操作按钮样式 - 参考MusicList */
 .action-buttons {
   display: flex;
   gap: 5px;
@@ -284,54 +370,281 @@
   background: #9b59b6;
 }
 
-/* 保留旧的样式以兼容 */
-.album-detail .ml-btn { 
-  background: rgba(255, 255, 255, 0.1); 
-  border: none; 
-  color: #fff; 
-  width: 28px; 
-  height: 28px; 
-  border-radius: 50%; 
-  cursor: pointer; 
-  display: flex; 
-  align-items: center; 
+/* 编辑模态框样式 */
+.edit-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
   justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.edit-modal {
+  background: #2c3e50;
+  border-radius: 12px;
+  padding: 0;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.edit-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-modal-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.edit-modal-close {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 18px;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
-.album-detail .ml-btn:hover {
+.edit-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.edit-modal-form {
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #fff;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 封面区域样式 */
+.cover-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cover-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.cover-preview-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.cover-preview-wrap:hover {
+  transform: scale(1.02);
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preview-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  opacity: 0.7;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.placeholder-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
+
+.cover-input {
+  display: none;
+}
+
+.cover-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 8px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  margin-bottom: 0 !important;
+}
+
+.cover-label:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.cover-label.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.cover-label.disabled:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+.edit-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.edit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-btn.cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.edit-btn.cancel:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.album-detail .ml-btn.more { font-size: 16px; font-weight: bold; }
-.album-detail .ml-more-container { position: relative; overflow: visible; }
-.album-detail .ml-more-menu { 
-  position: absolute; 
-  top: 100%; 
-  right: 0; 
-  background: rgba(0,0,0,0.95); 
-  border: 1px solid rgba(255,255,255,0.1); 
-  border-radius: 8px; 
-  z-index: 10000; 
-  min-width: 140px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+.edit-btn.submit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
 }
-.album-detail .ml-more-item { 
-  display: block; 
-  width: 100%; 
-  padding: 8px 12px; 
-  background: transparent; 
-  border: none; 
-  color: #ccc; 
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.album-detail .ml-more-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
+.edit-btn.submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+.edit-btn.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-loading-spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-top: 1.5px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 响应式设计 */
 @media (max-width: 900px) {
-  .album-detail .ad-tracks-header, .album-detail .tr { grid-template-columns: 40px 1fr 100px 120px; }
-  .album-detail .th-artist, .album-detail .td-artist { display: none; }
+  .album-detail .ad-tracks-header, .album-detail .tr {
+    grid-template-columns: 40px 1fr 100px 120px;
+  }
+  .album-detail .th-artist, .album-detail .td-artist {
+    display: none;
+  }
   
   .action-buttons {
     gap: 3px;
@@ -345,9 +658,12 @@
 }
 
 @media (max-width: 600px) {
-  /* 手机小屏：隐藏时长列，收紧为三列 */
-  .album-detail .ad-tracks-header, .album-detail .tr { grid-template-columns: 40px 1fr 120px; }
-  .album-detail .th-duration, .album-detail .td-duration { display: none; }
+  .album-detail .ad-tracks-header, .album-detail .tr {
+    grid-template-columns: 40px 1fr 120px;
+  }
+  .album-detail .th-duration, .album-detail .td-duration {
+    display: none;
+  }
   
   .action-buttons {
     gap: 2px;
@@ -361,132 +677,89 @@
 }
 
 @media (max-width: 768px) {
-  .album-detail { padding: 12px; gap: 12px; }
-  .album-detail .album-detail-header { grid-template-columns: 100px 1fr; gap: 12px; }
-  .album-detail .ad-cover-wrap { width: 100px; height: 100px; }
-  .album-detail .ad-title { font-size: 1.15em; }
-  .album-detail .ad-sub { font-size: 0.9em; }
-  .album-detail .td, .album-detail .th { font-size: 12px; }
-  .album-detail .title { font-size: 0.9em; }
-  .album-detail .sub { font-size: 10px; }
-  
+  .album-detail .album-detail-header {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    text-align: center;
+  }
+
   .album-detail .ad-header-buttons {
-    margin-bottom: 4px;
-    gap: 8px;
+    flex-direction: row;
+    gap: 12px;
+    align-items: stretch;
   }
-  
-  .album-detail .ad-sidebar-btn {
-    padding: 6px;
-    font-size: 14px;
+
+  .album-detail .ad-left-buttons {
+    justify-content: center;
   }
-  
-  .album-detail .ad-back {
-    padding: 8px 10px;
-    font-size: 14px;
+
+  .album-detail .ad-right-buttons {
+    justify-content: center;
   }
-  
-  .loading-container, .error-container {
-    padding: 20px;
+
+  .album-detail .ad-cover-wrap {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
   }
-  
-  .loading-spinner {
-    width: 32px;
-    height: 32px;
+
+  .album-detail .ad-title {
+    font-size: 1.6em;
+  }
+
+  .album-detail .ad-actions {
+    justify-content: center;
+  }
+
+  .edit-modal {
+    width: 95%;
+    margin: 20px;
+  }
+
+  .edit-modal-actions {
+    flex-direction: row;
+  }
+
+  .edit-btn {
+    width: 100%;
+  }
+
+  .cover-preview-wrap {
+    width: 100px;
+    height: 100px;
+  }
+
+  .preview-image,
+  .preview-placeholder {
+    width: 100%;
+    height: 100%;
+  }
+
+  .placeholder-icon {
+    font-size: 36px;
+  }
+
+  .placeholder-text {
+    font-size: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .album-detail { 
-    padding: 8px; 
-    gap: 10px; 
+  .album-detail {
+    padding: 16px;
   }
-  
-  .album-detail .album-detail-header { 
-    grid-template-columns: 80px 1fr; 
-    gap: 10px; 
-  }
-  
-  .album-detail .ad-cover-wrap { 
-    width: 80px; 
-    height: 80px; 
-  }
-  
-  .album-detail .ad-header-buttons {
-    margin-bottom: 3px;
-    gap: 6px;
-  }
-  
-  .album-detail .ad-sidebar-btn {
-    padding: 5px;
-    font-size: 12px;
-  }
-  
-  .album-detail .ad-back {
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-  
-  .album-detail .ad-title { 
-    font-size: 1.1em; 
-  }
-  
-  .album-detail .ad-sub { 
-    font-size: 0.85em; 
-  }
-  
-  .album-detail .td, .album-detail .th { 
-    font-size: 11px; 
-  }
-  
-  .album-detail .title { 
-    font-size: 0.85em; 
-  }
-  
-  .album-detail .sub { 
-    font-size: 9px; 
-  }
-}
 
-@media (max-width: 360px) {
-  .album-detail { 
-    padding: 6px; 
-    gap: 8px; 
+  .album-detail .ad-title {
+    font-size: 1.4em;
   }
-  
-  .album-detail .album-detail-header { 
-    grid-template-columns: 70px 1fr; 
-    gap: 8px; 
+
+  .album-detail .ad-actions {
+    gap: 8px;
   }
-  
-  .album-detail .ad-cover-wrap { 
-    width: 70px; 
-    height: 70px; 
-  }
-  
-  .album-detail .ad-back {
-    padding: 6px 8px;
+
+  .album-detail .ad-btn {
+    padding: 8px 16px;
     font-size: 13px;
-    margin-bottom: 2px;
-  }
-  
-  .album-detail .ad-title { 
-    font-size: 1em; 
-  }
-  
-  .album-detail .ad-sub { 
-    font-size: 0.8em; 
-  }
-  
-  .album-detail .td, .album-detail .th { 
-    font-size: 10px; 
-  }
-  
-  .album-detail .title { 
-    font-size: 0.8em; 
-  }
-  
-  .album-detail .sub { 
-    font-size: 8px; 
   }
 }
 
