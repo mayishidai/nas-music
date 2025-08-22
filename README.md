@@ -62,7 +62,7 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/your-username/nas-music-server.git
+git clone https://gitee.com/yanfanVIP/nas-music.git
 cd nas-music-server
 ```
 
