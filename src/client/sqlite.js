@@ -9,8 +9,17 @@ ensureDir(dbDir);
 const write_db = new Database(path.join(dbDir, 'music.db'), { verbose: null, readonly: false });
 write_db.pragma('journal_mode = WAL');
 write_db.pragma('synchronous = NORMAL');
-write_db.pragma('cache_size = 32000');
-write_db.pragma('temp_store = MEMORY');
+write_db.pragma('cache_size = -20000');
+
+const statementCache = new Map()
+write_db.cachePrepare = (sql) => {
+  if (statementCache.has(sql)) {
+    return statementCache.get(sql);
+  }
+  const stmt = write_db.prepare(sql)
+  statementCache.set(sql, stmt)
+  return stmt
+}
 
 // 歌手名称分隔符
 const ARTIST_SEPARATORS = ['/', '、', ',', '，', '&', '&amp;', 'feat.', 'feat', 'ft.', 'ft', 'featuring', 'vs', 'VS'];
@@ -191,11 +200,11 @@ const db = {
     return func(data)
   },
   execute: (sql, params) => {
-    return write_db.prepare(sql).run(params || {})
+    return write_db.cachePrepare(sql).run(params || {})
   },
   executeBatch: (sql, datas=[]) => {
     if(datas.length === 0) return 0;
-    const execute = write_db.prepare(sql);
+    const execute = write_db.cachePrepare(sql);
     const batch = write_db.transaction((datas)=>{
       let counts = 0;
       for (const data of datas) {
@@ -207,18 +216,21 @@ const db = {
     return batch(datas);
   },
   prepare: (sql) => {
-    return write_db.prepare(sql);
+    return write_db.cachePrepare(sql);
+  },
+  cachePrepare: (sql) => {
+    return write_db.cachePrepare(sql);
   },
   queryOne: (sql, params) => {
-    return write_db.prepare(sql).get(params || {});
+    return write_db.cachePrepare(sql).get(params || {});
   },
   queryAll: (sql, params) => {
-    return write_db.prepare(sql).all(params || {});
+    return write_db.cachePrepare(sql).all(params || {});
   },
   iterate: async (sql, params, callback=(data)=>{}) => {
     const read_db = new Database(path.join(dbDir, 'music.db'), { verbose: null, readonly: true });
     try {
-      const stmt = read_db.prepare(sql)
+      const stmt = read_db.cachePrepare(sql)
       for (const data of stmt.iterate(params || {})) {
         await callback(data)
       }
@@ -269,8 +281,8 @@ const client = {
   page: (table, page=1, pageSize=10, sort='id ASC', filter={}) => {
     const { conditions, params } = util.selectFormatOperator('', filter);
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const pagesql = db.prepare(`SELECT * FROM ${table} ${whereClause} ORDER BY ${sort} LIMIT @_limit OFFSET @_offset`);
-    const countsql = db.prepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
+    const pagesql = db.cachePrepare(`SELECT * FROM ${table} ${whereClause} ORDER BY ${sort} LIMIT @_limit OFFSET @_offset`);
+    const countsql = db.cachePrepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
     params['_limit'] = pageSize;
     params['_offset'] = (page-1)*pageSize;
     const { count } = countsql.get(params);
@@ -280,8 +292,8 @@ const client = {
   randomPage: (table, page=1, pageSize=10, filter={}) => {
     const { conditions, params } = util.selectFormatOperator('', filter);
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const pagesql = db.prepare(`SELECT * FROM ${table} ${whereClause} ORDER BY RANDOM() LIMIT @_limit OFFSET @_offset`);
-    const countsql = db.prepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
+    const pagesql = db.cachePrepare(`SELECT * FROM ${table} ${whereClause} ORDER BY RANDOM() LIMIT @_limit OFFSET @_offset`);
+    const countsql = db.cachePrepare(`SELECT COUNT(*) as count FROM ${table} ${whereClause}`);
     params['_limit'] = pageSize;
     params['_offset'] = (page-1)*pageSize;
     const { count } = countsql.get(params);
