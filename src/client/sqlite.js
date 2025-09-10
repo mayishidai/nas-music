@@ -13,11 +13,12 @@ write_db.pragma('cache_size = -20000');
 
 const statementCache = new Map()
 write_db.cachePrepare = (sql) => {
-  if (statementCache.has(sql)) {
-    return statementCache.get(sql);
+  let ref = statementCache.get(sql)
+  let stmt = ref?.deref()
+  if (!stmt){
+    stmt = write_db.prepare(sql)
+    statementCache.set(sql, new WeakRef(stmt))
   }
-  const stmt = write_db.prepare(sql)
-  statementCache.set(sql, stmt)
   return stmt
 }
 
