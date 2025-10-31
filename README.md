@@ -1,3 +1,7 @@
+#  原项目地址：
+https://gitee.com/yanfanVIP/nas-music
+导入github，只是为了使用github actions编译daocker镜像。
+
 # 🎵 NAS 音乐服务器
 
 一个功能强大的基于 Node.js 的音乐服务器，支持本地音乐管理、在线音乐搜索和数据同步功能。
